@@ -1,0 +1,71 @@
+# Extract the relational abstraction from the HSal Model
+# HSal model can contain relational abstractions inside them
+# Each continuous transition can have an alternate description
+# Here we just want to extract the alternate descriptions
+
+# We need to take care of INITFORDECL and INVARDECL
+
+# from xml.dom.minidom import parse, parseString
+import xml.dom.minidom
+import sys	# for sys.argv[0]
+
+def GuardedCommandLhsVar(gcmd):
+    assgns = gcmd.getElementsByTagName("ASSIGNMENTS")
+    if (assgns == None):
+        return(0)
+    defns = assgns[0].getElementsByTagName("SIMPLEDEFINITION")
+    if (defns == None):
+        return(0)
+    lhs = defns[0].getElementsByTagName("NEXTOPERATOR")[0]
+    nameexpr = lhs.getElementsByTagName("NAMEEXPR")[0]
+    return(nameexpr.childNodes[0].data)
+
+def isCont(gcmd):
+    "Is this guarded command a continuous transition?"
+    var = GuardedCommandLhsVar(gcmd)
+    # print "Variable is %s" % var
+    if var[-3:] == 'dot':
+        return(1)
+
+def handleTransDecl(tdecl):
+    somecmds = tdecl.getElementsByTagName("SOMECOMMANDS")[0]
+    cmds = somecmds.childNodes
+    for i in cmds:
+        #if i.localName == "GUARDEDCOMMAND":
+            #print "It is a guarded command"
+        if i.localName == "MULTICOMMAND":
+            # print "It is a multi command"
+            gcmds = i.getElementsByTagName("GUARDEDCOMMAND")
+            for j in gcmds:
+                if (not(isCont(j))):
+                    break
+            if (j == None): 
+                print "No abstraction found"
+            else:
+                somecmds.replaceChild(j, i)
+
+def handleContext(ctxt):
+    cbody = ctxt.getElementsByTagName("CONTEXTBODY")[0]
+    mdecls = ctxt.getElementsByTagName("MODULEDECLARATION")
+    # print 'Number of module declarations is %d\n' % mdecls.length
+    for mdecl in mdecls:
+        basemodule = mdecl.getElementsByTagName("BASEMODULE")
+        if (basemodule == None):
+            print 'Not a basemodule, ignoring\n'
+        else:
+            ldecls = basemodule[0].getElementsByTagName("LOCALDECL")
+            invardecl = basemodule[0].getElementsByTagName("INVARDECL")
+            initfmla = basemodule[0].getElementsByTagName("INITFORDECL")
+            transdecl = basemodule[0].getElementsByTagName("TRANSDECL")
+            # print 'Number of local declarations is %d' % ldecls.length
+            # print 'Number of invar declarations is %d' % invardecl.length
+            # print 'Number of initfmla is %d' % initfmla.length
+            # print 'Number of transdecl is %d' % transdecl.length
+            handleTransDecl(transdecl[0])
+        # print mdecl.toxml()
+
+dom = xml.dom.minidom.parse(sys.argv[1])
+handleContext(dom)
+print dom.toxml() 
+
+
