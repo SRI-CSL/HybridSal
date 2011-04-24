@@ -1,0 +1,14 @@
+
+This directory is svn at spartan
+It was created using
+svn co svn+ssh://spartan.csl.sri.com/svn/internal/ashish-tools/
+
+The following files and directories are svn added:
+Makefile
+src
+examples
+
+The following are NOT on svn yet
+hybridsal2xml
+devel
+
