@@ -158,17 +158,42 @@ def solve1(A,b,j,ind):
             b[i] = b[i] - b[j] * tmp
     return([A,b])
 
+def dependentIndependent(A):
+    "Partition indices [0..n-1] into dependent, independent vars"
+    n = len(A)
+    dep = list()
+    ind = list()
+    for i in range(n):
+        firstone = 1
+        for j in range(n):
+            if not(equal(A[i][j], 0)):
+                if (firstone == 1):
+                    dep.append([j,i])
+                    firstone = 0
+                else:
+                    if not(j in ind):
+                        ind.append(j)
+    return [dep,ind]
+
 def extractSoln(A,b):
     "A is permuted Identity nxn matrix; b is n-vector"
-    ans = list(b)
-    for i in range(len(b)):
-        ans[i] = None
-    for i in range(len(b)):
-        for j in range(len(b)):
-            if equal(A[i][j], 1):
-                ans[j] = b[i]
-                break
-    return ans
+    [dep,ind] = dependentIndependent(A)
+    assert len(b) == len(dep) + len(ind)
+    allans = list()
+    for i in range(len(ind)):
+        ans = zeros(b)
+        ans[ind[i]] = 1
+        for [j,k] in dep:
+            ans[j] = b[k] - A[k][ind[i]]
+        allans.append(ans)
+    if len(dep) > 0:
+        ans = zeros(b)
+        for [j,k] in dep:
+            ans[j] = b[k]
+        allans.append(ans)
+    del ind
+    del dep
+    return allans
 
 def solve(A,b):
     "Solve Ax = b; Destructive"
@@ -183,7 +208,7 @@ def solve(A,b):
                 ind1 = i
                 break
         if (ind1 == -1 and noteq(b(0), 0)):
-            return None
+            return list()
         elif ind1 == -1:
             continue
         else:
@@ -198,7 +223,10 @@ def solve(A,b):
         #print "Solving ",
         #print A,
         #print b 
-    return(extractSoln(A,b))
+    ans = extractSoln(A,b)
+    del A
+    del b
+    return ans
 
 def nminusUV(u,v):
     "Destructively update u := u - v;  u,v are vectors"
@@ -326,7 +354,9 @@ def extendToFull(basis, n):
 
 def neigenvalues(A):
     "Return MODULUS of all eigenvalues of nxn matrix A; DESTROYS A"
-    n = len(A[0])
+    n = len(A)
+    if n == 0:
+        return list()
     if n == 1:
         ans = list()
         ans.append(A[0][0])
@@ -356,6 +386,26 @@ def neigenvalues(A):
         eigens.append(lamb)
     return eigens
 
+def allEigenvectors(A, eigens):
+    "find all eigenvectors corresponding to eigenvalues eigens"
+    i = 0
+    lambold = 0
+    ans = list()
+    while i < len(eigens):
+        lamb = eigens[i]
+        if i == 0 or not(lamb == lambold):
+            eigenvectors = eigenvector(A,lamb)
+            if len(eigenvectors) > 0:
+                ans.append(lamb)
+                ans.append(eigenvectors)
+            eigenvectors = eigenvector(A,-lamb)
+            if len(eigenvectors) > 0:
+                ans.append(-lamb)
+                ans.append(eigenvectors)
+        lambold = lamb
+        i += 1
+    return ans
+
 def test1():
     xx = [ [1,2,3], [0,2,6], [0,0,3] ]
     #print multiplyAv(xx,[0,0,1])
@@ -365,6 +415,7 @@ def test1():
     print lamb
     print v
     print "The largest eigenvalue should be 3"
+    print "*************************************"
 
 def test2():
     print "Testing equation solving"
@@ -372,7 +423,8 @@ def test2():
     b = [ 6, 10, 6 ]
     ans = solve(A, b)
     print ans
-    print "The solution above should be [1 1 1]"
+    print "The solution above should be [[1 1 1]]"
+    print "*************************************"
 
 def test3():
     xx = [ [1,2,3], [0,2,6], [0,0,3] ]
@@ -381,6 +433,7 @@ def test3():
     eigens = neigenvalues(xx) 
     print eigens
     print "The above list should be [1,2,3]"
+    print "*************************************"
 
 def test4():
     xx = [ [1,2,3], [0,2,6], [0,0,3] ]
@@ -393,10 +446,31 @@ def test4():
     eigens = neigenvalues(xx) 
     print eigens
     print "The above list should be [1,2,3]"
+    print "*************************************"
+
+def test5():
+    xx = [ [0,1], [-1,0] ]
+    eigens = neigenvalues(xx)
+    print eigens
+    print "The above list should be [1,1]"
+    print "*************************************"
+
+def test6():
+    xx = [ [0,1], [-1,0] ]
+    yy = copyA(xx)
+    eigens = neigenvalues(yy)
+    eigenvectors = allEigenvectors(xx, eigens)
+    del xx
+    print eigens
+    print "The above list should be [1,1]"
+    print eigenvectors
+    print "The above list should be []"
+    print "*************************************"
 
 epsilon = 1e-4
 test1()
 test2()
 test3()
 test4()
-
+test5()
+test6()
