@@ -49,8 +49,12 @@ def copyA(A):
         ans[i] = list(A[i])
     return ans
 
+def delA(A):
+    del A[:]
+    del A
+
 def transpose(A):
-    "Return transpose of A"
+    "Return transpose of A in a new COPY"
     ans = copyA(A)
     for i in range(len(A)):
         for j in range(len(A)):
@@ -58,15 +62,10 @@ def transpose(A):
     return ans
 
 def multiplyABTranspose(AB,A,B):
-    "Return AB := A*B^T"
-    AB = copyA(A)
-    print "Multiplying A and Btranspose"
-    print A
-    print B
+    "Return AB := A*B^T; return ans in AB"
     for i in range(len(A)):
         for j in range(len(A)):
             AB[i][j] = dotproduct(A[i],B[j])
-    print AB
     return AB
 
 def changeOfBasis(A,B):
@@ -75,7 +74,7 @@ def changeOfBasis(A,B):
     AB = multiplyABTranspose(AB, A, B)
     ABtrans = transpose(AB)
     AB = multiplyABTranspose(AB, B, ABtrans)
-    del ABtrans
+    delA(ABtrans)
     return AB
 
 def nscale(v, a):
@@ -126,7 +125,6 @@ def noteq(c,d):
 
 def eigenvalueLargest(A):
     "return largest eigenvalue of A, iterated method"
-    #newA = exponent(A,10)
     i = 0
     lambold = 0;
     v = list(A[1])
@@ -138,8 +136,8 @@ def eigenvalueLargest(A):
         lamb = Avbyv(A,v)
         i += 1
     print "Number of iterations %d" % i
-    print "lamb %f" % lamb
-    print "lambold %f" % lambold
+    #print "lamb %f" % lamb
+    #print "lambold %f" % lambold
     return([lamb, nnormalize(v)])
 
 def zeros(v):
@@ -149,7 +147,7 @@ def zeros(v):
     return x
 
 def solve1(A,b,j,ind):
-    "A[j][ind] != 0; eliminate rest; Destructive function"
+    "A[j][ind] != 0; eliminate nonzero A[j][*] entries; Destructively update A,b"
     for i in range(len(b)):
         if not(i == j) and noteq(A[i][ind],0):
             tmp = A[i][ind]
@@ -191,8 +189,8 @@ def extractSoln(A,b):
         for [j,k] in dep:
             ans[j] = b[k]
         allans.append(ans)
+    delA(dep)
     del ind
-    del dep
     return allans
 
 def solve(A,b):
@@ -224,7 +222,7 @@ def solve(A,b):
         #print A,
         #print b 
     ans = extractSoln(A,b)
-    del A
+    delA(A)
     del b
     return ans
 
@@ -233,13 +231,6 @@ def nminusUV(u,v):
     for j in range(len(u)):
         u[j] = u[j] - v[j]
     return u
-
-def minusAB(A,B):
-    "Return A := A-B, destructive update of A"
-    n = len(A)
-    for i in range(n):
-        A[i] = nminusUV(A[i], B[i])
-    return A
 
 def AminuslambI(A,lamb):
     "A-lamb*I; NON-DESTRUCTIVE"
@@ -253,7 +244,7 @@ def eigenvector(A,lamb):
     B = AminuslambI(A,lamb)
     b = zeros(A[0])
     ans = solve(B, b)
-    del B
+    delA(B)
     del b
     return ans
 
@@ -298,21 +289,6 @@ def orbit(A, v):
         v = nnormalize(v)
         v = inSubspace(v, subspace)
     return subspace
-
-def mycount(v, val):
-    "return number of val's in v"
-    ans = 0
-    for i in range(len(v)):
-        if equal(v[i], val):
-            ans += 1 
-    return ans
-
-def getColumn(A, i, n):
-    "Return i-th column of nxn matrix A"
-    coli = list(A[0])
-    for j in range(n):
-        coli[j] = A[j][i]
-    return coli
 
 def isUnitColumn(A, i, n):
     "Is the i-th column of A a vector in direction i? Assuming A is nxn matrix"
@@ -377,8 +353,8 @@ def neigenvalues(A):
     done = len(subspace)
     newbasis = extendToFull(subspace, n)
     newA = changeOfBasis(A, newbasis)
-    del A
-    del newbasis
+    delA(A)
+    delA(newbasis)
     for i in range(done):
         newA = nremoveRowColumn(newA,0,n-i)
     eigens = neigenvalues(newA)
@@ -460,11 +436,11 @@ def test6():
     yy = copyA(xx)
     eigens = neigenvalues(yy)
     eigenvectors = allEigenvectors(xx, eigens)
-    del xx
+    delA(xx)
     print eigens
     print "The above list should be [1,1]"
     print eigenvectors
-    print "The above list should be []"
+    print "The above list should be [1, [[0,0]], -1, [[0,0]]]"
     print "*************************************"
 
 epsilon = 1e-4
