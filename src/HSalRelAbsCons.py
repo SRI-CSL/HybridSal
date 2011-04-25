@@ -28,15 +28,58 @@ def dotproduct(u,v):
         sum += u[i]*v[i]
     return sum
 
-def multiplyAv(A,v):
-    "multiply nxn matrix A by nx1 vector v, given as 1xn row"
+def nmultiplyAv(A,v):
+    "Destructive version of multiplyAv"
     res = []
     for i in A:
         res.append(dotproduct(i,v))
-    return res
+    for i in range(len(v)):
+        v[i] = res[i]
+    del res
+    return v
 
-def scale(v, a):
-    "return a.v where a is a scalar, v a vector"
+def multiplyAv(A,v):
+    "multiply nxn matrix A by nx1 vector v, given as 1xn row"
+    res = list(v)
+    return nmultiplyAv(A,res)
+
+def copyA(A):
+    ans = list(A)
+    for i in range(len(A)):
+        ans[i] = list(A[i])
+    return ans
+
+def transpose(A):
+    "Return transpose of A"
+    ans = copyA(A)
+    for i in range(len(A)):
+        for j in range(len(A)):
+            ans[i][j] = A[j][i]
+    return ans
+
+def multiplyABTranspose(AB,A,B):
+    "Return AB := A*B^T"
+    AB = copyA(A)
+    print "Multiplying A and Btranspose"
+    print A
+    print B
+    for i in range(len(A)):
+        for j in range(len(A)):
+            AB[i][j] = dotproduct(A[i],B[j])
+    print AB
+    return AB
+
+def changeOfBasis(A,B):
+    "Return B*A*B^T; A,B are assumed nxn matrices"
+    AB = copyA(A)
+    AB = multiplyABTranspose(AB, A, B)
+    ABtrans = transpose(AB)
+    AB = multiplyABTranspose(AB, B, ABtrans)
+    del ABtrans
+    return AB
+
+def nscale(v, a):
+    "destructively update v := a*v where a is a scalar, v a vector"
     for i in range(len(v)):
         v[i] = a * v[i]
     return v
@@ -48,17 +91,26 @@ def modulus(v):
         sum += v[i]*v[i]
     return(pow(sum,0.5))
 
+def nnormalize(v):
+    "DESTRUCTIVE version of normalize"
+    modv = modulus(v)
+    if equal(modv, 0):
+        return v
+    for i in range(len(v)):
+        v[i] = v[i]/modv
+    return(v)
+
 def normalize(v):
     "return v ./ |v|"
-    modv = modulus(v)
     ans = list(v)
-    for i in range(len(v)):
-        ans[i] = v[i]/modv
-    return(ans)
+    return nnormalize(ans)
 
 def Avbyv(A,v):
     "return |Av|/|v|"
-    return(modulus(multiplyAv(A,v))/modulus(v))
+    Av = multiplyAv(A,v)
+    modAv = modulus(Av)
+    del Av
+    return(modAv/modulus(v))
 
 def equal(c,d):
     return(abs(c-d) < epsilon)
@@ -80,26 +132,24 @@ def eigenvalueLargest(A):
     v = list(A[1])
     lamb = Avbyv(A,v)
     while noteq(lamb, lambold) and i < 100:
-        v = normalize(v)
-        v = multiplyAv(A,v)
+        v = nnormalize(v)
+        v = nmultiplyAv(A,v)
         lambold = lamb
         lamb = Avbyv(A,v)
         i += 1
     print "Number of iterations %d" % i
     print "lamb %f" % lamb
     print "lambold %f" % lambold
-    print normalize(v)
-    print normalize(multiplyAv(A,v))
-    return([lamb,v])
+    return([lamb, nnormalize(v)])
 
-def zeros(A):
-    x = list(A)
-    for i in range(len(A)):
+def zeros(v):
+    x = list(v)
+    for i in range(len(v)):
         x[i] = 0
     return x
 
 def solve1(A,b,j,ind):
-    "A[j][ind] != 0; eliminate rest"
+    "A[j][ind] != 0; eliminate rest; Destructive function"
     for i in range(len(b)):
         if not(i == j) and noteq(A[i][ind],0):
             tmp = A[i][ind]
@@ -109,6 +159,7 @@ def solve1(A,b,j,ind):
     return([A,b])
 
 def extractSoln(A,b):
+    "A is permuted Identity nxn matrix; b is n-vector"
     ans = list(b)
     for i in range(len(b)):
         ans[i] = None
@@ -120,7 +171,7 @@ def extractSoln(A,b):
     return ans
 
 def solve(A,b):
-    "Solve Ax = b"
+    "Solve Ax = b; Destructive"
     #print "Solving ",
     #print A,
     #print b 
@@ -149,21 +200,22 @@ def solve(A,b):
         #print b 
     return(extractSoln(A,b))
 
-def minusUV(u,v):
+def nminusUV(u,v):
+    "Destructively update u := u - v;  u,v are vectors"
     for j in range(len(u)):
         u[j] = u[j] - v[j]
     return u
 
 def minusAB(A,B):
-    "Return A-B, destructive update of A"
+    "Return A := A-B, destructive update of A"
     n = len(A)
     for i in range(n):
-        A[i] = minusUV(A[i], B[i])
+        A[i] = nminusUV(A[i], B[i])
     return A
 
 def AminuslambI(A,lamb):
-    "A-lamb*I"
-    B = list(A)
+    "A-lamb*I; NON-DESTRUCTIVE"
+    B = copyA(A)
     for i in range(len(A)):
         B[i][i] = A[i][i] - lamb
     return(B)
@@ -171,62 +223,138 @@ def AminuslambI(A,lamb):
 def eigenvector(A,lamb):
     "return vector in kernel of A-lamb*I"
     B = AminuslambI(A,lamb)
-    return solve(B,zeros(A[0]))
+    b = zeros(A[0])
+    ans = solve(B, b)
+    del B
+    del b
+    return ans
 
-def project(v, w):
-    "return (v.w) w"
+def nproject(v, w):
+    "destructively update w := (v.w)*w"
     p = dotproduct(v, w)
-    return scale(w, p)
+    return nscale(w, p)
 
 def projectOut(v, subspace):
-    "Return v - projection of v on subspace"
+    "Destructively update v := v - projection of v on subspace"
     for i in range(len(subspace)):
-        w = project(v, list(subspace[i]))
-        v = minusUV(v, w)
+        w = list(subspace[i])
+        w = nproject(v, w)
+        v = nminusUV(v, w)
         del w
-        v = normalize(v) 
+        v = nnormalize(v) 
     return v
 
 def inSubspace(v, subspace):
-    "Return true if v is in Subspace spanned by subspace
-     Assuming that v,subspace vectors are all normalized"
+    "Return true if v is in Subspace spanned by subspace"
+    "Assuming that v,subspace vectors are all normalized"
     v = projectOut(v, subspace)
     zero = zeros(v)
     if equalVector(v, zero):
-        return None
+        del v
+        ans = None
     else:
-        return v
-    return v
+        ans = v
+    del zero
+    return ans
 
 def orbit(A, v):
-    "Return subspace(v,Av,A^2v,...)"
+    "Return orthonormal BASIS of subspace(v,Av,A^2v,...)"
+    print "Computing ORBIT of"
+    print v
     subspace = list()
-    v = normalize(v)
-    w = inSubspace(v, subspace)
-    while not(w == None):
-        subspace.append(w)
-        v = multiplyAv(A, w)
-        v = normalize(v)
-        w = inSubspace(v, subspace)
+    v = nnormalize(v)
+    v = inSubspace(v, subspace)
+    while not(v == None):
+        subspace.append(v)
+        v = multiplyAv(A, v) # v is a NEW LIST
+        v = nnormalize(v)
+        v = inSubspace(v, subspace)
     return subspace
 
-def eigenvalues(A):
-    "Return MODULUS of all eigenvalues of A"
+def mycount(v, val):
+    "return number of val's in v"
+    ans = 0
+    for i in range(len(v)):
+        if equal(v[i], val):
+            ans += 1 
+    return ans
+
+def getColumn(A, i, n):
+    "Return i-th column of nxn matrix A"
+    coli = list(A[0])
+    for j in range(n):
+        coli[j] = A[j][i]
+    return coli
+
+def isUnitColumn(A, i, n):
+    "Is the i-th column of A a vector in direction i? Assuming A is nxn matrix"
+    ans = 1
+    for j in range(n):
+        if (not(j == i) and not(equal(A[j][i], 0))):
+            ans = 0
+    return ans
+
+def nremoveRowColumn(A, i, n):
+    "Remove i-th row and i-th column from A"
+    del A[i]
+    for j in range(n-1):
+        del A[j][i] 
+    return A
+
+def newUnitVector(v, i):
+    ans = list(v)
+    for j in range(len(v)):
+        if (j == i):
+            ans[j] = 1
+        else:
+            ans[j] = 0
+    return ans
+
+def extendToFull(basis, n):
+    "Extend the partial orthonormal basis  to a full basis"
+    j = len(basis)
+    i = 0
+    while (j < n and i < n):
+        uniti = newUnitVector(basis[0], i)
+        uniti = inSubspace(uniti, basis)
+        if not(uniti == None):
+            basis.append(uniti)
+            j += 1
+        i += 1
+    assert len(basis) == n
+    return basis
+
+def neigenvalues(A):
+    "Return MODULUS of all eigenvalues of nxn matrix A; DESTROYS A"
     n = len(A[0])
     if n == 1:
         ans = list()
-        return ans.append(A[0][0])
+        ans.append(A[0][0])
+        return ans
     for i in range(n):
         if isUnitColumn(A,i,n):
-            newA = removeRowColumn(A,i)
-            eigens = eigenvalues(newA)
-            eigens.append(A[i][i])
+            eigenvalue = A[i][i]
+            newA = nremoveRowColumn(A,i,n)
+            print "NewA after removing rowcolumn %d" % i
+            print newA
+            eigens = neigenvalues(newA)
+            print "eigens for newA are"
+            print eigens
+            eigens.append(eigenvalue)
             return eigens
     [lamb, vec] = eigenvalueLargest(A)
     subspace = orbit(A, vec)
-    eigenv = eigenvector(A, lamb)
-    if isZeroVector(eigenv):
-        eigenv = vec
+    done = len(subspace)
+    newbasis = extendToFull(subspace, n)
+    newA = changeOfBasis(A, newbasis)
+    del A
+    del newbasis
+    for i in range(done):
+        newA = nremoveRowColumn(newA,0,n-i)
+    eigens = neigenvalues(newA)
+    for i in range(done):
+        eigens.append(lamb)
+    return eigens
 
 def test1():
     xx = [ [1,2,3], [0,2,6], [0,0,3] ]
@@ -235,6 +363,7 @@ def test1():
     print xx
     [lamb, v] = eigenvalueLargest(xx) 
     print lamb
+    print v
     print "The largest eigenvalue should be 3"
 
 def test2():
@@ -245,7 +374,29 @@ def test2():
     print ans
     print "The solution above should be [1 1 1]"
 
+def test3():
+    xx = [ [1,2,3], [0,2,6], [0,0,3] ]
+    print "Test of ALL eigevalue computation of:"
+    print xx
+    eigens = neigenvalues(xx) 
+    print eigens
+    print "The above list should be [1,2,3]"
+
+def test4():
+    xx = [ [1,2,3], [0,2,6], [0,0,3] ]
+    sqrt2 = pow(2,0.5)
+    a = sqrt2 / 2
+    basis = [ [ a, a, 0], [a, -a, 0], [0, 0, 1] ]
+    xx = changeOfBasis(xx, basis)
+    print "Test of ALL eigevalue computation of:"
+    print xx
+    eigens = neigenvalues(xx) 
+    print eigens
+    print "The above list should be [1,2,3]"
+
 epsilon = 1e-4
 test1()
 test2()
+test3()
+test4()
 
