@@ -64,8 +64,9 @@ def handleContext(ctxt):
             handleTransDecl(transdecl[0])
         # print mdecl.toxml()
 
-dom = xml.dom.minidom.parse(sys.argv[1])
-handleContext(dom)
-print dom.toxml() 
+def test():
+    dom = xml.dom.minidom.parse(sys.argv[1])
+    handleContext(dom)
+    print dom.toxml() 
 
 

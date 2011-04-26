@@ -21,5 +21,35 @@
 # will do that using iteration method for now until scalability
 # becomes an issue
 
-import linearAlebra
+import xml.dom.minidom
+import sys	# for sys.argv[0]
+import linearAlgebra
+import HSalExtractRelAbs
+
+def absGuardedCommand(gc):
+    "Return a new guarded command that is a rel abs of input GC"
+    return None
+
+def handleContext(ctxt):
+    cbody = ctxt.getElementsByTagName("GUARDEDCOMMAND")
+    for i in cbody:
+        if HSalExtractRelAbs.isCont(i):
+            absGC = absGuardedCommand(i)
+            parentNode = i.parentNode
+            if parentNode.localName == 'MULTICOMMAND':
+                if not(absGC == None):
+                    parentNode.appendChild(absGC)
+                print "Parent is a multicommand"
+            elif parentNode.localName == 'SOMECOMMANDS':
+                print "Parent is SOMECOMMANDS"
+                newnode = ctxt.createElement("MULTICOMMAND")
+                newnode.appendChild(i)
+                newnode.appendChild(absGC)
+                parentNode.replaceChild(newChild=newnode, oldchild=i)
+            else:
+                print "Unknown parent node type"
+    return ctxt
+
+dom = xml.dom.minidom.parse(sys.argv[1])
+handleContext(dom)
 
