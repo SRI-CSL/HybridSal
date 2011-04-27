@@ -9,6 +9,11 @@
 import xml.dom.minidom
 import sys	# for sys.argv[0]
 
+def SimpleDefinitionLhsVar(defn):
+    lhs = defn.getElementsByTagName("NEXTOPERATOR")[0]
+    nameexpr = lhs.getElementsByTagName("NAMEEXPR")[0]
+    return(nameexpr.childNodes[0].data)
+
 def GuardedCommandLhsVar(gcmd):
     assgns = gcmd.getElementsByTagName("ASSIGNMENTS")
     if (assgns == None):
@@ -16,9 +21,7 @@ def GuardedCommandLhsVar(gcmd):
     defns = assgns[0].getElementsByTagName("SIMPLEDEFINITION")
     if (defns == None):
         return(0)
-    lhs = defns[0].getElementsByTagName("NEXTOPERATOR")[0]
-    nameexpr = lhs.getElementsByTagName("NAMEEXPR")[0]
-    return(nameexpr.childNodes[0].data)
+    return SimpleDefinitionLhsVar(defns[0])
 
 def isCont(gcmd):
     "Is this guarded command a continuous transition?"
@@ -69,4 +72,5 @@ def test():
     handleContext(dom)
     print dom.toxml() 
 
+#test()
 
