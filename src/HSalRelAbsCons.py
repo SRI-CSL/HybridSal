@@ -306,6 +306,16 @@ def createNodeTagChild(tag, childNode):
     node.appendChild(childNode)
     return node
 
+def createNodeTagChild2(tag, childNode, childNode2):
+    print "Debug printing  child1"
+    print childNode.toxml()
+    print childNode2.toxml()
+    node = createNodeTagChild(tag, childNode)
+    print "Debug printing node with 1 child"
+    print node.toxml()
+    node.appendChild(childNode2)
+    return node
+
 def createNodeTag(tag, val):
     valNode = dom.createTextNode(val)
     return createNodeTagChild(tag, valNode)
@@ -326,14 +336,20 @@ def createNodeTime(varName, rate):
     quotientNode = createNodeInfixApp('/', differenceNode, rateNode)
     return quotientNode
 
-def createNodeAnd(nodeList):
+def createNodeInfixAppRec(op, nodeList):
     n = len(nodeList)
     if n == 0:
         return None
     node = nodeList[0]
     for i in range(n-1):
-        node = createNodeInfixApp('AND', node, nodeList[i+1])
+        node = createNodeInfixApp(op, node, nodeList[i+1])
     return node
+
+def createNodeAnd(nodeList):
+    return createNodeInfixAppRec('AND', nodeList)
+
+def createNodePlus(nodeList):
+    return createNodeInfixAppRec('+', nodeList)
 
 def multirateAbs(y, b2):
     "Return y[i]'-y[i]/b1[i] are equal for all i"
@@ -345,12 +361,71 @@ def multirateAbs(y, b2):
     yindices.sort()
     node = [None for i in range(m)]
     for i,v in enumerate(yindices):
-        node[i] = createNodeTime(dictKey(v), b2[i])
+        node[i] = createNodeTime(dictKey(y,v), b2[i])
     for i in range(m-1):
         node[i] = createNodeInfixApp('=', node[0], node[i+1])
     return createNodeAnd(node)
 
-def absGuardedCommandAux(varlist,A,b,gc):
+def createNodeCXOne(c, x, flag):
+    node1 = createNodeTag("NUMERAL", str(c))
+    node2 = createNodeTag("NAMEEXPR", x)
+    if flag:
+        node2 = createNodeTagChild("NEXTOPERATOR", node2)
+    node3 = createNodeInfixApp('*', node1, node2)
+    return node3
+
+def createNodeCX(c,x,flag):
+    "create node for c1 x1+...+cn xn, use primes if flag"
+    xindices = x.values()
+    xindices.sort()
+    n = len(xindices)
+    cx = list()
+    for i,v in enumerate(xindices):
+        if not(c[i] == 0):
+            cx.append(createNodeCXOne(c[i], dictKey(x,v), flag))
+    return createNodePlus(cx)
+
+def createNodePaux(c,x,d,y,e,flag):
+    "create node for c.x + d.y + e; with PRIME variables if flag"
+    print "createNodePaux entering"
+    node1 = createNodeCX(c,x,flag)
+    node2 = createNodeCX(d,y,flag)
+    if equal(e,0):
+        node3 = None
+    else:
+        node3 = createNodeTag("NUMERAL", str(e))
+    nodeL = [ node1, node2, node3 ]
+    while None in nodeL:
+        nodeL.remove(None)
+    return createNodePlus(nodeL)
+
+def createNodePnew(vec,x,A2transvec,y,const):
+    return createNodePaux(vec,x,A2transvec,y,const,True)
+
+def createNodePold(vec,x,A2transvec,y,const):
+    return createNodePaux(vec,x,A2transvec,y,const,False)
+
+def createEigenInv(nodePnew,nodePold,lamb):
+    "0 <= nodePnew <= nodePold OR nodePold <= nodePnew <= 0 if lamb < 0"
+    "0 <= nodePold <= nodePnew OR nodePnew <= nodePold <= 0 if lamb > 0"
+    "nodePold = nodePnew if lamb == 0"
+    if lamb == 0:
+        return createNodeInfixApp('=', nodePold, nodePnew)
+    if lamb < 0:
+        tmp = nodePold
+        nodePold = nodePnew
+        nodePnew = tmp
+    node0 = createNodeTag('NUMERAL', '0')
+    node1 = createNodeInfixApp('<=', node0, nodePold)
+    node2 = createNodeInfixApp('<=', nodePold, nodePnew)
+    node = createNodeInfixApp('AND', node1, node2)
+    node1 = createNodeInfixApp('<=', nodePnew, nodePold)
+    node2 = createNodeInfixApp('<=', nodePold, node0)
+    node0 = createNodeInfixApp('AND', node1, node2)
+    node = createNodeInfixApp('OR', node, node0)
+    return node
+
+def absGuardedCommandAux(varlist,A,b):
     "varlist is a dict from var to indices"
     "A,b are the A,b matrix defined wrt these indices"
     "Return an abstract GC"
@@ -368,21 +443,29 @@ def absGuardedCommandAux(varlist,A,b,gc):
     n = len(eigen)
     i = 0
     A2trans = linearAlgebra.transpose(A2)
+    nodeL = list()
+    if not(guardAbs1 == None):
+        nodeL.append(guardAbs1)
     while i < n:
         lamb = eigen[i]
         vectors = eigen[i+1]
         if vectors == None or len(vectors) == 0:
             continue
-        if equal(lamb, 0):
-            continue
         for vec in vectors:
             A2transvec = linearAlgebra.multiplyAv(A2trans, vec)
-            for i in range(len(A2transvec)):
-                A2transvec[i] /= lamb
+            for j in range(len(vec)):
+                vec[j] *= lamb
+            const = linearAlgebra.dotproduct(vec,b1)
+            const += linearAlgebra.dotproduct(A2transvec,b2)
+            nodePnew = createNodePnew(vec,x,A2transvec,y,const)
+            nodePold = createNodePold(vec,x,A2transvec,y,const)
+            # vec could be 0 vector and hence nodePnew could be None
+            if not(nodePnew == None):
+                nodeL.append(createEigenInv(nodePnew,nodePold,lamb))
             # Pick d' s.t. l d' = c' A2 or, d l = A2' c
             # Let p := (c'x+d'y+ (c'b1+d'b2)/l) THEN dp/dt = l p
         i += 2
-    return None
+    return createNodeAnd(nodeL)
 
 # collect all x s.t. dx/dt = constant
 # replace them by their rel abs.
@@ -405,8 +488,10 @@ def absGuardedCommand(gc):
     print A
     print "b"
     print b
-    absGuardedCommandAux(varlist,A,b,gc)
-    return None
+    absgc = absGuardedCommandAux(varlist,A,b)
+    absguardnode = createNodeInfixApp('AND',guard,absgc)
+    absguard = createNodeTagChild('GUARD',absguardnode)
+    return createNodeTagChild2('GUARDEDCOMMAND', absguard, assigns)
 
 def handleContext(ctxt):
     cbody = ctxt.getElementsByTagName("GUARDEDCOMMAND")

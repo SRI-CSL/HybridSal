@@ -33,10 +33,8 @@ def nmultiplyAv(A,v):
     res = []
     for i in A:
         res.append(dotproduct(i,v))
-    for i in range(len(v)):
-        v[i] = res[i]
-    del res
-    return v
+    del v
+    return res
 
 def multiplyAv(A,v):
     "multiply nxn matrix A by nx1 vector v, given as 1xn row"
@@ -55,8 +53,10 @@ def delA(A):
 
 def transpose(A):
     "Return transpose of A in a new COPY"
-    ans = copyA(A)
-    for i in range(len(A)):
+    if len(A) == 0:
+        return list()
+    ans = [ [0 for i in range(len(A))] for j in range(len(A[0])) ]
+    for i in range(len(A[0])):
         for j in range(len(A)):
             ans[i][j] = A[j][i]
     return ans
@@ -160,22 +160,26 @@ def dependentIndependent(A):
     "Partition indices [0..n-1] into dependent, independent vars"
     n = len(A)
     dep = list()
-    ind = list()
+    ind = range(n)
     for i in range(n):
         firstone = 1
         for j in range(n):
             if not(equal(A[i][j], 0)):
                 if (firstone == 1):
                     dep.append([j,i])
+                    ind.remove(j)
                     firstone = 0
-                else:
-                    if not(j in ind):
-                        ind.append(j)
     return [dep,ind]
 
 def extractSoln(A,b):
     "A is permuted Identity nxn matrix; b is n-vector"
+    print "Extracting solution from Ax=b where A,b are"
+    print A
+    print b
     [dep,ind] = dependentIndependent(A)
+    print "dep, independent vars from A are"
+    print dep
+    print ind
     assert len(b) == len(dep) + len(ind)
     allans = list()
     for i in range(len(ind)):
@@ -205,7 +209,7 @@ def solve(A,b):
             if noteq(A[j][i], 0):
                 ind1 = i
                 break
-        if (ind1 == -1 and noteq(b(0), 0)):
+        if (ind1 == -1 and noteq(b[j], 0)):
             return list()
         elif ind1 == -1:
             continue
