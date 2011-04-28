@@ -382,4 +382,10 @@ def allEigenvectors(A, eigens):
         i += 1
     return ans
 
+def eigen(A):
+    yy = copyA(A)
+    eigens = neigenvalues(yy)
+    eigenvectors = allEigenvectors(A, eigens)
+    return eigenvectors
+
 epsilon = 1e-4

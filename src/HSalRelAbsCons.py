@@ -232,7 +232,167 @@ def flow2Ab(flow):
         A.append(Aibi[0])
         b.append(Aibi[1])
         i += 1
-    return [A,b]
+    return [varlist,A,b]
+
+def equal(a,b):
+    return abs(a-b) < epsilon
+
+def dictKey(varlist, value):
+    "Return key given the value"
+    for var,index in varlist.iteritems():
+        if index == value:
+            return var
+    return None
+
+def isZero(vec):
+    "Is vec a zero vector"
+    for i in vec:
+        if not(equal(i,0)):
+            return False
+    return True
+
+def partitionAux(x, y, A, b):
+    "Rearrange A,b s.t. (x;y) = (A1,A2;0,0)(x;y) + (b1;b2); DESTRUCTIVE"
+    xindices = x.values()
+    yindices = y.values()
+    xindices.sort()
+    xindices.reverse()
+    yindices.sort()
+    yindices.reverse()
+    n = len(x)
+    m = len(y)
+    A2 = [ [0 for i in range(m) ] for j in range(n) ]
+    b2 = [ 0 for i in range(m) ] 
+    ib2 = m-1
+    for i in yindices:
+        del A[i]
+        b2[ib2] = b[i]
+        del b[i]
+        ib2 -= 1
+    iA2 = m-1
+    for i in yindices:
+        for j in range(len(A)):
+            A2[j][iA2] = A[j][i]
+            del A[j][i]
+        iA2 -= 1
+    print "A1 below should be nxn where n is %d" % n
+    print A
+    print "A2 below should be nxm where m is %d" % m
+    print A2
+    print "b1 below should be nx1 where n is %d" % n
+    print b
+    print "b2 below should be mx1 where n is %d" % m
+    print b2
+    return [A, A2, b, b2]
+
+def partition(varlist, A, b):
+    "output [x,y,A1,A2,b1,b2] s.t. (x;y) = (A1 A2; 0 0) (x;y) + (b1;b2)"
+    x = dict()
+    y = dict()
+    index = 0
+    for i in A:
+        if isZero(i):
+            var = dictKey(varlist, index)
+            y[var] = index
+        else:
+            var = dictKey(varlist, index)
+            x[var] = index
+        index += 1
+    [A1,A2,b1,b2] = partitionAux(x, y, A, b)
+    return [x,y,A1,A2,b1,b2]
+
+def createNodeTagChild(tag, childNode):
+    node = dom.createElement(tag)
+    node.appendChild(childNode)
+    return node
+
+def createNodeTag(tag, val):
+    valNode = dom.createTextNode(val)
+    return createNodeTagChild(tag, valNode)
+
+def createNodeInfixApp(op, child1, child2):
+    tupleNode = createNodeTagChild2("TUPLELITERAL", child1, child2)
+    opNode = createNodeTag("NAMEEXPR", op)
+    appNode = createNodeTagChild2("APPLICATION", opNode, tupleNode)
+    appNode.setAttribute('INFIX', 'YES')
+    return appNode
+
+def createNodeTime(varName, rate):
+    "Return varName' - varName / rate"
+    rateNode = createNodeTag("NUMERAL", str(rate))
+    varNode = createNodeTag("NAMEEXPR", varName)
+    varPrimeNode = createNodeTagChild("NEXTOPERATOR", varNode)
+    differenceNode = createNodeInfixApp('-', varPrimeNode, varNode)
+    quotientNode = createNodeInfixApp('/', differenceNode, rateNode)
+    return quotientNode
+
+def createNodeAnd(nodeList):
+    n = len(nodeList)
+    if n == 0:
+        return None
+    node = nodeList[0]
+    for i in range(n-1):
+        node = createNodeInfixApp('AND', node, nodeList[i+1])
+    return node
+
+def multirateAbs(y, b2):
+    "Return y[i]'-y[i]/b1[i] are equal for all i"
+    "Return an XML SAL expression -- guard"
+    m = len(b2)
+    if m <= 1:
+        return None
+    yindices = y.values()
+    yindices.sort()
+    node = [None for i in range(m)]
+    for i,v in enumerate(yindices):
+        node[i] = createNodeTime(dictKey(v), b2[i])
+    for i in range(m-1):
+        node[i] = createNodeInfixApp('=', node[0], node[i+1])
+    return createNodeAnd(node)
+
+def absGuardedCommandAux(varlist,A,b,gc):
+    "varlist is a dict from var to indices"
+    "A,b are the A,b matrix defined wrt these indices"
+    "Return an abstract GC"
+    [x,y,A1,A2,b1,b2] = partition(varlist,A,b)
+    n = len(x)
+    m = len(y)
+    if n == 0:
+        print "dx/dt is a constant for all x"
+    guardAbs1 = multirateAbs(y, b2)
+    A1trans = linearAlgebra.transpose(A1)
+    eigen = linearAlgebra.eigen(A1)
+    # [ l [ vectors ] l [ vectors ] ]
+    print "The eigenvectors computed are:"
+    print eigen
+    n = len(eigen)
+    i = 0
+    A2trans = linearAlgebra.transpose(A2)
+    while i < n:
+        lamb = eigen[i]
+        vectors = eigen[i+1]
+        if vectors == None or len(vectors) == 0:
+            continue
+        if equal(lamb, 0):
+            continue
+        for vec in vectors:
+            A2transvec = linearAlgebra.multiplyAv(A2trans, vec)
+            for i in range(len(A2transvec)):
+                A2transvec[i] /= lamb
+            # Pick d' s.t. l d' = c' A2 or, d l = A2' c
+            # Let p := (c'x+d'y+ (c'b1+d'b2)/l) THEN dp/dt = l p
+        i += 2
+    return None
+
+# collect all x s.t. dx/dt = constant
+# replace them by their rel abs.
+# all other x's: d (x;y) = (A B; 0 0) (x;y) + (b1;b2)
+# Suppose c'A=l c' is a left eigenvector of A with eigenvalue l
+# Pick d' s.t. l d' = c' B
+# d/dt(c'x+d'y)=c'(Ax+By+b1)+d'b2 = l c'x + l d'y + c'b1 + d'b2
+# Let p := (c'x+d'y+ (c'b1+d'b2)/l) THEN dp/dt = l p
+
+# If we fail to find eigen, we need BOX invs -- for later...
 
 def absGuardedCommand(gc):
     "Return a new guarded command that is a rel abs of input GC"
@@ -240,11 +400,12 @@ def absGuardedCommand(gc):
     assigns = gc.getElementsByTagName("ASSIGNMENTS")[0]
     defs = assigns.getElementsByTagName("SIMPLEDEFINITION")
     flow = getFlow(defs)
-    [A,b] = flow2Ab(flow)
+    [varlist,A,b] = flow2Ab(flow)
     print "A"
     print A
     print "b"
     print b
+    absGuardedCommandAux(varlist,A,b,gc)
     return None
 
 def handleContext(ctxt):
@@ -267,6 +428,7 @@ def handleContext(ctxt):
                 print "Unknown parent node type"
     return ctxt
 
+epsilon = 1e-4
 dom = xml.dom.minidom.parse(sys.argv[1])
 handleContext(dom)
 
