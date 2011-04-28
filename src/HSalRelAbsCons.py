@@ -1,7 +1,7 @@
-# Generate constraints that need to be solved
-# for finding the relational abstraction
+# Generate relational abstraction of hybrid systems with
+# linear dynamics in each mode
 
-# Input: Hybrid Sal model in XML syntax
+# Input:  Hybrid Sal model in XML syntax
 # Output: Hybrid Sal model in XML syntax
 # Output will have relational abstractions 
 # of all continuous modes
@@ -25,17 +25,15 @@ import xml.dom.minidom
 import sys	# for sys.argv[0]
 import linearAlgebra
 import HSalExtractRelAbs
+import HSalXMLPP
 
 # represent expression as in polyrep
-def valueOf(node):
-    "return text value of node"
-    for i in node.childNodes:
-        if i.nodeType == i.TEXT_NODE:
-            return(i.data)
 
-def getNameTag(node, tag):
-    nnode = node.getElementsByTagName(tag)[0]
-    return(valueOf(nnode))
+valueOf = HSalXMLPP.valueOf
+getNameTag = HSalXMLPP.getNameTag
+getArg = HSalXMLPP.getArg
+appArg = HSalXMLPP.appArg
+equal = linearAlgebra.equal
 
 def nameExpr2poly(node):
     var = valueOf(node)
@@ -43,32 +41,14 @@ def nameExpr2poly(node):
 
 def numeral2poly(node):
     numstr = valueOf(node)
-    print numstr
     num  = int(numstr)
     if num == 0:
         return [ ]
-    else:
-        return [ [ int(numstr), dict() ] ]
-
-def getArg(node,index):
-    j = 0
-    for i in node.childNodes:
-        if (i.nodeType == i.ELEMENT_NODE):
-            j = j+1
-            if j == index:
-                return(i)
-    #print "Error: Argument not found!"
-    return None
-
-def appArg(node,index):
-    #print node.toxml()
-    tuples = node.getElementsByTagName('TUPLELITERAL')[0]
-    return getArg(tuples,index)
+    return [ [ num, dict() ] ]
 
 def polyNeg(p):
     "Return -p; destructive"
     for i in p:
-        print i[0]
         i[0] = -i[0]
     return p
 
@@ -78,7 +58,13 @@ def polyAdd(p1,p2):
         return p2
     if len(p2) == 0:
         return p1
-    p1.extend(p2)
+    for cpp2 in p2:
+        for cpp1 in p1:
+            if (cpp1[1] == cpp2[1]):
+                cpp1[0] += cpp2[0]
+                break
+        else:
+            p1.append(cpp2)
     return p1
 
 def polySub(p1,p2):
@@ -234,8 +220,6 @@ def flow2Ab(flow):
         i += 1
     return [varlist,A,b]
 
-def equal(a,b):
-    return abs(a-b) < epsilon
 
 def dictKey(varlist, value):
     "Return key given the value"

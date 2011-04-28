@@ -12,8 +12,8 @@ def valueOf(node):
             return(i.data)
 
 def getNameTag(node, tag):
-    id = node.getElementsByTagName(tag)[0]
-    return(valueOf(id))
+    node = node.getElementsByTagName(tag)[0]
+    return(valueOf(node))
 
 def getName(node):
     return getNameTag(node, "IDENTIFIER")
