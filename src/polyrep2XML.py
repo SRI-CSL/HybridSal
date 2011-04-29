@@ -60,6 +60,13 @@ def createNodeCXOne(c, x, flag):
     node3 = createNodeInfixApp('*', node1, node2)
     return node3
 
+def dictKey(varlist, value):
+    "Return key given the value"
+    for var,index in varlist.iteritems():
+        if index == value:
+            return var
+    return None
+
 def createNodeCX(c,x,flag):
     "create node for c1 x1+...+cn xn, use primes if flag"
     xindices = x.values()

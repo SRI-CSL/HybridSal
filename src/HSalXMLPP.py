@@ -160,9 +160,12 @@ def HSalPPSimpleDefn(node):
 
 def HSalPPAssgns(assgns):
     defs = assgns.getElementsByTagName("SIMPLEDEFINITION")
+    flag = False
     for i in defs:
+        if flag:
+            print(";"),
         HSalPPSimpleDefn(i)
-        print(";"),
+        flag = True
     print "\n",
 
 def HSalPPGuardedCommand(node):
@@ -209,20 +212,20 @@ def HSalPPBaseModule(basemod):
     for i in ldecls:
         HSalPPLocalDecl(i)
     invardecl = basemod.getElementsByTagName("INVARDECL")
-    if not(invardecl == None):
+    if not(invardecl == None) and len(invardecl) > 0:
         HSalPPInvarDecl(invardecl[0])
     initdecl = basemod.getElementsByTagName("INITFORDECL")
-    if not(initdecl == None):
+    if not(initdecl == None) and len(initdecl) > 0:
         HSalPPInitForDecl(initdecl[0])
     transdecl = basemod.getElementsByTagName("TRANSDECL")
-    if not(transdecl == None):
+    if not(transdecl == None) and len(transdecl) > 0:
         HSalPPTransDecl(transdecl[0])
 
 def HSalPPModDecl(node):
     print "\n%s: MODULE =" % getName(node)
     print "BEGIN" 
     basemods = node.getElementsByTagName("BASEMODULE")
-    if (basemods == None):
+    if (basemods == None) or len(basemods) == 0:
         print "Module is not a base module. Fill in code later"
     else:
         HSalPPBaseModule(basemods[0])
@@ -247,7 +250,7 @@ def HSalPPFuncType(node):
     rhs = getArg(node,2)
     str1 = HSalPPType(lhs,"","")
     str2 = HSalPPType(rhs,"","")
-    return str1+"->"+str2
+    return "["+str1+"->"+str2+"]"
 
 def HSalPPStateType(node):
     str1 = HSalPPModuleInstance(node.getElementsByTagName("MODULEINSTANCE")[0])
@@ -272,7 +275,7 @@ def HSalPPType(node,str1,str2):
 def HSalPPCnstDecl(node):
     print getNameTag(node, "IDENTIFIER"),
     vardecls = node.getElementsByTagName("VARDECLS")
-    if not(vardecls == None):
+    if not(vardecls == None) and len(vardecls) > 0:
         arg = vardecls[0]
         print HSalPPDecls(arg.childNodes,"(",")"),
     arg = getArg(node,3)
@@ -303,5 +306,6 @@ def HSalPPContext(ctxt):
     HSalPPContextBody(ctxt.getElementsByTagName("CONTEXTBODY")[0])
     print "END" 
 
-dom = xml.dom.minidom.parse(sys.argv[1])
-HSalPPContext(dom)
+if __name__ == "__main__":
+    dom = xml.dom.minidom.parse(sys.argv[1])
+    HSalPPContext(dom)

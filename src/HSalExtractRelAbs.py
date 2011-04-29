@@ -67,10 +67,11 @@ def handleContext(ctxt):
             handleTransDecl(transdecl[0])
         # print mdecl.toxml()
 
-def test():
+def main():
     dom = xml.dom.minidom.parse(sys.argv[1])
     handleContext(dom)
     print dom.toxml() 
 
-#test()
+if __name__ == "__main__":
+    main()
 

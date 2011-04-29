@@ -11,16 +11,16 @@ INITIALIZATION
 TRANSITION
 [
 state = TRUE AND x >= 80  --> 
-state'=FALSE ; 
+state'=FALSE  
 []
 state = FALSE AND x <= 70  --> 
-state'=TRUE ; 
+state'=TRUE  
 []
 state = TRUE AND x < 80 AND x' < 80  --> 
-x'IN{z:REAL|z > x} ; 
+x'IN{z:REAL|z > x}  
 []
 state = TRUE AND x > 70 AND x' > 70  --> 
-x'IN{z:REAL|z < x} ; 
+x'IN{z:REAL|z < x}  
 ]
 END;
 

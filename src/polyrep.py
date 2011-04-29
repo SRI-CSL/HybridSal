@@ -4,6 +4,8 @@
 # [ [2 {x:1}] [3 {y:2 x:1}] [3 {}] ], monomials are dictionaries
 # Currently, polynomials are not normalized; no ordering
 
+import HSalXMLPP
+
 valueOf = HSalXMLPP.valueOf
 getNameTag = HSalXMLPP.getNameTag
 appArg = HSalXMLPP.appArg
