@@ -44,21 +44,18 @@ isCont = HSalExtractRelAbs.isCont
 # Functions for creating XML node for expressions
 # ********************************************************************
 def createNodeTagChild(tag, childNode):
+    global dom
     node = dom.createElement(tag)
     node.appendChild(childNode)
     return node
 
 def createNodeTagChild2(tag, childNode, childNode2):
-    print "Debug printing  child1"
-    print childNode.toxml()
-    print childNode2.toxml()
     node = createNodeTagChild(tag, childNode)
-    print "Debug printing node with 1 child"
-    print node.toxml()
     node.appendChild(childNode2)
     return node
 
 def createNodeTag(tag, val):
+    global dom
     valNode = dom.createTextNode(val)
     return createNodeTagChild(tag, valNode)
 
@@ -88,10 +85,16 @@ def createNodeInfixAppRec(op, nodeList):
     return node
 
 def createNodeAnd(nodeList):
-    return createNodeInfixAppRec('AND', nodeList)
+    ans = createNodeInfixAppRec('AND', nodeList)
+    if ans == None:
+        return createNodeTag("NAMEEXPR", "TRUE")
+    return ans
 
 def createNodePlus(nodeList):
-    return createNodeInfixAppRec('+', nodeList)
+    ans = createNodeInfixAppRec('+', nodeList)
+    if ans == None:
+        return createNodeTag("NUMERAL", "0")
+    return ans
 
 def createNodeCXOne(c, x, flag):
     node1 = createNodeTag("NUMERAL", str(c))
@@ -149,12 +152,11 @@ def createEigenInv(nodePnew,nodePold,lamb):
         tmp = nodePold
         nodePold = nodePnew
         nodePnew = tmp
-    node0 = createNodeTag('NUMERAL', '0')
-    node1 = createNodeInfixApp('<=', node0, nodePold)
-    node2 = createNodeInfixApp('<=', nodePold, nodePnew)
+    node1 = createNodeInfixApp('<=', createNodeTag('NUMERAL', '0'), nodePold)
+    node2 = createNodeInfixApp('<=', nodePold.cloneNode(True), nodePnew)
     node = createNodeInfixApp('AND', node1, node2)
-    node1 = createNodeInfixApp('<=', nodePnew, nodePold)
-    node2 = createNodeInfixApp('<=', nodePold, node0)
+    node1 = createNodeInfixApp('<=', nodePnew.cloneNode(True), nodePold.cloneNode(True))
+    node2 = createNodeInfixApp('<=', nodePold.cloneNode(True), createNodeTag('NUMERAL', '0'))
     node0 = createNodeInfixApp('AND', node1, node2)
     node = createNodeInfixApp('OR', node, node0)
     return node
@@ -360,8 +362,9 @@ def absGuardedCommand(gc):
     print A
     print "b"
     print b
+    guardExpr = HSalXMLPP.getArg(guard,1)
     absgc = absGuardedCommandAux(varlist,A,b)
-    absguardnode = createNodeInfixApp('AND',guard.cloneNode(True),absgc)
+    absguardnode = createNodeInfixApp('AND',guardExpr.cloneNode(True),absgc)
     absguard = createNodeTagChild('GUARD',absguardnode)
     return createNodeTagChild2('GUARDEDCOMMAND', absguard, assigns.cloneNode(True))
 
@@ -386,7 +389,13 @@ def handleContext(ctxt):
                 print "Unknown parent node type"
     return ctxt
 
-epsilon = 1e-4
-dom = xml.dom.minidom.parse(sys.argv[1])
-newctxt = handleContext(dom)
-HSalXMLPP.HSalPPContext(newctxt)
+def main():
+    global dom
+    dom = xml.dom.minidom.parse(sys.argv[1])
+    newctxt = handleContext(dom)
+    HSalXMLPP.HSalPPContext(newctxt)
+
+
+if __name__ == '__main__':
+    main()
+

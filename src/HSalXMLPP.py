@@ -122,7 +122,7 @@ def HSalPPExpr(node):
         return HSalPPSetPredExpr(node)
     else:
         print node.toxml()
-        print 'Type of expr unknown? Missing code'
+        print 'Node EXPR %s unknown. Missing code' % node.localName
     return None
 
 def HSalPPExprs(nodes):
@@ -268,7 +268,7 @@ def HSalPPType(node,str1,str2):
         str0 = HSalPPStateType(node)
     else:
         print node.toxml()
-        print 'Type of expr unknown? Missing code'
+        print 'Node TYPE %s not handled. Missing code' % node.localName
     if not(str0 == None):
         return str1+str0+str2
 
