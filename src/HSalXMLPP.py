@@ -1,9 +1,14 @@
 # Pretty Printer for HSal XML
 # Reads salfile.xml and outputs salfile.sal
+
+
 import xml.dom.minidom
 import sys
 
-# Some functions return a string, others print to stdout
+# Caveat1: Some functions return a string, others print >> fp
+# Caveat2: global fp is used as a file pointer; 
+#   From this file, you can safely use HSalPPContext; 
+#   For using other functions, need to set fp
 
 def valueOf(node):
     "return text value of node"
@@ -22,13 +27,11 @@ def HSalPPDecl(node):
     return getName(node)+HSalPPType(getArg(node,2), ":", "")
     
 def HSalPPDecls(nodes, str1, str2):
-    "print every VARDECL in nodes"
+    "print >> fp, every VARDECL in nodes"
     k = 0
     str0 = ""
     for j in nodes:
         if (j.localName == "VARDECL"):
-            #print j
-            #print j.toxml()
             if (k > 0):
                 str0 = str0+","
             else:
@@ -40,8 +43,8 @@ def HSalPPDecls(nodes, str1, str2):
     return str0
 
 def HSalPPLocalDecl(i):
-    print "LOCAL " + HSalPPDecls(i.childNodes, "", "")
-    #print i.toxml()
+    global fp
+    print >> fp, "LOCAL " + HSalPPDecls(i.childNodes, "", "")
 
 def HSalPPNameExpr(node):
     return valueOf(node)
@@ -56,11 +59,9 @@ def getArg(node,index):
             j = j+1
             if j == index:
                 return(i)
-    #print "Error: Argument not found!"
     return None
 
 def appArg(node,index):
-    #print node.toxml()
     tuples = node.getElementsByTagName('TUPLELITERAL')[0]
     return getArg(tuples,index)
 
@@ -107,7 +108,6 @@ def HSalPPSetPredExpr(node):
     return str0
 
 def HSalPPExpr(node):
-    # print node.localName
     if (node == None) or not(node.nodeType == node.ELEMENT_NODE):
         return ""
     if node.localName == "NAMEEXPR":
@@ -129,66 +129,72 @@ def HSalPPExprs(nodes):
     for node in nodes:
         if (node.nodeType == node.ELEMENT_NODE):
             return HSalPPExpr(node)
-        #if (node.nodeType == node.TEXT_NODE):
-            #print node.data
 
 def HSalPPInvarDecl(invardecl):
-    print "INVARIANT",
+    global fp
+    print >> fp, "INVARIANT",
     exprs = invardecl.childNodes
-    print HSalPPExprs(exprs),
-    print "\n",
+    print >> fp, HSalPPExprs(exprs),
+    print >> fp, "\n",
 
 def HSalPPInitForDecl(initdecl):
-    print "INITFORMULA",
-    print HSalPPExprs(initdecl.childNodes),
-    print "\n",
+    global fp
+    print >> fp, "INITFORMULA",
+    print >> fp, HSalPPExprs(initdecl.childNodes),
+    print >> fp, "\n",
 
 def HSalPPGuard(guard):
-    print HSalPPExprs(guard.childNodes),
+    global fp
+    print >> fp, HSalPPExprs(guard.childNodes),
 
 def HSalPPSimpleDefn(node):
+    global fp
     str0 = HSalPPExpr(getArg(node,1))
     rhsexpr = node.getElementsByTagName("RHSEXPRESSION")
     rhssel  = node.getElementsByTagName("RHSSELECTION")
     if not(rhsexpr.length == 0):
-        str0 += "="
+        str0 += " = "
         str0 += HSalPPExprs(rhsexpr[0].childNodes)
     elif not(rhssel.length == 0):
-        str0 += "IN"
+        str0 += " IN "
         str0 += HSalPPExprs(rhssel[0].childNodes)
-    print str0,
+    print >> fp, str0,
 
 def HSalPPAssgns(assgns):
+    global fp
     defs = assgns.getElementsByTagName("SIMPLEDEFINITION")
     flag = False
     for i in defs:
         if flag:
-            print(";"),
+            print >> fp, ";",
         HSalPPSimpleDefn(i)
         flag = True
-    print "\n",
+    print >> fp, "\n",
 
 def HSalPPGuardedCommand(node):
+    global fp
     guard = node.getElementsByTagName("GUARD")[0]
     HSalPPGuard(guard)
-    print(" --> ")
+    print >> fp, " --> "
     assgns = node.getElementsByTagName("ASSIGNMENTS")[0]
     HSalPPAssgns(assgns)
     
 def HSalPPMultiCommand(node):
-    print("[")
+    global fp
+    print >> fp, "["
     gcmds = node.getElementsByTagName("GUARDEDCOMMAND")
     i = 0
     for j in gcmds:
         if not(i == 0):
-            print " || "
+            print >> fp, " || "
         HSalPPGuardedCommand(j)
         i = i + 1
-    print("]")
+    print >> fp, "]"
 
 def HSalPPTransDecl(transdecl):
-    print "TRANSITION"
-    print "["
+    global fp
+    print >> fp, "TRANSITION"
+    print >> fp, "["
     j = 0
     cmds = transdecl.getElementsByTagName("SOMECOMMANDS")[0]
     if not(cmds == None):
@@ -197,15 +203,15 @@ def HSalPPTransDecl(transdecl):
         j += 1
         if i.localName == "GUARDEDCOMMAND":
             if not(j == 1):
-                print "[]"
+                print >> fp, "[]"
             HSalPPGuardedCommand(i)
         elif i.localName == "MULTICOMMAND":
             if not(j == 1):
-                print "[]"
+                print >> fp, "[]"
             HSalPPMultiCommand(i)
         else:
             j -= 1
-    print "]"
+    print >> fp, "]"
 
 def HSalPPBaseModule(basemod):
     ldecls = basemod.getElementsByTagName("LOCALDECL")
@@ -222,27 +228,30 @@ def HSalPPBaseModule(basemod):
         HSalPPTransDecl(transdecl[0])
 
 def HSalPPModDecl(node):
-    print "\n%s: MODULE =" % getName(node)
-    print "BEGIN" 
+    global fp
+    print >> fp, "\n%s: MODULE =" % getName(node)
+    print >> fp, "BEGIN" 
     basemods = node.getElementsByTagName("BASEMODULE")
     if (basemods == None) or len(basemods) == 0:
         print "Module is not a base module. Fill in code later"
     else:
         HSalPPBaseModule(basemods[0])
-    print "END;\n" 
+    print >> fp, "END;\n" 
 
 def HSalPPModuleInstance(node):
     return getNameTag(node, "MODULENAME")
     
 def HSalPPModuleModels(node):
+    global fp
     str1 = HSalPPModuleInstance(node.getElementsByTagName("MODULEINSTANCE")[0])
     str2 = HSalPPExpr(getArg(node,2))
-    print str1+" |- "+str2+";"
+    print >> fp, str1+" |- "+str2+";"
 
 def HSalPPAssertionDecl(node):
-    print getNameTag(node,"IDENTIFIER"),
-    print ":",
-    print getNameTag(node,"ASSERTIONFORM")
+    global fp
+    print >> fp, getNameTag(node,"IDENTIFIER"),
+    print >> fp, ":",
+    print >> fp, getNameTag(node,"ASSERTIONFORM")
     HSalPPModuleModels(node.getElementsByTagName("MODULEMODELS")[0])
 
 def HSalPPFuncType(node):
@@ -273,18 +282,19 @@ def HSalPPType(node,str1,str2):
         return str1+str0+str2
 
 def HSalPPCnstDecl(node):
-    print getNameTag(node, "IDENTIFIER"),
+    global fp
+    print >> fp, getNameTag(node, "IDENTIFIER"),
     vardecls = node.getElementsByTagName("VARDECLS")
     if not(vardecls == None) and len(vardecls) > 0:
         arg = vardecls[0]
-        print HSalPPDecls(arg.childNodes,"(",")"),
+        print >> fp, HSalPPDecls(arg.childNodes,"(",")"),
     arg = getArg(node,3)
-    print HSalPPType(arg,": ",""),
+    print >> fp, HSalPPType(arg,": ",""),
     arg = getArg(node,4)
     value = HSalPPExpr(arg)
     if not(value == None) and not(value == ""):
-        print " = %s" % value
-    print ";"
+        print >> fp, " = %s" % value
+    print >> fp, ";"
 
 def HSalPPNode(node):
     if node.localName == "MODULEDECLARATION":
@@ -300,11 +310,13 @@ def HSalPPContextBody(ctxtbody):
     for i in ctxtbody.childNodes:
         HSalPPNode(i)
 
-def HSalPPContext(ctxt):
-    print "%s: CONTEXT = " % getName(ctxt)
-    print "BEGIN" 
+def HSalPPContext(ctxt, filepointer=sys.stdout):
+    global fp 
+    fp = filepointer
+    print >> fp, "%s: CONTEXT = " % getName(ctxt)
+    print >> fp, "BEGIN" 
     HSalPPContextBody(ctxt.getElementsByTagName("CONTEXTBODY")[0])
-    print "END" 
+    print >> fp, "END"
 
 if __name__ == "__main__":
     dom = xml.dom.minidom.parse(sys.argv[1])

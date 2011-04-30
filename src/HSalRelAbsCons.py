@@ -25,6 +25,8 @@ import linearAlgebra
 import HSalExtractRelAbs
 import polyrep # internal representation for expressions
 import HSalXMLPP
+import os.path
+import shutil
 #import polyrep2XML
 
 equal = linearAlgebra.equal
@@ -351,6 +353,12 @@ def absGuardedCommandAux(varlist,A,b):
 
 # If we fail to find eigen, we need BOX invs -- for later...
 
+def makePrime(expr):
+    """Replace var by var' in expr"""
+    ans = expr.cloneNode(True)
+    # get all NAMEEXPR nodes; it its parent is TUPLELITERAL then add prime to it
+    return ans
+
 def absGuardedCommand(gc):
     "Return a new guarded command that is a rel abs of input GC"
     guard = gc.getElementsByTagName("GUARD")[0]
@@ -363,10 +371,15 @@ def absGuardedCommand(gc):
     print "b"
     print b
     guardExpr = HSalXMLPP.getArg(guard,1)
+    guard = guardExpr.cloneNode(True)
+    # primeguard = makePrime(guard)
+    # guard = createNodeInfixApp('AND',guard,primeguard)
     absgc = absGuardedCommandAux(varlist,A,b)
-    absguardnode = createNodeInfixApp('AND',guardExpr.cloneNode(True),absgc)
+    absguardnode = createNodeInfixApp('AND',guard,absgc)
     absguard = createNodeTagChild('GUARD',absguardnode)
-    return createNodeTagChild2('GUARDEDCOMMAND', absguard, assigns.cloneNode(True))
+    absassigns = assigns.cloneNode(True)
+    # absassigns = absAssignments(varlist)
+    return createNodeTagChild2('GUARDEDCOMMAND', absguard, absassigns)
 
 def handleContext(ctxt):
     cbody = ctxt.getElementsByTagName("GUARDEDCOMMAND")
@@ -389,11 +402,35 @@ def handleContext(ctxt):
                 print "Unknown parent node type"
     return ctxt
 
+#def changeContextName(ctxt):
+    #idnode = ctxt.getElementsByTagName("IDENTIFIER")[0]
+    #for i in idnode.childNodes:
+        #if i.nodeType == i.TEXT_NODE:
+            #newnode = ctxt.createTextNode(i.data+"ABS")
+            #idnode.replaceChild(newnode, i)
+    #return ctxt
+
 def main():
     global dom
-    dom = xml.dom.minidom.parse(sys.argv[1])
+    filename = sys.argv[1]
+    dom = xml.dom.minidom.parse(filename)
     newctxt = handleContext(dom)
-    HSalXMLPP.HSalPPContext(newctxt)
+    basename,ext = os.path.splitext(filename)
+    absfilename = basename + ".hsal"
+    if os.path.isfile(absfilename):
+        print "Abstract HSAL file exists. Renaming old file and recreating new file."
+        shutil.move(absfilename, absfilename + "~")
+    absfile = open(absfilename, "w")
+    #newctxt = changeContextName(newctxt)
+    HSalXMLPP.HSalPPContext(newctxt, absfile)
+    print "Created file %s containing the original+abstract model" % absfilename
+    absfilename = basename + ".hxml"
+    if os.path.isfile(absfilename):
+        print "Abstract XML file exists. Renaming old file and recreating new file."
+        shutil.move(absfilename, absfilename + "~")
+    absfile = open(absfilename, "w")
+    print >> absfile, newctxt.toxml()
+    print "Created file %s containing the original+abstract model (XML)" % absfilename
 
 
 if __name__ == '__main__':
