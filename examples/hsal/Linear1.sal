@@ -1,0 +1,20 @@
+Linear1: CONTEXT = 
+BEGIN
+
+control: MODULE =
+BEGIN
+LOCAL x,y:REAL
+LOCAL xdot,ydot:REAL
+INITIALIZATION
+  x = 1; y = 2
+TRANSITION
+[
+y >= 0 --> 
+  xdot' = -y + x ;
+  ydot' = -y - x
+]
+END;
+
+correct : THEOREM
+control |- G(x >= 0);
+END
