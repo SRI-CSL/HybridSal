@@ -356,7 +356,14 @@ def absGuardedCommandAux(varlist,A,b):
 def makePrime(expr):
     """Replace var by var' in expr"""
     ans = expr.cloneNode(True)
-    # get all NAMEEXPR nodes; it its parent is TUPLELITERAL then add prime to it
+    # get all NAMEEXPR nodes; if its parent is TUPLELITERAL then add prime to it
+    nameexprs = ans.getElementsByTagName("NAMEEXPR")
+    for i in nameexprs:
+        parentNode = i.parentNode
+        if parentNode.localName == 'TUPLELITERAL':
+            icopy = i.cloneNode(True)
+            primeVar = createNodeTagChild("NEXTOPERATOR", icopy)
+            parentNode.replaceChild(oldChild=i, newChild=primeVar)
     return ans
 
 def absGuardedCommand(gc):
@@ -372,8 +379,8 @@ def absGuardedCommand(gc):
     print b
     guardExpr = HSalXMLPP.getArg(guard,1)
     guard = guardExpr.cloneNode(True)
-    # primeguard = makePrime(guard)
-    # guard = createNodeInfixApp('AND',guard,primeguard)
+    primeguard = makePrime(guard)
+    guard = createNodeInfixApp('AND',guard,primeguard)
     absgc = absGuardedCommandAux(varlist,A,b)
     absguardnode = createNodeInfixApp('AND',guard,absgc)
     absguard = createNodeTagChild('GUARD',absguardnode)
