@@ -1,6 +1,8 @@
 # Pretty Printer for HSal XML
 # Reads salfile.xml and outputs salfile.sal
 
+# TODO:
+# INITDECL not handled yet -- initfordecl should be changed too.
 
 import xml.dom.minidom
 import sys
@@ -69,7 +71,7 @@ def HSalPPInfixApp(node):
     str1 = HSalPPExpr(appArg(node,1))
     str2 = getNameTag(node, 'NAMEEXPR')
     str3 = HSalPPExpr(appArg(node,2))
-    return str1+" "+str2+" "+str3
+    return "("+str1+" "+str2+" "+str3+")"
 
 def HSalPPPrefixApp(node):
     str0 = getNameTag(node, 'NAMEEXPR')

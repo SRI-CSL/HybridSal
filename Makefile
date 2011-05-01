@@ -20,6 +20,8 @@ example5=SimpleThermo5
 
 all: src/HSalRelAbsCons.py
 	python src/HSalRelAbsCons.py ${examplexml}/${example1}.xml
+	python src/HSalExtractRelAbs.py ${examplexml}/${example1}.hxml > ${examplexml}/${example1}.absxml
+	python src/HSalXMLPP.py ${examplexml}/${example1}.absxml > examples/${example1}.sal
 
 linearalgebra: src/linearAlgebra.py
 	python src/linearAlgebra.py

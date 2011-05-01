@@ -6,6 +6,8 @@
 # Output will have relational abstractions 
 # of all continuous modes
 
+# Caveat: FLOW should define ALL continuous variables.
+
 # Algorithm for constructing relational abstraction:
 # Partition variables into x;y s.t.
 # d/dt (x;y) = (A B; 0 0) (x;y) + (b1;b2)
@@ -54,6 +56,11 @@ def createNodeTagChild(tag, childNode):
 def createNodeTagChild2(tag, childNode, childNode2):
     node = createNodeTagChild(tag, childNode)
     node.appendChild(childNode2)
+    return node
+
+def createNodeTagChild3(tag, childNode, childNode2, childNode3):
+    node = createNodeTagChild2(tag, childNode, childNode2)
+    node.appendChild(childNode3)
     return node
 
 def createNodeTag(tag, val):
@@ -366,6 +373,22 @@ def makePrime(expr):
             parentNode.replaceChild(oldChild=i, newChild=primeVar)
     return ans
 
+def absAssignments(varlist):
+    """For each variable in varlist, create RHSSELECTION"""
+    global dom
+    ans = dom.createElement("ASSIGNMENTS")
+    for var,index in varlist.iteritems():
+        nameexpr = createNodeTag("NAMEEXPR",var)
+        nextop = createNodeTagChild("NEXTOPERATOR",nameexpr)
+        ident = createNodeTag("IDENTIFIER","aZtQ")
+        typename = createNodeTag("TYPENAME","REAL")
+        expr = createNodeTag("NAMEEXPR","TRUE")
+        setpred = createNodeTagChild3("SETPREDEXPRESSION",ident,typename,expr)
+        rhssel = createNodeTagChild("RHSSELECTION",setpred)
+        simpledef = createNodeTagChild2("SIMPLEDEFINITION",nextop,rhssel)
+        ans.appendChild(simpledef)
+    return ans
+
 def absGuardedCommand(gc):
     "Return a new guarded command that is a rel abs of input GC"
     guard = gc.getElementsByTagName("GUARD")[0]
@@ -384,8 +407,8 @@ def absGuardedCommand(gc):
     absgc = absGuardedCommandAux(varlist,A,b)
     absguardnode = createNodeInfixApp('AND',guard,absgc)
     absguard = createNodeTagChild('GUARD',absguardnode)
-    absassigns = assigns.cloneNode(True)
-    # absassigns = absAssignments(varlist)
+    # absassigns = assigns.cloneNode(True)
+    absassigns = absAssignments(varlist)
     return createNodeTagChild2('GUARDEDCOMMAND', absguard, absassigns)
 
 def handleContext(ctxt):
