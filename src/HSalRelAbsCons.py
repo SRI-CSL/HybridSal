@@ -101,8 +101,8 @@ def createNodeAnd(nodeList):
 
 def createNodePlus(nodeList):
     ans = createNodeInfixAppRec('+', nodeList)
-    if ans == None:
-        return createNodeTag("NUMERAL", "0")
+    #if ans == None:
+        #return createNodeTag("NUMERAL", "0")
     return ans
 
 def createNodeCXOne(c, x, flag):
@@ -127,7 +127,7 @@ def createNodeCX(c,x,flag):
     n = len(xindices)
     cx = list()
     for i,v in enumerate(xindices):
-        if not(c[i] == 0):
+        if not(equal(c[i], 0)):
             cx.append(createNodeCXOne(c[i], dictKey(x,v), flag))
     return createNodePlus(cx)
 
