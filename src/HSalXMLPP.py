@@ -145,6 +145,12 @@ def HSalPPInitForDecl(initdecl):
     print >> fp, HSalPPExprs(initdecl.childNodes),
     print >> fp, "\n",
 
+def HSalPPInitDecl(initdecl):
+    global fp
+    print >> fp, "INITIALIZATION"
+    HSalPPAssgns(initdecl)
+    print >> fp, "\n",
+
 def HSalPPGuard(guard):
     global fp
     print >> fp, HSalPPExprs(guard.childNodes),
@@ -225,6 +231,9 @@ def HSalPPBaseModule(basemod):
     initdecl = basemod.getElementsByTagName("INITFORDECL")
     if not(initdecl == None) and len(initdecl) > 0:
         HSalPPInitForDecl(initdecl[0])
+    initdecl = basemod.getElementsByTagName("INITDECL")
+    if not(initdecl == None) and len(initdecl) > 0:
+        HSalPPInitDecl(initdecl[0])
     transdecl = basemod.getElementsByTagName("TRANSDECL")
     if not(transdecl == None) and len(transdecl) > 0:
         HSalPPTransDecl(transdecl[0])
