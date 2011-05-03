@@ -19,8 +19,11 @@ def valueOf(node):
             return(i.data)
 
 def getNameTag(node, tag):
-    node = node.getElementsByTagName(tag)[0]
-    return(valueOf(node))
+    nodes = node.getElementsByTagName(tag)
+    if (len(nodes) < 1):
+        print node.toxml()
+    childnode = nodes[0]
+    return(valueOf(childnode))
 
 def getName(node):
     return getNameTag(node, "IDENTIFIER")

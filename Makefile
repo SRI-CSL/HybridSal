@@ -10,42 +10,54 @@ JAVACLASSPATH = .:./hybridsal2xml/:${ANTLRPATH}:${ANTLRPATH}/antlr.jar:${RTJARPA
 .SUFFIXES: .java .class
 .java.class : ; (export CLASSPATH=${JAVACLASSPATH}; $(JAVAC) $(JAVAFLAGS) $<)
 
-examplexml=examples/hsal-xml/
-examplesal=examples/hsal/
-example1=Linear1
+exhsal=examples/hsal/
+exhxml=examples/hsal-xml/
+exhabssal=examples/habssal/
+exhabsxml=examples/habssal-xml/
+exsal=examples/sal/
+exxml=examples/sal-xml/
+
+example1=Linear3
 example2=Linear2
 example3=Linear3
 example4=SimpleThermo4
 example5=SimpleThermo5
 
 all: src/HSalRelAbsCons.py
-	python src/HSalRelAbsCons.py ${examplexml}/${example1}.xml
-	python src/HSalExtractRelAbs.py ${examplexml}/${example1}.hxml > ${examplexml}/${example1}.absxml
-	python src/HSalXMLPP.py ${examplexml}/${example1}.absxml > examples/${example1}.sal
+	hybridsal2xml/hybridsal2xml ${exhsal}/${example1}.hsal > ${exhxml}/${example1}.hxml
+	python src/HSalRelAbsCons.py ${exhxml}/${example1}.hxml
+	mv ${exhxml}/${example1}.haxml ${exhabsxml}/${example1}.haxml
+	mv ${exhxml}/${example1}.hasal ${exhabssal}/${example1}.hasal
+	python src/HSalExtractRelAbs.py ${exhabsxml}/${example1}.haxml > ${exxml}/${example1}.xml
+	python src/HSalXMLPP.py ${exxml}/${example1}.xml > ${exsal}/${example1}.sal
 
 linearalgebra: src/linearAlgebra.py
 	python src/linearAlgebra.py
 
 full: src/HSalExtractRelAbs.py src/HSalXMLPP.py
-	python src/HSalExtractRelAbs.py ${examplexml}/${example5}.xml > /tmp/5.xml
-	python src/HSalXMLPP.py /tmp/5.xml > /tmp/5.sal
-	hybridsal2xml/hybridsal2xml /tmp/5.sal > /tmp/5.xml.copy
+	hybridsal2xml/hybridsal2xml ${exhsal}/${example5}.hsal > ${exhxml}/${example5}.hxml
+	cp -p ${exhxml}/${example5}.hxml ${exhabsxml}/${example5}.haxml
+	python src/HSalExtractRelAbs.py ${exhabsxml}/${example5}.haxml > ${exxml}/${example5}.xml
+	python src/HSalXMLPP.py ${exxml}/${example5}.xml > ${exsal}/${example5}.sal
+	hybridsal2xml/hybridsal2xml ${exsal}/${example5}.sal > ${exxml}/${example5}.xml.copy
 
 xml2axml: src/HSalExtractRelAbs.py
-	python src/HSalExtractRelAbs.py ${examplexml}/${example5}.xml > /tmp/5.xml
-	python src/HSalExtractRelAbs.py ${examplexml}/${example1}.xml > /tmp/1.xml
+	mv ${exhxml}/${example1}.hxml ${exhabsxml}/${example1}.haxml 
+	mv ${exhxml}/${example5}.hxml ${exhabsxml}/${example5}.haxml 
+	python src/HSalExtractRelAbs.py ${exhabsxml}/${example5}.haxml > ${exxml}/${example5}.xml
+	python src/HSalExtractRelAbs.py ${exhabsxml}/${example1}.haxml > ${exxml}/${example1}.xml
 
 xml2sal:  src/HSalXMLPP.py
-	python src/HSalXMLPP.py ${examplexml}/${example1}.xml > /tmp/${example1}.sal
-	python src/HSalXMLPP.py ${examplexml}/${example2}.xml > /tmp/${example2}.sal
-	python src/HSalXMLPP.py ${examplexml}/${example3}.xml > /tmp/${example3}.sal
-	python src/HSalXMLPP.py ${examplexml}/${example4}.xml > /tmp/${example4}.sal
-	python src/HSalXMLPP.py ${examplexml}/${example5}.xml > /tmp/${example5}.sal
+	python src/HSalXMLPP.py ${exhxml}/${example1}.hxml > /tmp/${example1}.hsal
+	python src/HSalXMLPP.py ${exhxml}/${example2}.hxml > /tmp/${example2}.hsal
+	python src/HSalXMLPP.py ${exhxml}/${example3}.hxml > /tmp/${example3}.hsal
+	python src/HSalXMLPP.py ${exhxml}/${example4}.hxml > /tmp/${example4}.hsal
+	python src/HSalXMLPP.py ${exhxml}/${example5}.hxml > /tmp/${example5}.hsal
 
-sal2xml: hybridsal2xml/hybridsal2xml examples/hsal/Linear1.sal hybridsal2xml/HybridSal2Xml.class 
-	hybridsal2xml/hybridsal2xml ${examplesal}/${example1}.sal > ${examplexml}/${example1}.xml
-	hybridsal2xml/hybridsal2xml ${examplesal}/${example2}.sal > ${examplexml}/${example2}.xml
-	hybridsal2xml/hybridsal2xml ${examplesal}/${example3}.sal > ${examplexml}/${example3}.xml
-	hybridsal2xml/hybridsal2xml ${examplesal}/${example4}.sal > ${examplexml}/${example4}.xml
-	hybridsal2xml/hybridsal2xml ${examplesal}/${example5}.sal > ${examplexml}/${example5}.xml
-	if [ -s ${examplexml}/${example1}.xml ] ; then echo "hybridsal2xml installation successfully tested" ; fi
+sal2xml: hybridsal2xml/hybridsal2xml examples/hsal/Linear1.hsal hybridsal2xml/HybridSal2Xml.class 
+	hybridsal2xml/hybridsal2xml ${exhsal}/${example1}.hsal > ${exhxml}/${example1}.hxml
+	hybridsal2xml/hybridsal2xml ${exhsal}/${example2}.hsal > ${exhxml}/${example2}.hxml
+	hybridsal2xml/hybridsal2xml ${exhsal}/${example3}.hsal > ${exhxml}/${example3}.hxml
+	hybridsal2xml/hybridsal2xml ${exhsal}/${example4}.hsal > ${exhxml}/${example4}.hxml
+	hybridsal2xml/hybridsal2xml ${exhsal}/${example5}.hsal > ${exhxml}/${example5}.hxml
+	if [ -s ${exhxml}/${example1}.hxml ] ; then echo "hybridsal2xml installation successfully tested" ; fi

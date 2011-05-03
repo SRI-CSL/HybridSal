@@ -79,9 +79,12 @@ def createNodeTime(varName, rate):
     "Return varName' - varName / rate"
     rateNode = createNodeTag("NUMERAL", str(rate))
     varNode = createNodeTag("NAMEEXPR", varName)
-    varPrimeNode = createNodeTagChild("NEXTOPERATOR", varNode)
+    varPrimeNode = createNodeTagChild("NEXTOPERATOR", varNode.cloneNode(True))
     differenceNode = createNodeInfixApp('-', varPrimeNode, varNode)
-    quotientNode = createNodeInfixApp('/', differenceNode, rateNode)
+    if equal(rate, 1):
+        quotientNode = differenceNode
+    else:
+        quotientNode = createNodeInfixApp('/', differenceNode, rateNode)
     return quotientNode
 
 def createNodeInfixAppRec(op, nodeList):
@@ -297,16 +300,24 @@ def multirateAbs(y, b2):
     "Return y[i]'-y[i]/b1[i] are equal for all i"
     "Return an XML SAL expression -- guard"
     m = len(b2)
-    if m <= 1:
-        return None
+    node0 = None
+    nodes = list()
     yindices = y.values()
     yindices.sort()
-    node = [None for i in range(m)]
     for i,v in enumerate(yindices):
-        node[i] = createNodeTime(dictKey(y,v), b2[i])
-    for i in range(m-1):
-        node[i] = createNodeInfixApp('=', node[0], node[i+1])
-    return createNodeAnd(node)
+        if equal(b2[i], 0):
+            varName = dictKey(y, v)
+            varNode = createNodeTag("NAMEEXPR", varName)
+            varPrimeNode = createNodeTagChild("NEXTOPERATOR", varNode.cloneNode(True))
+            nodes.append(createNodeInfixApp('=', varNode, varPrimeNode))
+        elif node0 == None:
+            node0 = createNodeTime(dictKey(y,v), b2[i])
+        else:
+            nodei = createNodeTime(dictKey(y,v), b2[i])
+            tmp = node0.cloneNode(True)
+            nodes.append(createNodeInfixApp('=', node0, nodei))
+            node0 = tmp
+    return createNodeAnd(nodes)
 
 def absGuardedCommandAux(varlist,A,b):
     "varlist is a dict from var to indices"
@@ -446,7 +457,14 @@ def main():
     dom = xml.dom.minidom.parse(filename)
     newctxt = handleContext(dom)
     basename,ext = os.path.splitext(filename)
-    absfilename = basename + ".hsal"
+    absfilename = basename + ".haxml"
+    if os.path.isfile(absfilename):
+        print "Abstract XML file exists. Renaming old file and recreating new file."
+        shutil.move(absfilename, absfilename + "~")
+    absfile = open(absfilename, "w")
+    print >> absfile, newctxt.toxml()
+    print "Created file %s containing the original+abstract model (XML)" % absfilename
+    absfilename = basename + ".hasal"
     if os.path.isfile(absfilename):
         print "Abstract HSAL file exists. Renaming old file and recreating new file."
         shutil.move(absfilename, absfilename + "~")
@@ -454,13 +472,6 @@ def main():
     #newctxt = changeContextName(newctxt)
     HSalXMLPP.HSalPPContext(newctxt, absfile)
     print "Created file %s containing the original+abstract model" % absfilename
-    absfilename = basename + ".hxml"
-    if os.path.isfile(absfilename):
-        print "Abstract XML file exists. Renaming old file and recreating new file."
-        shutil.move(absfilename, absfilename + "~")
-    absfile = open(absfilename, "w")
-    print >> absfile, newctxt.toxml()
-    print "Created file %s containing the original+abstract model (XML)" % absfilename
 
 
 if __name__ == '__main__':
