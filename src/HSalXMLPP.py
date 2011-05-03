@@ -13,7 +13,7 @@ import sys
 #   For using other functions, need to set fp
 
 def valueOf(node):
-    "return text value of node"
+    """return text value of node"""
     for i in node.childNodes:
         if i.nodeType == i.TEXT_NODE:
             return(i.data)
@@ -32,7 +32,7 @@ def HSalPPDecl(node):
     return getName(node)+HSalPPType(getArg(node,2), ":", "")
     
 def HSalPPDecls(nodes, str1, str2):
-    "print >> fp, every VARDECL in nodes"
+    """print >> fp, every VARDECL in nodes"""
     k = 0
     str0 = ""
     for j in nodes:
