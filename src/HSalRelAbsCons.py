@@ -21,6 +21,26 @@
 # We use eigenvalue and eigenvector computation from linearAlgebra.py
 # linearAlgebra.py uses an iteration method for computing eigenvectors
 
+# For imaginary eigenvalues:
+# Suppose u' A1 = a u' + b v' and v' A1 = -b u' + a v'
+# We find unknowns w1 and w2 and constant c1 and c2 s.t.
+# if p1 = (u' x + w1' y + c1) and p2 = ( v' x + w2' y + c2) then
+# d/dt p1 = a p1 + b p2 and d/dt p2 = -b p1 + a p2...
+# for this to happen, the unknowns should satisfy the following:
+# u' b1 + w1' b2 = a c1 + b c2  (Matching CONST COEFF)
+# v' b1 + w2' b2 = -b c1 + a c2  (Matching CONST COEFF)
+# u' A2 = a w1' + b w2'  (Matching y coeff)
+# v' A2 = -b w1' + a w2'  (Matching y coeff)
+# Solving this we get w1,w2, then we get c1,c2 and hence p1,p2
+# If p1,p2 have the above relation, then we get the following relational abstraction:
+# 3 cases: a >0, a = 0, a < 0
+# if a > 0:
+# p1 >= 0 and p2 >= 0 => p1' >= p1 and p2' >= 0 AND
+# p1 <= 0 and p2 <= 0 => p1' <= p1 and p2' <= 0 AND
+# p1 >= 0 and p2 <= 0 => p2' <= p2 and p1' >= 0 AND
+# p1 <= 0 and p2 >= 0 => p2' >= p2 and p1' >= 0 
+
+
 import xml.dom.minidom
 import sys	# for sys.argv[0]
 import linearAlgebra
@@ -320,9 +340,9 @@ def multirateAbs(y, b2):
     return createNodeAnd(nodes)
 
 def absGuardedCommandAux(varlist,A,b):
-    "varlist is a dict from var to indices"
-    "A,b are the A,b matrix defined wrt these indices"
-    "Return an abstract GC"
+    """varlist is a dict from var to indices
+    A,b are the A,b matrix defined wrt these indices
+    Return an abstract GC"""
     [x,y,A1,A2,b1,b2] = partition(varlist,A,b)
     n = len(x)
     m = len(y)
