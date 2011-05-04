@@ -52,6 +52,7 @@ import shutil
 #import polyrep2XML
 
 equal = linearAlgebra.equal
+isZero = linearAlgebra.isZero
 exprs2poly = polyrep.exprs2poly
 simpleDefinitionLhsVar = HSalExtractRelAbs.SimpleDefinitionLhsVar
 isCont = HSalExtractRelAbs.isCont
@@ -258,13 +259,6 @@ def flow2Ab(flow):
         b.append(Aibi[1])
         i += 1
     return [varlist,A,b]
-
-def isZero(vec):
-    "Is vec a zero vector"
-    for i in vec:
-        if not(equal(i,0)):
-            return False
-    return True
 
 def partitionAux(x, y, A, b):
     "Rearrange A,b s.t. (x;y) = (A1,A2;0,0)(x;y) + (b1;b2); DESTRUCTIVE"

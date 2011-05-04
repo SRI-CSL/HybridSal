@@ -172,7 +172,7 @@ def dependentIndependent(A):
     return [dep,ind]
 
 def extractSoln(A,b):
-    "A is permuted Identity nxn matrix; b is n-vector"
+    """A is permuted Identity nxn matrix; b is n-vector"""
     print "Extracting solution from Ax=b where A,b are"
     print A
     print b
@@ -243,11 +243,27 @@ def AminuslambI(A,lamb):
         B[i][i] = A[i][i] - lamb
     return(B)
 
+def isZero(vec):
+    """Is vec a zero vector"""
+    for i in vec:
+        if not(equal(i,0)):
+            return False
+    return True
+
+def removeIfZero(ans):
+    """remove lists from ans that are equal to zero"""
+    n = len(ans)
+    for i in range(n):
+        if isZero(ans[n-i-1]):
+            del ans[n-i-1]
+    return ans
+
 def eigenvector(A,lamb):
     "return vector in kernel of A-lamb*I"
     B = AminuslambI(A,lamb)
     b = zeros(A[0])
     ans = solve(B, b)
+    ans = removeIfZero(ans)
     delA(B)
     del b
     return ans
@@ -332,14 +348,23 @@ def extendToFull(basis, n):
     assert len(basis) == n
     return basis
 
+def dictUpdate(dictionary, key, value):
+    """return dictionary with dict[key] += value"""
+    for k,v in dictionary.iteritems():
+        if equal(key, k):
+            dictionary[k] = v + value
+            return dictionary
+    dictionary[key] = value
+    return dictionary
+
 def neigenvalues(A):
     "Return MODULUS of all eigenvalues of nxn matrix A; DESTROYS A"
     n = len(A)
     if n == 0:
-        return list()
+        return dict()
     if n == 1:
-        ans = list()
-        ans.append(A[0][0])
+        ans = dict()
+        ans[A[0][0]] = 1
         return ans
     for i in range(n):
         if isUnitColumn(A,i,n):
@@ -350,7 +375,7 @@ def neigenvalues(A):
             eigens = neigenvalues(newA)
             print "eigens for newA are"
             print eigens
-            eigens.append(eigenvalue)
+            eigens = dictUpdate(eigens, eigenvalue, 1)
             return eigens
     [lamb, vec] = eigenvalueLargest(A)
     subspace = orbit(A, vec)
@@ -362,28 +387,28 @@ def neigenvalues(A):
     for i in range(done):
         newA = nremoveRowColumn(newA,0,n-i)
     eigens = neigenvalues(newA)
-    for i in range(done):
-        eigens.append(lamb)
+    eigens = dictUpdate(eigens, lamb, done)
     return eigens
 
 def allEigenvectors(A, eigens):
     "find all eigenvectors corresponding to eigenvalues eigens"
-    i = 0
-    lambold = 0
     ans = list()
-    while i < len(eigens):
-        lamb = eigens[i]
-        if i == 0 or not(lamb == lambold):
-            eigenvectors = eigenvector(A,lamb)
-            if len(eigenvectors) > 0:
-                ans.append(lamb)
-                ans.append(eigenvectors)
-            eigenvectors = eigenvector(A,-lamb)
-            if len(eigenvectors) > 0:
-                ans.append(-lamb)
-                ans.append(eigenvectors)
-        lambold = lamb
-        i += 1
+    for lamb,multiplicity in eigens.iteritems():
+        eigenvectors = eigenvector(A,lamb)
+        n = len(eigenvectors)
+        if n > 0:
+            ans.append(lamb)
+            ans.append(eigenvectors)
+        if n >= multiplicity:
+            continue
+        eigenvectors = eigenvector(A,-lamb)
+        m = len(eigenvectors)
+        if m > 0:
+            ans.append(-lamb)
+            ans.append(eigenvectors)
+        if n + m >= multiplicity:
+            continue
+        print "COMPLEX eigenvectors EXIST"
     return ans
 
 def eigen(A):
@@ -400,9 +425,8 @@ def test1():
     print "Test of largest eigevalue computation of:"
     print xx
     [lamb, v] = eigenvalueLargest(xx) 
-    print lamb
+    print "Largest eigenvalue should be 3, computed %d: eigenvector=" % lamb
     print v
-    print "The largest eigenvalue should be 3"
     print "*************************************"
 
 def test2():
@@ -420,7 +444,7 @@ def test3():
     print xx
     eigens = neigenvalues(xx) 
     print eigens
-    print "The above list should be [1,2,3]"
+    print "The above dict should be {1:1,2:1,3:1}"
     print "*************************************"
 
 def test4():
@@ -433,14 +457,14 @@ def test4():
     print xx
     eigens = neigenvalues(xx) 
     print eigens
-    print "The above list should be [1,2,3]"
+    print "The above dict should be {1:1, 2:1, 3:1}"
     print "*************************************"
 
 def test5():
     xx = [ [0,1], [-1,0] ]
     eigens = neigenvalues(xx)
     print eigens
-    print "The above list should be [1,1]"
+    print "The above dict should be {1:2}"
     print "*************************************"
 
 def test6():
@@ -450,7 +474,7 @@ def test6():
     eigenvectors = allEigenvectors(xx, eigens)
     delA(xx)
     print eigens
-    print "The above list should be [1,1]"
+    print "The above dict should be {1:2}"
     print eigenvectors
     print "The above list should be [1, [[0,0]], -1, [[0,0]]]"
     print "*************************************"
