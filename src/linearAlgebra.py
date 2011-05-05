@@ -64,7 +64,7 @@ def transpose(A):
 def multiplyABTranspose(AB,A,B):
     "Return AB := A*B^T; return ans in AB"
     for i in range(len(A)):
-        for j in range(len(A)):
+        for j in range(len(B)):
             AB[i][j] = dotproduct(A[i],B[j])
     return AB
 
@@ -114,12 +114,6 @@ def Avbyv(A,v):
 def equal(c,d):
     return(abs(c-d) < epsilon)
 
-def equalVector(c,d):
-    for i in range(len(c)):
-        if not(equal(c[i], d[i])):
-            return 0
-    return 1
-
 def noteq(c,d):
     return(not(equal(c, d)))
 
@@ -141,9 +135,7 @@ def eigenvalueLargest(A):
     return([lamb, nnormalize(v)])
 
 def zeros(v):
-    x = list(v)
-    for i in range(len(v)):
-        x[i] = 0
+    x = [0 for i in range(len(v))]
     return x
 
 def solve1(A,b,j,ind):
@@ -284,16 +276,15 @@ def projectOut(v, subspace):
     return v
 
 def inSubspace(v, subspace):
-    "Return true if v is in Subspace spanned by subspace"
-    "Assuming that v,subspace vectors are all normalized"
+    """Project out subspace from v, return result
+       Return NONE if v is in Subspace spanned by subspace
+       Assuming that v,subspace vectors are all normalized"""
     v = projectOut(v, subspace)
-    zero = zeros(v)
-    if equalVector(v, zero):
+    if isZero(v):
         del v
         ans = None
     else:
         ans = v
-    del zero
     return ans
 
 def orbit(A, v):
