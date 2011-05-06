@@ -143,7 +143,7 @@ def solve1(A,b,j,ind):
     for i in range(len(b)):
         if not(i == j) and noteq(A[i][ind],0):
             tmp = A[i][ind]
-            for k in range(len(b)):
+            for k in range(len(A[0])):
                 A[i][k] = A[i][k] - A[j][k] * tmp
             b[i] = b[i] - b[j] * tmp
     return([A,b])
@@ -151,11 +151,13 @@ def solve1(A,b,j,ind):
 def dependentIndependent(A):
     "Partition indices [0..n-1] into dependent, independent vars"
     n = len(A)
+    assert n > 0
+    m = len(A[0])
     dep = list()
-    ind = range(n)
+    ind = range(m)
     for i in range(n):
         firstone = 1
-        for j in range(n):
+        for j in range(m):
             if not(equal(A[i][j], 0)):
                 if (firstone == 1):
                     dep.append([j,i])
@@ -172,16 +174,17 @@ def extractSoln(A,b):
     print "dep, independent vars from A are"
     print dep
     print ind
-    assert len(b) == len(dep) + len(ind)
+    m = len(A[0])
+    assert m == len(dep) + len(ind)
     allans = list()
-    for i in range(len(ind)):
-        ans = zeros(b)
-        ans[ind[i]] = 1
+    for i in ind:
+        ans = [0 for j in range(m)]
+        ans[i] = 1
         for [j,k] in dep:
-            ans[j] = b[k] - A[k][ind[i]]
+            ans[j] = b[k] - A[k][i]
         allans.append(ans)
     if len(dep) > 0:
-        ans = zeros(b)
+        ans = [0 for j in range(m)]
         for [j,k] in dep:
             ans[j] = b[k]
         allans.append(ans)
@@ -194,10 +197,14 @@ def solve(A,b):
     #print "Solving ",
     #print A,
     #print b 
-    n = len(b)
+    n = len(b)	# n is the number of constraints
+    assert n == len(A)
+    if n == 0:
+        return list()
+    m = len(A[0])
     for j in range(n):
         ind1 = -1
-        for i in range(n):
+        for i in range(m):
             if noteq(A[j][i], 0):
                 ind1 = i
                 break
@@ -207,7 +214,7 @@ def solve(A,b):
             continue
         else:
             tmp = A[j][ind1]
-            for i in range(n):
+            for i in range(m):
                 A[j][i] /= tmp
             b[j] /= tmp
             #print "Solving ",
@@ -259,6 +266,23 @@ def eigenvector(A,lamb):
     delA(B)
     del b
     return ans
+
+def expressAnUsingAis(A, vec, n):
+    """Express A^n vec as a linear combination of A^{i}vec, i < n"""
+    assert n >= 1
+    B = [ None for i in range(n)]
+    B[0] = list(vec)
+    for i in range(n-1):
+        B[i+1] = multiplyAv(A, B[i])
+    b = multiplyAv(A, B[n-1])
+    Btrans = transpose(B)
+    delA(B)
+    ans = solve(Btrans,b)
+    del b
+    assert len(ans) > 0
+    for i in range(len(ans)-1):
+        del ans[i+1]
+    return ans[0]
 
 def nproject(v, w):
     "destructively update w := (v.w)*w"
@@ -352,10 +376,10 @@ def neigenvalues(A):
     "Return MODULUS of all eigenvalues of nxn matrix A; DESTROYS A"
     n = len(A)
     if n == 0:
-        return dict()
+        return list()
     if n == 1:
-        ans = dict()
-        ans[A[0][0]] = 1
+        ans = list()
+        ans.append( (A[0][0], 1, [A[0][0]]) )
         return ans
     for i in range(n):
         if isUnitColumn(A,i,n):
@@ -366,11 +390,12 @@ def neigenvalues(A):
             eigens = neigenvalues(newA)
             print "eigens for newA are"
             print eigens
-            eigens = dictUpdate(eigens, eigenvalue, 1)
+            eigens.append( (eigenvalue, 1, [eigenvalue]) )
             return eigens
     [lamb, vec] = eigenvalueLargest(A)
     subspace = orbit(A, vec)
     done = len(subspace)
+    coeffs = expressAnUsingAis(A, vec, done)
     newbasis = extendToFull(subspace, n)
     newA = changeOfBasis(A, newbasis)
     delA(A)
@@ -378,13 +403,14 @@ def neigenvalues(A):
     for i in range(done):
         newA = nremoveRowColumn(newA,0,n-i)
     eigens = neigenvalues(newA)
-    eigens = dictUpdate(eigens, lamb, done)
+    eigens.append( (lamb, done, coeffs) )
+    # eigens = dictUpdate(eigens, lamb, done)
     return eigens
 
 def allEigenvectors(A, eigens):
     "find all eigenvectors corresponding to eigenvalues eigens"
     ans = list()
-    for lamb,multiplicity in eigens.iteritems():
+    for lamb,multiplicity,coeffs in eigens:
         eigenvectors = eigenvector(A,lamb)
         n = len(eigenvectors)
         if n > 0:
@@ -435,7 +461,7 @@ def test3():
     print xx
     eigens = neigenvalues(xx) 
     print eigens
-    print "The above dict should be {1:1,2:1,3:1}"
+    print "The above dict should be [(3,1,[3]), (2,1,[2]), (1,1,[1])]"
     print "*************************************"
 
 def test4():
@@ -448,14 +474,14 @@ def test4():
     print xx
     eigens = neigenvalues(xx) 
     print eigens
-    print "The above dict should be {1:1, 2:1, 3:1}"
+    print "The above dict should be [(3,1,[3]), (2,1,[2]), (1,1,[1])]"
     print "*************************************"
 
 def test5():
     xx = [ [0,1], [-1,0] ]
     eigens = neigenvalues(xx)
     print eigens
-    print "The above dict should be {1:2}"
+    print "The above list should be [ (1, 2, [-1,0]) ]"
     print "*************************************"
 
 def test6():
@@ -465,9 +491,9 @@ def test6():
     eigenvectors = allEigenvectors(xx, eigens)
     delA(xx)
     print eigens
-    print "The above dict should be {1:2}"
+    print "The above list should be [ (1, 2, [-1,0]) ]"
     print eigenvectors
-    print "The above list should be [1, [[0,0]], -1, [[0,0]]]"
+    print "The above list should be []"
     print "*************************************"
 
 if __name__ == "__main__":
