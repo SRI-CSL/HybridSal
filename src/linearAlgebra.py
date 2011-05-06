@@ -407,25 +407,31 @@ def neigenvalues(A):
     # eigens = dictUpdate(eigens, lamb, done)
     return eigens
 
+def allEigenvectorsAux(A, lamb, ans):
+    eigenvectors = eigenvector(A, lamb)
+    n = len(eigenvectors)
+    if n > 0:
+        ans.append(lamb)
+        ans.append(eigenvectors)
+    return ans
+
+def allEigenvectorsAux2(A, coeffs, ans):
+    """Append u to ans s.t. A^2 u = coeff[0]*A*u + coeff[1]*u"""
+    return ans
+
 def allEigenvectors(A, eigens):
     "find all eigenvectors corresponding to eigenvalues eigens"
     ans = list()
     for lamb,multiplicity,coeffs in eigens:
-        eigenvectors = eigenvector(A,lamb)
-        n = len(eigenvectors)
-        if n > 0:
-            ans.append(lamb)
-            ans.append(eigenvectors)
-        if n >= multiplicity:
-            continue
-        eigenvectors = eigenvector(A,-lamb)
-        m = len(eigenvectors)
-        if m > 0:
-            ans.append(-lamb)
-            ans.append(eigenvectors)
-        if n + m >= multiplicity:
-            continue
-        print "COMPLEX eigenvectors EXIST"
+        if multiplicity == 1:
+            ans = allEigenvectorsAux(A, coeffs[0], ans)
+        elif multiplicity == 2:
+            print "COMPLEX eigenvectors EXIST"
+            ans = allEigenvectorsAux2(A, coeffs, ans)
+        else:
+            ans = allEigenvectorsAux(A, lamb, ans)
+            ans = allEigenvectorsAux(A, -lamb, ans)
+            print "Degree 3 case is incomplete. Fill in code here."
     return ans
 
 def eigen(A):
