@@ -21,6 +21,9 @@
 # will do that using iteration method for now until scalability
 # becomes an issue
 
+import math
+sqrt = math.sqrt
+
 def dotproduct(u,v):
     "dot product of two vectors"
     sum = 0
@@ -417,23 +420,35 @@ def allEigenvectorsAux(A, lamb, ans):
 
 def allEigenvectorsAux2(A, coeffs, ans):
     """Append u,v to ans s.t. Au = a/2*u + d*v, Av = -d*u + a/2*v,
-      where a = coeff[1] and b = coeff[0] and d = sqrt(a^2+4b)/2"""
+      where a = coeff[1] and b = coeff[0] and d = sqrt(-a^2-4b)/2"""
     assert len(coeffs) == 2
     b = coeffs[0]	# coeff of I
     a = coeffs[1]	# coeff of A
     # we find u by solving A^2-aA+(a^2/2+b)I u=0
+    # (A-a/2)*(A-a/2)u = -d^2*u ... A^2 - a*A + (aa/4+d^2)
+    # aa/4 + -aa-4b/4 = -b !!!
+    print "Solving quadratic:",
+    print "a = %f" % a,
+    print "b = %f, A = " % b
+    print  A
     Atrans = transpose(A)
-    AA = multiplyABTranspose(A, Atrans)
-    n = len(AA)
+    n = len(A)
+    AA = [[0 for i in range(n)] for j in range(n)]
+    AA = multiplyABTranspose(AA, A, Atrans)
     for i in range(n):
         for j in range(n):
              AA[i][j] -= (a*A[i][j])
     # now AA is A^2 - a*A
-    const = a*a/2 + b
+    print  AA
     for i in range(n):
-        AA[i][i] += const
+        AA[i][i] -= b
+    print  AA
     zerovec = [0 for i in range(n)]
-    ans = solve(AA, zerovec)  # CHECK here
+    uv = solve(AA, zerovec)  # CHECK here
+    uv = removeIfZero(uv)
+    print "Found %d solutions to the quadratic equation" % len(uv)
+    ans.append( (a/2, sqrt(-a*a-4*b)/2) )
+    ans.append(uv)
     return ans
 
 def allEigenvectors(A, eigens):
