@@ -344,9 +344,9 @@ def absGuardedCommandAux(varlist,A,b):
         print "dx/dt is a constant for all x"
     guardAbs1 = multirateAbs(y, b2)
     A1trans = linearAlgebra.transpose(A1)
-    eigen = linearAlgebra.eigen(A1)
-    # [ l [ vectors ] l [ vectors ] ]
-    print "The eigenvectors computed are:"
+    eigen = linearAlgebra.eigen(A1trans)
+    # CHECK above, tranpose added, [ l [ vectors ] l [ vectors ] ]
+    print "The LEFT eigenvectors computed are:"
     print eigen
     n = len(eigen)
     i = 0

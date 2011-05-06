@@ -416,7 +416,24 @@ def allEigenvectorsAux(A, lamb, ans):
     return ans
 
 def allEigenvectorsAux2(A, coeffs, ans):
-    """Append u to ans s.t. A^2 u = coeff[0]*A*u + coeff[1]*u"""
+    """Append u,v to ans s.t. Au = a/2*u + d*v, Av = -d*u + a/2*v,
+      where a = coeff[1] and b = coeff[0] and d = sqrt(a^2+4b)/2"""
+    assert len(coeffs) == 2
+    b = coeffs[0]	# coeff of I
+    a = coeffs[1]	# coeff of A
+    # we find u by solving A^2-aA+(a^2/2+b)I u=0
+    Atrans = transpose(A)
+    AA = multiplyABTranspose(A, Atrans)
+    n = len(AA)
+    for i in range(n):
+        for j in range(n):
+             AA[i][j] -= (a*A[i][j])
+    # now AA is A^2 - a*A
+    const = a*a/2 + b
+    for i in range(n):
+        AA[i][i] += const
+    zerovec = [0 for i in range(n)]
+    ans = solve(AA, zerovec)  # CHECK here
     return ans
 
 def allEigenvectors(A, eigens):
@@ -431,7 +448,7 @@ def allEigenvectors(A, eigens):
         else:
             ans = allEigenvectorsAux(A, lamb, ans)
             ans = allEigenvectorsAux(A, -lamb, ans)
-            print "Degree 3 case is incomplete. Fill in code here."
+            print "Degree >= 3 case is incomplete. Fill in code here."
     return ans
 
 def eigen(A):
