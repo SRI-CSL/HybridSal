@@ -359,6 +359,8 @@ def absGuardedCommandAux(varlist,A,b):
         vectors = eigen[i+1]
         if vectors == None or len(vectors) == 0:
             continue
+        if len(lamb) > 1:
+            continue
         for vec in vectors:
             A2transvec = linearAlgebra.multiplyAv(A2trans, vec)
             for j in range(len(vec)):
@@ -372,6 +374,16 @@ def absGuardedCommandAux(varlist,A,b):
                 nodeL.append(createEigenInv(nodePnew,nodePold,lamb))
             # Pick d' s.t. l d' = c' A2 or, d l = A2' c
             # Let p := (c'x+d'y+ (c'b1+d'b2)/l) THEN dp/dt = l p
+        i += 2
+    i = 0
+    while i < n:
+        lamb = eigen[i]
+        vectors = eigen[i+1]
+        if vectors == None or len(vectors) == 0:
+            continue
+        if not(len(lamb) == 2):
+            continue
+        # add something to nodeL
         i += 2
     return createNodeAnd(nodeL)
 

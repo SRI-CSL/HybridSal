@@ -414,7 +414,7 @@ def allEigenvectorsAux(A, lamb, ans):
     eigenvectors = eigenvector(A, lamb)
     n = len(eigenvectors)
     if n > 0:
-        ans.append(lamb)
+        ans.append([lamb])
         ans.append(eigenvectors)
     return ans
 
@@ -447,7 +447,7 @@ def allEigenvectorsAux2(A, coeffs, ans):
     uv = solve(AA, zerovec)  # CHECK here
     uv = removeIfZero(uv)
     print "Found %d solutions to the quadratic equation" % len(uv)
-    ans.append( (a/2, sqrt(-a*a-4*b)/2) )
+    ans.append( [a/2, sqrt(-a*a-4*b)/2] )
     ans.append(uv)
     return ans
 
