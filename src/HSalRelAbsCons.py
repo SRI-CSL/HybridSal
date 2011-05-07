@@ -68,21 +68,24 @@ isCont = HSalExtractRelAbs.isCont
 # ********************************************************************
 # Functions for creating XML node for expressions
 # ********************************************************************
-def createNodeTagChild(tag, childNode):
+def createNodeTagChildn(tag, childNodes):
     global dom
     node = dom.createElement(tag)
-    node.appendChild(childNode)
+    for i in childNodes:
+        node.appendChild(i)
     return node
+
+def createNodeTagChild(tag, childNode):
+    return createNodeTagChildn(tag, [childNode])
 
 def createNodeTagChild2(tag, childNode, childNode2):
-    node = createNodeTagChild(tag, childNode)
-    node.appendChild(childNode2)
-    return node
+    return createNodeTagChildn(tag, [childNode, childNode2])
 
 def createNodeTagChild3(tag, childNode, childNode2, childNode3):
-    node = createNodeTagChild2(tag, childNode, childNode2)
-    node.appendChild(childNode3)
-    return node
+    return createNodeTagChildn(tag, [childNode, childNode2, childNode3])
+
+def createNodeTagChild4(tag, childNode, childNode2, childNode3, childNode4):
+    return createNodeTagChildn(tag, [childNode, childNode2, childNode3, childNode4])
 
 def createNodeTag(tag, val):
     global dom
@@ -333,6 +336,20 @@ def multirateAbs(y, b2):
             node0 = tmp
     return createNodeAnd(nodes)
 
+def createModNode(dom):
+    """mod(x:REAL):REAL = if x < 0 THEN -x ELSE x endif"""
+    ans = createNodeTagChild4("CONSTANTDECLARATION", fname, fparams, ftype, fvalue)
+    return ans
+
+def createQuadInv(nodePnew,nodePold,nodeQnew,nodeQold,a,b):
+    """ if a < 0: |xnew|,|ynew| <= |xold| + |yold|
+        |xnew| <= |xold| or |ynew| <= |yold|
+        |xnew| <= |yold| or |ynew| <= |xold| """
+    if a <= 0:
+        return None
+    else:
+    return ansNode
+
 def absGuardedCommandAux(varlist,A,b):
     """varlist is a dict from var to indices
     A,b are the A,b matrix defined wrt these indices
@@ -425,11 +442,17 @@ def absGuardedCommandAux(varlist,A,b):
             tmp2 += linearAlgebra.dotproduct(w1,b2)
             c2 = (a*tmp1 + d*tmp2)/DD 
             c1 = (-d*tmp1 + a*tmp2)/DD
-            #nodePnew = createNodePnew(vec,x,A2transvec,y,const)
-            #nodePold = createNodePold(vec,x,A2transvec,y,const)
+            #ux+w1y+c1 and vx+w2y+c2 are position,velocity pair.
+            # 2 invariants: if a < 0: |xnew|,|ynew| <= |xold| + |yold|
+            # 2 invariants: if a < 0: |xnew| <= |xold| or |ynew| <= |yold|
+            # 2 invariants: if a < 0: |xnew| <= |yold| or |ynew| <= |xold|
+            nodePnew = createNodePnew(u,x,w1,y,c1)
+            nodePold = createNodePold(u,x,w1,y,c1)
+            nodeQnew = createNodePnew(v,x,w2,y,c2)
+            nodeQold = createNodePold(v,x,w2,y,c2)
             # vec could be 0 vector and hence nodePnew could be None
-            #if not(nodePnew == None):
-                #nodeL.append(createEigenInv(nodePnew,nodePold,lamb))
+            if not(nodePnew == None):
+                nodeL.append(createQuadInv(nodePnew,nodePold,nodeQnew,nodeQold,a,b))
         i += 2
     return createNodeAnd(nodeL)
 
