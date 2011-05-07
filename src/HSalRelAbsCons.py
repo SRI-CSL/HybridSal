@@ -348,13 +348,13 @@ def absGuardedCommandAux(varlist,A,b):
     # CHECK above, tranpose added, [ l [ vectors ] l [ vectors ] ]
     print "The LEFT eigenvectors computed are:"
     print eigen
-    n = len(eigen)
+    num = len(eigen)
     i = 0
     A2trans = linearAlgebra.transpose(A2)
     nodeL = list()
     if not(guardAbs1 == None):
         nodeL.append(guardAbs1)
-    while i < n:
+    while i < num:
         lamb = eigen[i]
         vectors = eigen[i+1]
         if vectors == None or len(vectors) == 0:
@@ -376,14 +376,60 @@ def absGuardedCommandAux(varlist,A,b):
             # Let p := (c'x+d'y+ (c'b1+d'b2)/l) THEN dp/dt = l p
         i += 2
     i = 0
-    while i < n:
+    while i < num:
         lamb = eigen[i]
         vectors = eigen[i+1]
         if vectors == None or len(vectors) == 0:
             continue
         if not(len(lamb) == 2):
             continue
+        a = lamb[0]
+        d = lamb[1]
         # add something to nodeL
+        # for each vec in vectors, let u = vec
+        # we want d/dt(u'x+w1'y+c1)= a*(u'x+w1'y+c1)+d*(v'x+w2'y+c2)
+        # we want d/dt(v'x+w2'y+c2)= -d*(u'x+w1'y+c1)+a*(v'x+w2'y+c2)
+        # first set v: v' = (u'A1 - a*u')/d
+        # next find w1,w2,c1,c2 s.t.
+        # u'*(A1*x+A2*y+b1)+w1'*b2 = a*(u'x+w1'y+c1)+d*(v'x+w2'y+c2)
+        # i.e., u'*(A2*y+b1)+w1'*b2 = a*(w1'y+c1)+d*(w2'y+c2)
+        # i.e., u' A2 = a*w1'+d*w2' and u'*b1+w1'*b2 = a*c1+d*c2
+        # v'*(A1*x+A2*y+b1)+w2'*b2 = -d*(u'x+w1'y+c1)+a*(v'x+w2'y+c2)
+        # i.e., v'*(A2*y+b1)+w2'*b2 = -d*(w1'y+c1)+a*(w2'y+c2)
+        # i.e., v' A2 = -d w1' + a w2' and v'*b1+w2'*b2 = -d*c1+a*c2
+        # find w1,w2 such that v' A2 = -d w1' + a w2' and u' A2 = a*w1'+d*w2' 
+        # then find c1,c2 s.t v'*b1+w2'*b2 = -d*c1+a*c2 and u'*b1+w1'*b2 = a*c1+d*c2
+        # w1,w2 satisfy v' A2 = -d w1' + a w2' and u' A2 = a*w1'+d*w2' 
+        # w1,w2 satisfy (a*v'+d*u')*A2 = (a*a+d*d)*w2' 
+        # w1,w2 satisfy (d*v'-a*u')*A2 = (-a*a-d*d)*w1' 
+        # c1,c2 satisfy v'*b1+w2'*b2 = -d*c1+a*c2 and u'*b1+w1'*b2 = a*c1+d*c2
+        # c1,c2 satisfy a*(v'*b1+w2'*b2)+d*(u'*b1+w1'*b2)=(a*a+d*d)*c2
+        # c1,c2 satisfy d*(v'*b1+w2'*b2)-a*(u'*b1+w1'*b2)=(-a*a-d*d)*c1
+        for vec in vectors:
+            u = vec
+            tmp = linearAlgebra.multiplyAv(A1trans, u)
+            v = [ (tmp[i] - a*u[i])/d for i in range(n) ] # v=(u'A1 - a*u')/d
+            # w2 satisfy (a*v'+d*u')*A2 = (a*a+d*d)*w2' 
+            del tmp
+            DD = a*a + d*d
+            tmp = [ (a*v[i]+d*u[i])/DD for i in range(n) ]
+            w2 = linearAlgebra.nmultiplyAv(A2trans, tmp)
+            # w1 satisfy (d*v'-a*u')*A2 = (-a*a-d*d)*w1' 
+            tmp = [ (-d*v[i]+a*u[i])/DD for i in range(n) ]
+            w2 = linearAlgebra.nmultiplyAv(A2trans, tmp)
+            # c2 satisfy a*(v'*b1+w2'*b2)+d*(u'*b1+w1'*b2)=(a*a+d*d)*c2
+            # c1,c2 satisfy d*(v'*b1+w2'*b2)-a*(u'*b1+w1'*b2)=(-a*a-d*d)*c1
+            tmp1 = linearAlgebra.dotproduct(v,b1)
+            tmp1 += linearAlgebra.dotproduct(w2,b2)
+            tmp2 = linearAlgebra.dotproduct(u,b1)
+            tmp2 += linearAlgebra.dotproduct(w1,b2)
+            c2 = (a*tmp1 + d*tmp2)/DD 
+            c1 = (-d*tmp1 + a*tmp2)/DD
+            #nodePnew = createNodePnew(vec,x,A2transvec,y,const)
+            #nodePold = createNodePold(vec,x,A2transvec,y,const)
+            # vec could be 0 vector and hence nodePnew could be None
+            #if not(nodePnew == None):
+                #nodeL.append(createEigenInv(nodePnew,nodePold,lamb))
         i += 2
     return createNodeAnd(nodeL)
 
