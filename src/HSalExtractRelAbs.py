@@ -7,7 +7,7 @@
 
 # from xml.dom.minidom import parse, parseString
 import xml.dom.minidom
-import sys	# for sys.argv[0]
+import sys	# for sys.argv[0] and sys.stdout
 
 def SimpleDefinitionLhsVar(defn):
     lhs = defn.getElementsByTagName("NEXTOPERATOR")[0]
@@ -66,10 +66,16 @@ def handleContext(ctxt):
             # print 'Number of transdecl is %d' % transdecl.length
             handleTransDecl(transdecl[0])
         # print mdecl.toxml()
+    return ctxt
+
+def extractRelAbs(dom, filePtr=sys.stdout):
+    dom = handleContext(dom)	# Destructive
+    print >> filePtr, dom.toxml() 
+    return dom
 
 def main():
     dom = xml.dom.minidom.parse(sys.argv[1])
-    handleContext(dom)
+    dom = handleContext(dom)
     print dom.toxml() 
 
 if __name__ == "__main__":

@@ -49,6 +49,7 @@ import polyrep # internal representation for expressions
 import HSalXMLPP
 import os.path
 import shutil
+import subprocess
 #import polyrep2XML
 
 equal = linearAlgebra.equal
@@ -502,15 +503,15 @@ def absGuardedCommandAux(varlist,A,b):
         for vec in vectors:
             u = vec
             tmp = linearAlgebra.multiplyAv(A1trans, u)
-            v = [ (tmp[i] - a*u[i])/d for i in range(n) ] # v=(u'A1 - a*u')/d
+            v = [ (tmp[j] - a*u[j])/d for j in range(n) ] # v=(u'A1 - a*u')/d
             # w2 satisfy (a*v'+d*u')*A2 = (a*a+d*d)*w2' 
             del tmp
             DD = a*a + d*d
-            tmp = [ (a*v[i]+d*u[i])/DD for i in range(n) ]
+            tmp = [ (a*v[j]+d*u[j])/DD for j in range(n) ]
             w2 = linearAlgebra.nmultiplyAv(A2trans, tmp)
             # w1 satisfy (d*v'-a*u')*A2 = (-a*a-d*d)*w1' 
-            tmp = [ (-d*v[i]+a*u[i])/DD for i in range(n) ]
-            w2 = linearAlgebra.nmultiplyAv(A2trans, tmp)
+            tmp = [ (-d*v[j]+a*u[j])/DD for j in range(n) ]
+            w1 = linearAlgebra.nmultiplyAv(A2trans, tmp)
             # c2 satisfy a*(v'*b1+w2'*b2)+d*(u'*b1+w1'*b2)=(a*a+d*d)*c2
             # c1,c2 satisfy d*(v'*b1+w2'*b2)-a*(u'*b1+w1'*b2)=(-a*a-d*d)*c1
             tmp1 = linearAlgebra.dotproduct(v,b1)
@@ -627,28 +628,52 @@ def handleContext(ctxt):
             #idnode.replaceChild(newnode, i)
     #return ctxt
 
+def moveIfExists(filename):
+    if os.path.isfile(filename):
+        print "File %s exists." % filename,
+        print "Renaming old file to %s." % filename+"~"
+        shutil.move(filename, filename + "~")
+
 def main():
     global dom
     filename = sys.argv[1]
-    dom = xml.dom.minidom.parse(filename)
-    newctxt = handleContext(dom)
+    if not(os.path.isfile(filename)):
+        print "File does not exist. Quitting."
+        return 1
     basename,ext = os.path.splitext(filename)
+    if ext == '.hxml':
+        xmlfilename = filename
+    elif ext == '.hsal':
+        xmlfilename = basename + ".hxml"
+        subprocess.call(["hybridsal2xml/hybridsal2xml", "-o", xmlfilename, filename])
+        if not(os.path.isfile(xmlfilename)):
+            print "hybridsal2xml failed to create XML file. Quitting."
+            return 1
+    else:
+        print "Unknown file extension; Expecting .hsal or .hxml; Quitting"
+        return 1
+    dom = xml.dom.minidom.parse(xmlfilename)
+    newctxt = handleContext(dom)
     absfilename = basename + ".haxml"
-    if os.path.isfile(absfilename):
-        print "Abstract XML file exists. Renaming old file and recreating new file."
-        shutil.move(absfilename, absfilename + "~")
-    absfile = open(absfilename, "w")
-    print >> absfile, newctxt.toxml()
+    moveIfExists(absfilename)
+    with open(absfilename, "w") as fp:
+        print >> fp, newctxt.toxml()
     print "Created file %s containing the original+abstract model (XML)" % absfilename
     absfilename = basename + ".hasal"
-    if os.path.isfile(absfilename):
-        print "Abstract HSAL file exists. Renaming old file and recreating new file."
-        shutil.move(absfilename, absfilename + "~")
-    absfile = open(absfilename, "w")
-    #newctxt = changeContextName(newctxt)
-    HSalXMLPP.HSalPPContext(newctxt, absfile)
+    moveIfExists(absfilename)
+    with open(absfilename, "w") as fp:
+        HSalXMLPP.HSalPPContext(newctxt, fp)
     print "Created file %s containing the original+abstract model" % absfilename
-
+    absXMLFile = basename + ".xml"
+    moveIfExists(absXMLFile)
+    with open(absXMLFile, "w") as fp:
+        HSalExtractRelAbs.extractRelAbs(newctxt, fp)
+    absSalFile = basename + ".sal"
+    moveIfExists(absSalFile)
+    with open(absSalFile, "w") as fp:
+        HSalXMLPP.HSalPPContext(newctxt, fp)
+    print "Created file %s containing the abstract model" % absSalFile
+    return 0
 
 if __name__ == '__main__':
     main()
