@@ -178,24 +178,35 @@ def createNodePnew(vec,x,A2transvec,y,const):
 def createNodePold(vec,x,A2transvec,y,const):
     return createNodePaux(vec,x,A2transvec,y,const,False)
 
+def createNodeEigenInv():
+    """0 <= nodePnew <= nodePold OR nodePold <= nodePnew <= 0 """
+    fname = createNodeTag("IDENTIFIER", "eigenInv")
+    vd1 = createNodeVarType("xold", "REAL")
+    vd2 = createNodeVarType("xnew", "REAL")
+    fparams = createNodeTagChild2("VARDECLS", vd1, vd2)
+    ftype = createNodeTag("TYPENAME", "BOOLEAN")
+    zero = createNodeTag("NUMERAL", "0")
+    fact1 = createNodeApp("<=", [ zero, "xnew" ])
+    fact2 = createNodeApp("<=", [ "xnew", "xold" ])
+    fact3 = createNodeApp("<=", [ "xold", "xnew" ])
+    fact4 = createNodeApp("<=", [ "xnew", zero.cloneNode(True) ])
+    fact12 = createNodeApp("AND", [ fact1, fact2 ])
+    fact34 = createNodeApp("AND", [ fact3, fact4 ])
+    fval = createNodeApp("OR", [ fact12, fact34 ])
+    ans = createNodeTagChild4("CONSTANTDECLARATION", fname, fparams, ftype, fval)
+    return ans
+
 def createEigenInv(nodePnew,nodePold,lamb):
     "0 <= nodePnew <= nodePold OR nodePold <= nodePnew <= 0 if lamb < 0"
     "0 <= nodePold <= nodePnew OR nodePnew <= nodePold <= 0 if lamb > 0"
     "nodePold = nodePnew if lamb == 0"
     if lamb == 0:
-        return createNodeInfixApp('=', nodePold, nodePnew)
-    if lamb < 0:
-        tmp = nodePold
-        nodePold = nodePnew
-        nodePnew = tmp
-    node1 = createNodeInfixApp('<=', createNodeTag('NUMERAL', '0'), nodePold)
-    node2 = createNodeInfixApp('<=', nodePold.cloneNode(True), nodePnew)
-    node = createNodeInfixApp('AND', node1, node2)
-    node1 = createNodeInfixApp('<=', nodePnew.cloneNode(True), nodePold.cloneNode(True))
-    node2 = createNodeInfixApp('<=', nodePold.cloneNode(True), createNodeTag('NUMERAL', '0'))
-    node0 = createNodeInfixApp('AND', node1, node2)
-    node = createNodeInfixApp('OR', node, node0)
-    return node
+        ans = createNodeInfixApp('=', nodePold, nodePnew)
+    elif lamb < 0:
+        ans = createNodeApp("eigenInv", [ nodePold, nodePnew ], infix=False)
+    else:
+        ans = createNodeApp("eigenInv", [ nodePnew, nodePold ], infix=False)
+    return ans
 # ********************************************************************
 
 def simpleDefinitionRhsExpr(defn):
@@ -336,9 +347,72 @@ def multirateAbs(y, b2):
             node0 = tmp
     return createNodeAnd(nodes)
 
-def createModNode(dom):
+def createNodeVarType(varName, typeName):
+    xold = createNodeTag("IDENTIFIER", varName)
+    real = createNodeTag("TYPENAME", typeName)
+    vd = createNodeTagChild2("VARDECL", xold, real)
+    return vd
+
+def createNodeApp(funName, argList, infix=True):
+    """ funName(argList) """
+    absNode = createNodeTag("NAMEEXPR", funName)
+    argNode = createNodeTagChildn("TUPLELITERAL", [])
+    for i in argList:
+        if isinstance(i, basestring):
+            node = createNodeTag("NAMEEXPR", i)
+        else:
+            node = i
+        argNode.appendChild(node)
+    ans = createNodeTagChild2("APPLICATION", absNode, argNode)
+    if len(argList) == 2 and infix:
+        ans.setAttribute('INFIX', 'YES')
+    return ans
+
+def createModNode():
     """mod(x:REAL):REAL = if x < 0 THEN -x ELSE x endif"""
-    ans = createNodeTagChild4("CONSTANTDECLARATION", fname, fparams, ftype, fvalue)
+    fname = createNodeTag("IDENTIFIER", "abs")
+    vardecl = createNodeVarType("a", "REAL")
+    fparams = createNodeTagChild("VARDECLS", vardecl)
+    ftype = createNodeTag("TYPENAME", "REAL")
+    a = createNodeTag("NAMEEXPR", "a")
+    zero = createNodeTag("NUMERAL", "0")
+    ifn = createNodeApp("<", [a, zero])		# a < 0
+    thenn = createNodeApp("-", [ "a" ])		# -a
+    elsen = createNodeTag("NAMEEXPR", "a")
+    fval = createNodeTagChild3("CONDITIONAL", ifn, thenn, elsen)
+    ans = createNodeTagChild4("CONSTANTDECLARATION", fname, fparams, ftype, fval)
+    return ans
+
+def createNodeAbsVar(varName):
+    """ |varName| """
+    return createNodeApp("abs", [ varName ])
+
+def createNodeQuadInv():
+    """ if a < 0: |xnew|,|ynew| <= |xold| + |yold|
+        |xnew| <= |xold| or |ynew| <= |yold|
+        |xnew| <= |yold| or |ynew| <= |xold| """
+    fname = createNodeTag("IDENTIFIER", "quadInv")
+    vd1 = createNodeVarType("xold", "REAL")
+    vd2 = createNodeVarType("yold", "REAL")
+    vd3 = createNodeVarType("xnew", "REAL")
+    vd4 = createNodeVarType("ynew", "REAL")
+    fparams = createNodeTagChild4("VARDECLS", vd1, vd2, vd3, vd4)
+    ftype = createNodeTag("TYPENAME", "BOOLEAN")
+    modxnew = createNodeAbsVar("xnew")
+    modynew = createNodeAbsVar("ynew")
+    modxold = createNodeAbsVar("xold")
+    modyold = createNodeAbsVar("yold")
+    xoldPlusyold = createNodeApp("+", [modxold, modyold])
+    fact1 = createNodeApp("<=", [modxnew, xoldPlusyold])
+    fact2 = createNodeApp("<=", [modynew, xoldPlusyold.cloneNode(True)])
+    fact31 = createNodeApp("<=", [modxnew.cloneNode(True), modxold.cloneNode(True)])
+    fact32 = createNodeApp("<=", [modynew.cloneNode(True), modyold.cloneNode(True)])
+    fact3 = createNodeApp("OR", [ fact31, fact32 ])
+    fact41 = createNodeApp("<=", [modxnew.cloneNode(True), modyold.cloneNode(True)])
+    fact42 = createNodeApp("<=", [modynew.cloneNode(True), modxold.cloneNode(True)])
+    fact4 = createNodeApp("OR", [ fact41, fact42 ])
+    fval = createNodeAnd([fact1, fact2, fact3, fact4])
+    ans = createNodeTagChild4("CONSTANTDECLARATION", fname, fparams, ftype, fval)
     return ans
 
 def createQuadInv(nodePnew,nodePold,nodeQnew,nodeQold,a,b):
@@ -346,9 +420,10 @@ def createQuadInv(nodePnew,nodePold,nodeQnew,nodeQold,a,b):
         |xnew| <= |xold| or |ynew| <= |yold|
         |xnew| <= |yold| or |ynew| <= |xold| """
     if a <= 0:
-        return None
+        ans=createNodeApp("quadInv", [ nodePold, nodeQold, nodePnew, nodeQnew])
     else:
-    return ansNode
+        ans=createNodeApp("quadInv", [ nodePnew, nodeQnew, nodePold, nodeQold])
+    return ans
 
 def absGuardedCommandAux(varlist,A,b):
     """varlist is a dict from var to indices
@@ -372,12 +447,14 @@ def absGuardedCommandAux(varlist,A,b):
     if not(guardAbs1 == None):
         nodeL.append(guardAbs1)
     while i < num:
-        lamb = eigen[i]
         vectors = eigen[i+1]
         if vectors == None or len(vectors) == 0:
             continue
-        if len(lamb) > 1:
+        lambL = eigen[i]
+        i += 2
+        if len(lambL) > 1:
             continue
+        lamb = lambL[0]
         for vec in vectors:
             A2transvec = linearAlgebra.multiplyAv(A2trans, vec)
             for j in range(len(vec)):
@@ -391,11 +468,11 @@ def absGuardedCommandAux(varlist,A,b):
                 nodeL.append(createEigenInv(nodePnew,nodePold,lamb))
             # Pick d' s.t. l d' = c' A2 or, d l = A2' c
             # Let p := (c'x+d'y+ (c'b1+d'b2)/l) THEN dp/dt = l p
-        i += 2
     i = 0
     while i < num:
         lamb = eigen[i]
         vectors = eigen[i+1]
+        i += 2
         if vectors == None or len(vectors) == 0:
             continue
         if not(len(lamb) == 2):
@@ -453,7 +530,6 @@ def absGuardedCommandAux(varlist,A,b):
             # vec could be 0 vector and hence nodePnew could be None
             if not(nodePnew == None):
                 nodeL.append(createQuadInv(nodePnew,nodePold,nodeQnew,nodeQold,a,b))
-        i += 2
     return createNodeAnd(nodeL)
 
 # collect all x s.t. dx/dt = constant
@@ -536,6 +612,11 @@ def handleContext(ctxt):
                 parentNode.replaceChild(newChild=newnode, oldChild=i)
             else:
                 print "Unknown parent node type"
+    cbody = ctxt.getElementsByTagName("CONTEXTBODY")
+    assert len(cbody) == 1
+    cbody[0].insertBefore(newChild=createNodeQuadInv(),refChild=cbody[0].firstChild)
+    cbody[0].insertBefore(newChild=createNodeEigenInv(),refChild=cbody[0].firstChild)
+    cbody[0].insertBefore(newChild=createModNode(),refChild=cbody[0].firstChild)
     return ctxt
 
 #def changeContextName(ctxt):

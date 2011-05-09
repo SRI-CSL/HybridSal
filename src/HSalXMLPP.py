@@ -112,6 +112,23 @@ def HSalPPSetPredExpr(node):
     str0 += "}"
     return str0
 
+def HSalPPConditional(node):
+    str0 = "IF "
+    j = 0
+    for i in node.childNodes:
+        if (i.nodeType == i.ELEMENT_NODE):
+            j += 1
+            if j == 1:
+                str0 += HSalPPExpr(i)
+            elif j == 2:
+                str0 += " THEN "
+                str0 += HSalPPExpr(i)
+            elif j == 3:
+                str0 += " ELSE "
+                str0 += HSalPPExpr(i)
+                str0 += " ENDIF "
+    return str0
+
 def HSalPPExpr(node):
     if (node == None) or not(node.nodeType == node.ELEMENT_NODE):
         return ""
@@ -125,6 +142,8 @@ def HSalPPExpr(node):
         return HSalPPNextOperator(node)
     elif node.localName == "SETPREDEXPRESSION":
         return HSalPPSetPredExpr(node)
+    elif node.localName == "CONDITIONAL":
+        return HSalPPConditional(node)
     else:
         print node.toxml()
         print 'Node EXPR %s unknown. Missing code' % node.localName

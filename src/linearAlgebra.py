@@ -447,6 +447,7 @@ def allEigenvectorsAux2(A, coeffs, ans):
     uv = solve(AA, zerovec)  # CHECK here
     uv = removeIfZero(uv)
     print "Found %d solutions to the quadratic equation" % len(uv)
+    print (a/2, (-a*a-4*b)/2 )
     ans.append( [a/2, sqrt(-a*a-4*b)/2] )
     ans.append(uv)
     return ans
@@ -458,8 +459,18 @@ def allEigenvectors(A, eigens):
         if multiplicity == 1:
             ans = allEigenvectorsAux(A, coeffs[0], ans)
         elif multiplicity == 2:
-            print "COMPLEX eigenvectors EXIST"
-            ans = allEigenvectorsAux2(A, coeffs, ans)
+            assert len(coeffs) == 2
+            b = coeffs[0]	# coeff of I
+            a = coeffs[1]	# coeff of A
+            DD = a*a+4*b
+            if equal(DD, 0):
+                ans = allEigenvectorsAux(A, a/2, ans)
+            elif DD > 0:
+                ans = allEigenvectorsAux(A, a/2 + sqrt(DD)/2, ans)
+                ans = allEigenvectorsAux(A, a/2 - sqrt(DD)/2, ans)
+            else:
+                print "COMPLEX eigenvectors EXIST"
+                ans = allEigenvectorsAux2(A, coeffs, ans)
         else:
             ans = allEigenvectorsAux(A, lamb, ans)
             ans = allEigenvectorsAux(A, -lamb, ans)
