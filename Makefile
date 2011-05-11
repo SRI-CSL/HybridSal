@@ -24,12 +24,7 @@ example4=SimpleThermo4
 example5=SimpleThermo5
 
 all: src/HSalRelAbsCons.py
-	hybridsal2xml/hybridsal2xml ${exhsal}/${example1}.hsal > ${exhxml}/${example1}.hxml
-	python src/HSalRelAbsCons.py ${exhxml}/${example1}.hxml
-	mv ${exhxml}/${example1}.haxml ${exhabsxml}/${example1}.haxml
-	mv ${exhxml}/${example1}.hasal ${exhabssal}/${example1}.hasal
-	python src/HSalExtractRelAbs.py ${exhabsxml}/${example1}.haxml > ${exxml}/${example1}.xml
-	python src/HSalXMLPP.py ${exxml}/${example1}.xml > ${exsal}/${example1}.sal
+	python src/HSalRelAbsCons.py ${exhsal}/${example1}.hsal
 
 linearalgebra: src/linearAlgebra.py
 	python src/linearAlgebra.py

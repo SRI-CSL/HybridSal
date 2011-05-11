@@ -1,19 +1,26 @@
-Linear2: CONTEXT = 
+Linear3: CONTEXT = 
 BEGIN
+abs (a:REAL) : REAL  = 
+ IF a < 0 THEN -(a) ELSE a ENDIF  ;
+
+eigenInv (xold:REAL,xnew:REAL) : BOOLEAN  = 
+ 0 <= xnew AND xnew <= xold OR xold <= xnew AND xnew <= 0 ;
+
+quadInv (xold:REAL,yold:REAL,xnew:REAL,ynew:REAL) : BOOLEAN  = 
+ abs(xnew) <= abs(xold) + abs(yold) AND abs(ynew) <= abs(xold) + abs(yold) AND (abs(xnew) <= abs(xold) OR abs(ynew) <= abs(yold)) AND (abs(xnew) <= abs(yold) OR abs(ynew) <= abs(xold)) ;
+
 
 control: MODULE =
 BEGIN
-LOCAL x,y,z,u:REAL
-LOCAL xdot,ydot,zdot,udot:REAL
+LOCAL x:REAL,y:REAL,z:REAL,u:REAL
+LOCAL xdot:REAL,ydot:REAL,zdot:REAL,udot:REAL
 INITIALIZATION
-  x = 1; y = 2; z = 3; u = 0
+x = 1 ; y = 2 ; z = 3 ; u = 0 
+
 TRANSITION
 [
-y >= 0 --> 
-  xdot' = -y + x + z - u;
-  ydot' = -y - x + z - u;
-  zdot' = 0 ;
-  udot' = 1
+y >= 0 AND y' >= 0 AND z = z' AND u <= u' AND eigenInv(-3.41 * x' + 1.41 * y' + -1.41 * z' + 1.41 * u' + 1.41,-3.41 * x + 1.41 * y + -1.41 * z + 1.41 * u + 1.41) AND eigenInv(-0.59 * x + -1.41 * y + 1.41 * z + -1.41 * u + -1.41,-0.59 * x' + -1.41 * y' + 1.41 * z' + -1.41 * u' + -1.41)  --> 
+y' IN {aZtQ:REAL|TRUE} ; x' IN {aZtQ:REAL|TRUE} ; z' IN {aZtQ:REAL|TRUE} ; u' IN {aZtQ:REAL|TRUE} 
 ]
 END;
 

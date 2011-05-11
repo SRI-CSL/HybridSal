@@ -12,6 +12,8 @@ import sys
 #   From this file, you can safely use HSalPPContext; 
 #   For using other functions, need to set fp
 
+precedence = ['/', '*', '-', '+', '>', '>=', '<', '<=', '=', 'NOT', 'AND', 'OR']
+
 def valueOf(node):
     """return text value of node"""
     for i in node.childNodes:
@@ -70,11 +72,27 @@ def appArg(node,index):
     tuples = node.getElementsByTagName('TUPLELITERAL')[0]
     return getArg(tuples,index)
 
-def HSalPPInfixApp(node):
-    str1 = HSalPPExpr(appArg(node,1))
+def higherPrec(op1, op2):
+    """Does op1 have higher precedence than op2?"""
+    global precedence
+    if op1 in precedence and op2 in precedence:
+        return precedence.index(op1) < precedence.index(op2)
+    elif op1 == None:
+        return False
+    else:
+        print "EITHER Op not found %s" % op1 
+        print "OR Op not found %s" % op2 
+        return True
+
+def HSalPPInfixApp(node,outerSymb=None):
     str2 = getNameTag(node, 'NAMEEXPR')
-    str3 = HSalPPExpr(appArg(node,2))
-    return "("+str1+" "+str2+" "+str3+")"
+    str1 = HSalPPExpr(appArg(node,1),outerSymb=str2)
+    str3 = HSalPPExpr(appArg(node,2),outerSymb=str2)
+    if higherPrec(outerSymb,str2):
+        ans = "("+str1+" "+str2+" "+str3+")"
+    else:
+        ans = str1+" "+str2+" "+str3
+    return ans
 
 def HSalPPPrefixApp(node):
     str0 = getNameTag(node, 'NAMEEXPR')
@@ -92,9 +110,9 @@ def HSalPPPrefixApp(node):
         str0 = str0 + ")"
     return str0
 
-def HSalPPApp(node):
+def HSalPPApp(node,outerSymb=None):
     if node.getAttribute('INFIX') == 'YES':
-        return HSalPPInfixApp(node)
+        return HSalPPInfixApp(node,outerSymb)
     else:
         return HSalPPPrefixApp(node)
 
@@ -129,13 +147,13 @@ def HSalPPConditional(node):
                 str0 += " ENDIF "
     return str0
 
-def HSalPPExpr(node):
+def HSalPPExpr(node, outerSymb=None):
     if (node == None) or not(node.nodeType == node.ELEMENT_NODE):
         return ""
     if node.localName == "NAMEEXPR":
         return HSalPPNameExpr(node)
     elif node.localName == "APPLICATION":
-        return HSalPPApp(node)
+        return HSalPPApp(node,outerSymb)
     elif node.localName == "NUMERAL":
         return HSalPPNumeral(node)
     elif node.localName == "NEXTOPERATOR":
@@ -326,8 +344,8 @@ def HSalPPCnstDecl(node):
     arg = getArg(node,4)
     value = HSalPPExpr(arg)
     if not(value == None) and not(value == ""):
-        print >> fp, " = %s" % value
-    print >> fp, ";"
+        print >> fp, " = \n %s" % value,
+    print >> fp, ";\n"
 
 def HSalPPNode(node):
     if node.localName == "MODULEDECLARATION":

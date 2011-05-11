@@ -134,7 +134,8 @@ def createNodePlus(nodeList):
     return ans
 
 def createNodeCXOne(c, x, flag):
-    node1 = createNodeTag("NUMERAL", str(c))
+    #node1 = createNodeTag("NUMERAL", str(c))
+    node1 = createNodeTag("NUMERAL", format(c,'.2f'))
     node2 = createNodeTag("NAMEEXPR", x)
     if flag:
         node2 = createNodeTagChild("NEXTOPERATOR", node2)
@@ -167,7 +168,7 @@ def createNodePaux(c,x,d,y,e,flag):
     if equal(e,0):
         node3 = None
     else:
-        node3 = createNodeTag("NUMERAL", str(e))
+        node3 = createNodeTag("NUMERAL", format(e,'.2f'))
     nodeL = [ node1, node2, node3 ]
     while None in nodeL:
         nodeL.remove(None)
@@ -326,8 +327,8 @@ def partition(varlist, A, b):
     return [x,y,A1,A2,b1,b2]
 
 def multirateAbs(y, b2):
-    "Return y[i]'-y[i]/b1[i] are equal for all i"
-    "Return an XML SAL expression -- guard"
+    """Return y[i]'-y[i]/b1[i] are equal for all i
+       Return an XML SAL expression -- guard"""
     m = len(b2)
     node0 = None
     nodes = list()
@@ -340,7 +341,14 @@ def multirateAbs(y, b2):
             varPrimeNode = createNodeTagChild("NEXTOPERATOR", varNode.cloneNode(True))
             nodes.append(createNodeInfixApp('=', varNode, varPrimeNode))
         elif node0 == None:
-            node0 = createNodeTime(dictKey(y,v), b2[i])
+            varName = dictKey(y, v)
+            node0 = createNodeTime(varName, b2[i])
+            varNode = createNodeTag("NAMEEXPR", varName)
+            varPrimeNode = createNodeTagChild("NEXTOPERATOR", varNode.cloneNode(True))
+            if b2[i] > 0:
+                nodes.append(createNodeInfixApp('<=', varNode, varPrimeNode))
+            else:
+                nodes.append(createNodeInfixApp('>=', varNode, varPrimeNode))
         else:
             nodei = createNodeTime(dictKey(y,v), b2[i])
             tmp = node0.cloneNode(True)
