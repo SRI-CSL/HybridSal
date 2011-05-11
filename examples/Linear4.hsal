@@ -1,0 +1,20 @@
+Linear4: CONTEXT = 
+BEGIN
+
+control: MODULE =
+BEGIN
+LOCAL x,y:REAL
+LOCAL xdot,ydot:REAL
+INITIALIZATION
+  x = 1; y = 0
+TRANSITION
+[
+y >= 0 --> 
+  xdot' = y ;
+  ydot' = -x
+]
+END;
+
+correct : THEOREM
+control |- G(x <= 1);
+END
