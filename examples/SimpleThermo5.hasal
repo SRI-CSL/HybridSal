@@ -1,38 +1,49 @@
-%% This is HYBRID SAL, differs from standard SAL.
-SimpleThermo5:CONTEXT = 
+SimpleThermo5: CONTEXT = 
 BEGIN
-control : MODULE =
- BEGIN
- LOCAL state : BOOLEAN
- LOCAL x : REAL
- LOCAL xdot : REAL
- INVARIANT
-	TRUE
-%% 71 <= x AND x <= 79
- INITFORMULA
-	70 <= x AND x <= 80 AND state = TRUE
- TRANSITION
-	[
-	state = TRUE AND x >= 80 -->
-		state' = FALSE
-	[]
-	state = FALSE AND x <= 70 -->
-		state' = TRUE
-	[]
-	[ state = TRUE AND x < 80 -->
-		xdot' = (100 - x)
-     		||
-	state = TRUE AND x < 80 AND x' < 80 -->
-		x' IN {z: REAL | z > x} ]
-	[]
-	[ state = FALSE AND x > 70 -->
-		xdot' = 0 - x
-     		||
-	state = TRUE AND x > 70 AND x' > 70 -->
-		x' IN {z: REAL | z < x} ]
-	]
- END;
- G( ss:[ control.STATE -> BOOLEAN ] ) : [ control.STATE -> BOOLEAN ];
- correct: THEOREM
-	control |- G( 70 <= x AND x <= 80 );
+abs (a:REAL) : REAL  = 
+ IF a < 0 THEN -(a) ELSE a ENDIF  ;
+
+eigenInv (xold:REAL,xnew:REAL) : BOOLEAN  = 
+ 0 <= xnew AND xnew <= xold OR xold <= xnew AND xnew <= 0 ;
+
+quadInv (xold:REAL,yold:REAL,xnew:REAL,ynew:REAL) : BOOLEAN  = 
+ abs(xnew) <= abs(xold) + abs(yold) AND abs(ynew) <= abs(xold) + abs(yold) AND (abs(xnew) <= abs(xold) OR abs(ynew) <= abs(yold)) AND (abs(xnew) <= abs(yold) OR abs(ynew) <= abs(xold)) ;
+
+
+control: MODULE =
+BEGIN
+LOCAL state:BOOLEAN
+LOCAL x:REAL
+LOCAL xdot:REAL
+INITIALIZATION
+x = 75 ; state = TRUE 
+
+TRANSITION
+[
+state = TRUE AND x >= 78  --> 
+state' = FALSE 
+[]
+state = FALSE AND x <= 72  --> 
+state' = TRUE 
+[]
+[
+state = TRUE AND x <= 80  --> 
+xdot' = 100 - x 
+ || 
+state = TRUE AND x <= 80 AND state' = TRUE AND x' <= 80 AND TRUE AND eigenInv(1.00 * x + -100.00,1.00 * x' + -100.00)  --> 
+x' IN {aZtQ:REAL|TRUE} 
+]
+[]
+[
+state = FALSE AND x >= 70  --> 
+xdot' = 0 - x 
+ || 
+state = FALSE AND x >= 70 AND state' = FALSE AND x' >= 70 AND TRUE AND eigenInv(1.00 * x,1.00 * x')  --> 
+x' IN {aZtQ:REAL|TRUE} 
+]
+]
+END;
+
+correct : THEOREM
+control |- G(70 <= x AND x <= 80);
 END

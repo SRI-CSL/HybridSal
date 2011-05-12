@@ -465,13 +465,14 @@ def absGuardedCommandAux(varlist,A,b):
             continue
         lamb = lambL[0]
         for vec in vectors:
-            A2transvec = linearAlgebra.multiplyAv(A2trans, vec)
-            for j in range(len(vec)):
-                vec[j] *= lamb
+            assert not(lamb == 0)
+            wec = linearAlgebra.multiplyAv(A2trans, vec)
+            for j in range(len(wec)):
+                wec[j] /= lamb
             const = linearAlgebra.dotproduct(vec,b1)
-            const += linearAlgebra.dotproduct(A2transvec,b2)
-            nodePnew = createNodePnew(vec,x,A2transvec,y,const)
-            nodePold = createNodePold(vec,x,A2transvec,y,const)
+            const += linearAlgebra.dotproduct(wec,b2)
+            nodePnew = createNodePnew(vec,x,wec,y,const/lamb)
+            nodePold = createNodePold(vec,x,wec,y,const/lamb)
             # vec could be 0 vector and hence nodePnew could be None
             if not(nodePnew == None):
                 nodeL.append(createEigenInv(nodePnew,nodePold,lamb))
@@ -557,6 +558,9 @@ def makePrime(expr):
     # get all NAMEEXPR nodes; if its parent is TUPLELITERAL then add prime to it
     nameexprs = ans.getElementsByTagName("NAMEEXPR")
     for i in nameexprs:
+        name = i.childNodes[0].data
+        if name in ['TRUE', 'FALSE']:
+            continue
         parentNode = i.parentNode
         if parentNode.localName == 'TUPLELITERAL':
             icopy = i.cloneNode(True)

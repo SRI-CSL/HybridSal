@@ -27,7 +27,8 @@ sqrt = math.sqrt
 def dotproduct(u,v):
     "dot product of two vectors"
     sum = 0
-    for i in range(len(u)):
+    n = min(len(u), len(v))
+    for i in range(n):
         sum += u[i]*v[i]
     return sum
 
