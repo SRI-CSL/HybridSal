@@ -49,9 +49,9 @@ def HSalPPDecls(nodes, str1, str2):
         str0 = str0 + str2
     return str0
 
-def HSalPPLocalDecl(i):
+def HSalPPLocalGlobalDecl(i, kind):
     global fp
-    print >> fp, "LOCAL " + HSalPPDecls(i.childNodes, "", "")
+    print >> fp, kind + HSalPPDecls(i.childNodes, "", "")
 
 def HSalPPNameExpr(node):
     return valueOf(node)
@@ -264,7 +264,16 @@ def HSalPPTransDecl(transdecl):
 def HSalPPBaseModule(basemod):
     ldecls = basemod.getElementsByTagName("LOCALDECL")
     for i in ldecls:
-        HSalPPLocalDecl(i)
+        HSalPPLocalGlobalDecl(i, 'LOCAL ')
+    ldecls = basemod.getElementsByTagName("GLOBALDECL")
+    for i in ldecls:
+        HSalPPLocalGlobalDecl(i, 'GLOBAL ')
+    ldecls = basemod.getElementsByTagName("INPUTDECL")
+    for i in ldecls:
+        HSalPPLocalGlobalDecl(i, 'INPUT ')
+    ldecls = basemod.getElementsByTagName("OUTPUTDECL")
+    for i in ldecls:
+        HSalPPLocalGlobalDecl(i, 'OUTPUT ')
     invardecl = basemod.getElementsByTagName("INVARDECL")
     if not(invardecl == None) and len(invardecl) > 0:
         HSalPPInvarDecl(invardecl[0])
@@ -278,16 +287,47 @@ def HSalPPBaseModule(basemod):
     if not(transdecl == None) and len(transdecl) > 0:
         HSalPPTransDecl(transdecl[0])
 
+def HSalPPComposition(node, op, opTop):
+    if not(op == opTop):
+        print >> fp, '(', 
+    HSalPPMod(node.childNodes, op)
+    if not(op == opTop):
+        print >> fp, ')', 
+
+def HSalPPMod(nodeL, op = None):
+    global fp
+    first = True
+    for node in nodeL:
+        if not(node.nodeType == node.ELEMENT_NODE):
+            continue
+        if node.localName == 'IDENTIFIER' or node.localName == 'VARDECLS':
+            continue
+        if first:
+            first = False
+        else:
+            print >> fp, op,
+        if node.localName == 'BASEMODULE':
+            print >> fp, "BEGIN" 
+            HSalPPBaseModule(node)
+            print >> fp, "END",
+        elif node.localName == 'ASYNCHRONOUSCOMPOSITION':
+            HSalPPComposition(node, '[]', op)
+        elif node.localName == 'SYNCHRONOUSCOMPOSITION':
+            HSalPPComposition(node, '||', op)
+        elif node.localName == 'MODULEINSTANCE':
+            modName = getNameTag(node, "MODULENAME")
+            # ignoring MODULEACTUALS
+            print >> fp, modName,
+        else:
+            print "Unrecognized module type. Fill in code later"
+    if op == None:
+        print >> fp, ";\n"
+
 def HSalPPModDecl(node):
     global fp
     print >> fp, "\n%s: MODULE =" % getName(node)
-    print >> fp, "BEGIN" 
-    basemods = node.getElementsByTagName("BASEMODULE")
-    if (basemods == None) or len(basemods) == 0:
-        print "Module is not a base module. Fill in code later"
-    else:
-        HSalPPBaseModule(basemods[0])
-    print >> fp, "END;\n" 
+    childNodes = node.childNodes
+    HSalPPMod(childNodes)
 
 def HSalPPModuleInstance(node):
     return getNameTag(node, "MODULENAME")
@@ -316,6 +356,24 @@ def HSalPPStateType(node):
     str1 = HSalPPModuleInstance(node.getElementsByTagName("MODULEINSTANCE")[0])
     return str1+".STATE"
 
+def HSalPPScalarType(node):
+    """Print { s1,s2,s3,s4 } given
+      <SCALARTYPE PLACE="5 14 5 30">
+        <SCALARELEMENT PLACE="5 15 5 17">s1</SCALARELEMENT>
+        <SCALARELEMENT PLACE="5 19 5 21">s2</SCALARELEMENT>
+        <SCALARELEMENT PLACE="5 23 5 25">s3</SCALARELEMENT>
+        <SCALARELEMENT PLACE="5 27 5 29">s4</SCALARELEMENT>
+      </SCALARTYPE>"""
+    first = True
+    str1 = "{ "
+    for i in node.getElementsByTagName("SCALARELEMENT"):
+        if first:
+            first = False
+        else:
+            str1 += " , "
+        str1 += valueOf(i)
+    return str1+" }"
+
 def HSalPPType(node,str1,str2):
     if not(node.nodeType == node.ELEMENT_NODE):
         return None
@@ -326,6 +384,8 @@ def HSalPPType(node,str1,str2):
         str0 = HSalPPFuncType(node)
     elif node.localName == "STATETYPE":
         str0 = HSalPPStateType(node)
+    elif node.localName == "SCALARTYPE":
+        str0 = HSalPPScalarType(node)
     else:
         print node.toxml()
         print 'Node TYPE %s not handled. Missing code' % node.localName
@@ -347,9 +407,17 @@ def HSalPPCnstDecl(node):
         print >> fp, " = \n %s" % value,
     print >> fp, ";\n"
 
+def HSalPPTypeDecl(node):
+    global fp
+    print >> fp, "\n%s: TYPE =" % getName(node),
+    print >> fp, HSalPPType(getArg(node,2), "", ""),
+    print >> fp, ";\n"
+
 def HSalPPNode(node):
     if node.localName == "MODULEDECLARATION":
         HSalPPModDecl(node)
+    elif node.localName == "TYPEDECLARATION":
+        HSalPPTypeDecl(node)
     elif node.localName == "ASSERTIONDECLARATION":
         HSalPPAssertionDecl(node)
     elif node.localName == "CONSTANTDECLARATION":

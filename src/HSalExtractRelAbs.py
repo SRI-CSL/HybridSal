@@ -53,7 +53,7 @@ def handleContext(ctxt):
     # print 'Number of module declarations is %d\n' % mdecls.length
     for mdecl in mdecls:
         basemodule = mdecl.getElementsByTagName("BASEMODULE")
-        if (basemodule == None):
+        if (basemodule == None or len(basemodule) == 0):
             print 'Not a basemodule, ignoring\n'
         else:
             ldecls = basemodule[0].getElementsByTagName("LOCALDECL")
