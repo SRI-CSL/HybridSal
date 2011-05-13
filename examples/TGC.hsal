@@ -4,21 +4,36 @@ BEGIN
 
 Mode: TYPE = {s1, s2, s3, s4};
 
+timeElapse: MODULE = 
+BEGIN
+ GLOBAL x, y, z: REAL
+ LOCAL xdot, ydot, zdot: REAL
+ INPUT s, g, c: Mode
+ INPUT lower, exit, raise, approach: BOOLEAN
+ INITIALIZATION x = 0; y = 0; z = 0 
+ TRANSITION
+ [
+ ((s = s1 AND exit = FALSE) OR
+  (s = s2 AND approach = FALSE AND x <= 5)) AND
+ ((g = s2 AND y <= 1) OR
+  (g = s3 AND y <= 2) OR (g = s1)) AND
+ ((c = s2 AND z <= 1) OR
+  (c = s3 AND lower = FALSE) OR 
+  (c = s4 AND z <= 1) OR
+  (c = s1 AND raise = FALSE))
+ --> xdot' = 1; ydot' = 1; zdot' = 1
+ ]
+END;
+
 train: MODULE =
 BEGIN
   GLOBAL approach, exit: BOOLEAN
-  GLOBAL t: REAL
-  LOCAL x, xdot, tdot: REAL
+  GLOBAL x: REAL
   OUTPUT s: Mode
-
-  INITIALIZATION  s = s1; x = 0; approach = FALSE; exit = FALSE
+  INITIALIZATION  s = s1; approach = FALSE; exit = FALSE
   TRANSITION
   [
-  s = s1 AND exit = FALSE --> xdot' = 1; tdot' = 1
-  []
   s = s1 --> s' = s2; approach' = TRUE; x' = 0
-  []
-  s = s2 AND approach = FALSE AND x <= 5 --> xdot' = 1; tdot' = 1
   []
   s = s2 --> exit' = TRUE; s' = s1
   ]
@@ -27,57 +42,39 @@ END ;
 gate: MODULE =
 BEGIN
   GLOBAL lower, raise: BOOLEAN
-  GLOBAL t: REAL
-  LOCAL y, ydot, tdot: REAL
+  GLOBAL y: REAL
   OUTPUT g: Mode
-
-  INITIALIZATION  g = s1; y = 0 
+  INITIALIZATION  g = s1
   TRANSITION
   [
   g = s1 AND lower = TRUE --> lower' = FALSE; g' = s2; y' = 0
   []
-  g = s2 AND y <= 1 --> ydot' = 1; tdot' = 1
-  []
   g = s2 AND raise = TRUE --> g' = s3; raise' = FALSE; y' = 0
   []
-  g = s3 AND y <= 2 --> ydot' = 1; tdot' = 1
-  []
   g = s3 AND y >= 1 --> g' = s1
-  []
-  g = s1 --> ydot' = 1; tdot' = 1
   ]
 END ;
 
 controller: MODULE =
 BEGIN
   GLOBAL lower, raise, approach, exit: BOOLEAN
-  GLOBAL t: REAL
-  LOCAL z, zdot, tdot: REAL
+  GLOBAL z: REAL
   OUTPUT c: Mode
-
-  INITIALIZATION  c = s1; z = 0; lower = FALSE; raise = FALSE
+  INITIALIZATION  c = s1; lower = FALSE; raise = FALSE
   TRANSITION
   [
   c = s1 AND approach = TRUE --> approach' = FALSE; c' = s2; z' = 0
   []
-  c = s2 AND z <= 1 --> zdot' = 1; tdot' = 1
-  []
   c = s2 AND z = 1 --> c' = s3; lower' = TRUE
-  []
-  c = s3 AND lower = FALSE --> zdot' = 1; tdot' = 1
   []
   c = s3 AND exit = TRUE --> c' = s4; z' = 0; exit' = FALSE
   []
-  c = s4 AND z <= 1 --> zdot' = 1; tdot' = 1
-  []
   c = s4 --> c' = s1; raise' = TRUE
-  []
-  c = s1 AND raise = FALSE --> zdot' = 1; tdot' = 1
   ]
 END;
 
-system: MODULE = train [] gate [] controller ;
+system: MODULE = train [] gate [] controller [] timeElapse;
 
 correct: THEOREM
-  system |- G( s = s2 => g = s2 ) ;
+  system |- G( (s = s2 and x >= 2) => g = s2 ) ;
 END
