@@ -35,7 +35,7 @@ BEGIN
   [
   s = s1 --> s' = s2; approach' = TRUE; x' = 0
   []
-  s = s2 --> exit' = TRUE; s' = s1
+  s = s2 AND approach = FALSE --> exit' = TRUE; s' = s1
   ]
 END ;
 
@@ -63,11 +63,11 @@ BEGIN
   INITIALIZATION  c = s1; lower = FALSE; raise = FALSE
   TRANSITION
   [
-  c = s1 AND approach = TRUE --> approach' = FALSE; c' = s2; z' = 0
+  c = s1 AND raise = FALSE AND approach = TRUE --> approach' = FALSE; c' = s2; z' = 0
   []
   c = s2 AND z = 1 --> c' = s3; lower' = TRUE
   []
-  c = s3 AND exit = TRUE --> c' = s4; z' = 0; exit' = FALSE
+  c = s3 AND lower = FALSE AND exit = TRUE --> c' = s4; z' = 0; exit' = FALSE
   []
   c = s4 --> c' = s1; raise' = TRUE
   ]
@@ -76,5 +76,5 @@ END;
 system: MODULE = train [] gate [] controller [] timeElapse;
 
 correct: THEOREM
-  system |- G( (s = s2 and x >= 2) => g = s2 ) ;
+  system |- G( (s = s2 AND x >= 2) => g = s2 ) ;
 END
