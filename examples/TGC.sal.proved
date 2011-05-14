@@ -1,0 +1,133 @@
+TGC: CONTEXT = 
+BEGIN
+abs (a:REAL) : REAL  = 
+ IF a < 0 THEN -(a) ELSE a ENDIF  ;
+
+eigenInv (xold:REAL,xnew:REAL) : BOOLEAN  = 
+ 0 <= xnew AND xnew <= xold OR xold <= xnew AND xnew <= 0 ;
+
+quadInv (xold:REAL,yold:REAL,xnew:REAL,ynew:REAL) : BOOLEAN  = 
+ abs(xnew) <= abs(xold) + abs(yold) AND abs(ynew) <= abs(xold) + abs(yold) AND (abs(xnew) <= abs(xold) OR abs(ynew) <= abs(yold)) AND (abs(xnew) <= abs(yold) OR abs(ynew) <= abs(xold)) ;
+
+
+Mode: TYPE = { s1 , s2 , s3 , s4 } ;
+
+
+timeElapse: MODULE =
+BEGIN
+LOCAL xdot:REAL,ydot:REAL,zdot:REAL
+GLOBAL x:REAL,y:REAL,z:REAL
+INPUT s:Mode,g:Mode,c:Mode
+INPUT lower:BOOLEAN,exit:BOOLEAN,raise:BOOLEAN,approach:BOOLEAN
+INITIALIZATION
+x = 0 ; y = 0 ; z = 0 
+
+TRANSITION
+[
+(s = s1 AND exit = FALSE OR s = s2 AND approach = FALSE AND x <= 5 AND x' <= 5) AND (g = s2 AND y <= 1 AND y' <= 1 OR g = s3 AND y <= 2 AND y' <= 2 OR g = s1) AND (c = s2 AND z <= 1 AND z' <= 1 OR c = s3 AND lower = FALSE OR c = s4 AND z <= 1 AND z' <= 1 OR c = s1 AND raise = FALSE) AND x <= x' AND x' - x = y' - y AND x' - x = z' - z  --> 
+y' IN {aZtQ:REAL|TRUE} ; x' IN {aZtQ:REAL|TRUE} ; z' IN {aZtQ:REAL|TRUE} 
+]
+END ;
+
+
+train: MODULE =
+BEGIN
+GLOBAL approach:BOOLEAN,exit:BOOLEAN
+GLOBAL x:REAL
+OUTPUT s:Mode
+INITIALIZATION
+s = s1 ; approach = FALSE ; exit = FALSE 
+
+TRANSITION
+[
+s = s1  --> 
+s' = s2 ; approach' = TRUE ; x' = 0 
+[]
+s = s2 AND approach = FALSE AND x > 2  --> 
+exit' = TRUE ; s' = s1 
+]
+END ;
+
+
+gate: MODULE =
+BEGIN
+GLOBAL lower:BOOLEAN,raise:BOOLEAN
+GLOBAL y:REAL
+OUTPUT g:Mode
+INITIALIZATION
+g = s1 
+
+TRANSITION
+[
+g = s1 AND lower = TRUE  --> 
+lower' = FALSE ; g' = s2 ; y' = 0 
+[]
+g = s2 AND raise = TRUE  --> 
+g' = s3 ; raise' = FALSE ; y' = 0 
+[]
+g = s3 AND y >= 1  --> 
+g' = s1 
+]
+END ;
+
+
+controller: MODULE =
+BEGIN
+GLOBAL lower:BOOLEAN,raise:BOOLEAN,approach:BOOLEAN,exit:BOOLEAN
+GLOBAL z:REAL
+OUTPUT c:Mode
+INITIALIZATION
+c = s1 ; lower = FALSE ; raise = FALSE 
+
+TRANSITION
+[
+c = s1 AND raise = FALSE AND approach = TRUE  --> 
+approach' = FALSE ; c' = s2 ; z' = 0 
+[]
+c = s2 AND z = 1  --> 
+c' = s3 ; lower' = TRUE 
+[]
+c = s3 AND lower = FALSE AND exit = TRUE  --> 
+c' = s4 ; z' = 0 ; exit' = FALSE 
+[]
+c = s4  --> 
+c' = s1 ; raise' = TRUE 
+]
+END ;
+
+
+observer: MODULE =
+BEGIN
+INPUT lower:BOOLEAN,raise:BOOLEAN,approach:BOOLEAN,exit:BOOLEAN
+TRANSITION
+[
+NOT(lower AND lower') AND NOT(raise AND raise') AND NOT(approach AND approach') AND NOT(exit AND exit')  --> 
+]
+END ;
+
+
+system: MODULE =
+( ( train [] gate [] controller [] timeElapse ) || observer ) ;
+
+% We do not prove this lemma; we are interested in 
+% only those trajectories that satisfy this lemma
+lemmaaux2: LEMMA
+  system |- G( (raise <=> (c = s1 AND g = s2)) AND
+               (lower <=> (c = s3 AND g = s1)) AND
+               (approach <=> (s = s2 AND c = s1)) AND
+               (exit <=> (s = s1 AND c = s3)) );
+
+% sal-inf-bmc -i -d 4 -l lemmaaux2 TGC lemmaaux1
+lemmaaux1: LEMMA
+  system |- G( (s = s1 AND g = s1 AND c = s1) OR
+               (s = s2 AND (g = s1 OR g = s3) AND ((c = s1 AND approach AND x=0) OR 
+                 (c = s2 AND x = z))) OR
+               (s = s2 AND ((g = s1 AND lower) OR g = s2) AND c = s3) OR
+               (s = s1 AND g = s2 AND (c = s3 OR c = s4)) OR
+               (s = s1 AND c = s4 AND g = s2) OR
+               (s = s1 AND ((g = s2 AND raise) OR g = s3) AND c = s1) );
+
+% sal-inf-bmc -i -d 4 -l lemmaaux1 TGC correct
+correct : THEOREM
+system |- G(s = s2 AND x >= 2 => g = s2);
+END
