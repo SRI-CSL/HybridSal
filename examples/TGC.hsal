@@ -14,12 +14,12 @@ BEGIN
  TRANSITION
  [
  ((s = s1 AND exit = FALSE) OR
-  (s = s2 AND approach = FALSE AND x <= 5)) AND
- ((g = s2 AND y <= 1) OR
-  (g = s3 AND y <= 2) OR (g = s1)) AND
- ((c = s2 AND z <= 1) OR
+  (s = s2 AND approach = FALSE AND x <= 5 AND x' <= 5)) AND
+ ((g = s2 AND y <= 1 AND y' <= 1) OR
+  (g = s3 AND y <= 2 AND y' <= 2) OR (g = s1)) AND
+ ((c = s2 AND z <= 1 AND z' <= 1) OR
   (c = s3 AND lower = FALSE) OR 
-  (c = s4 AND z <= 1) OR
+  (c = s4 AND z <= 1 AND z' <= 1) OR
   (c = s1 AND raise = FALSE))
  --> xdot' = 1; ydot' = 1; zdot' = 1
  ]
@@ -35,7 +35,7 @@ BEGIN
   [
   s = s1 --> s' = s2; approach' = TRUE; x' = 0
   []
-  s = s2 AND approach = FALSE --> exit' = TRUE; s' = s1
+  s = s2 AND approach = FALSE AND x > 2 --> exit' = TRUE; s' = s1
   ]
 END ;
 
@@ -73,7 +73,18 @@ BEGIN
   ]
 END;
 
-system: MODULE = train [] gate [] controller [] timeElapse;
+observer: MODULE =
+BEGIN
+  INPUT lower, raise, approach, exit: BOOLEAN
+  TRANSITION
+  [
+  NOT(lower AND lower') AND NOT(raise AND raise') AND 
+  NOT(approach AND approach') AND NOT(exit AND exit') -->
+  ]
+END;
+
+system: MODULE = 
+ ((train [] gate [] controller [] timeElapse) || observer);
 
 correct: THEOREM
   system |- G( (s = s2 AND x >= 2) => g = s2 ) ;

@@ -595,10 +595,11 @@ def absGuardedCommand(gc):
     print A
     print "b"
     print b
-    guardExpr = HSalXMLPP.getArg(guard,1)
-    guard = guardExpr.cloneNode(True)
-    primeguard = makePrime(guard)
-    guard = createNodeInfixApp('AND',guard,primeguard)
+    # guardExpr = HSalXMLPP.getArg(guard,1)
+    # guard = guardExpr.cloneNode(True)
+    # primeguard = makePrime(guard)
+    # guard = createNodeInfixApp('AND',guard,primeguard)
+    guard = HSalXMLPP.getArg(guard,1)
     absgc = absGuardedCommandAux(varlist,A,b)
     absguardnode = createNodeInfixApp('AND',guard,absgc)
     absguard = createNodeTagChild('GUARD',absguardnode)

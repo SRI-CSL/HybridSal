@@ -16,10 +16,10 @@ def SimpleDefinitionLhsVar(defn):
 
 def GuardedCommandLhsVar(gcmd):
     assgns = gcmd.getElementsByTagName("ASSIGNMENTS")
-    if (assgns == None):
+    if (assgns == None or len(assgns) == 0):
         return(0)
     defns = assgns[0].getElementsByTagName("SIMPLEDEFINITION")
-    if (defns == None):
+    if (defns == None or len(defns) == 0):
         return(0)
     return SimpleDefinitionLhsVar(defns[0])
 
@@ -27,6 +27,8 @@ def isCont(gcmd):
     "Is this guarded command a continuous transition?"
     var = GuardedCommandLhsVar(gcmd)
     # print "Variable is %s" % var
+    if var == 0:
+        return(0)
     if var[-3:] == 'dot':
         return(1)
 

@@ -12,7 +12,7 @@ import sys
 #   From this file, you can safely use HSalPPContext; 
 #   For using other functions, need to set fp
 
-precedence = ['/', '*', '-', '+', '>', '>=', '<', '<=', '=', 'NOT', 'AND', 'OR']
+precedence = ['/', '*', '-', '+', '>', '>=', '<', '<=', '=', 'NOT', 'AND', 'OR', '=>']
 
 def valueOf(node):
     """return text value of node"""
@@ -224,8 +224,9 @@ def HSalPPGuardedCommand(node):
     guard = node.getElementsByTagName("GUARD")[0]
     HSalPPGuard(guard)
     print >> fp, " --> "
-    assgns = node.getElementsByTagName("ASSIGNMENTS")[0]
-    HSalPPAssgns(assgns)
+    assgns = node.getElementsByTagName("ASSIGNMENTS")
+    if (not(assgns == None) and len(assgns) > 0):
+        HSalPPAssgns(assgns[0])
     
 def HSalPPMultiCommand(node):
     global fp

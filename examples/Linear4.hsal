@@ -9,7 +9,7 @@ INITIALIZATION
   x = 1; y = 0
 TRANSITION
 [
-y >= 0 --> 
+y >= 0 AND y' >= 0 --> 
   xdot' = y ;
   ydot' = -x
 ]
