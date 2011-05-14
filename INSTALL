@@ -1,0 +1,40 @@
+
+Installation instructions for HybridSAL Relational Abstractor:
+---------------------------------------------------------------
+
+(1) Install hybridsal2xml
+  cd hybridsal2xml
+  Follow instructions in the README file in that directory
+
+(2) Edit first 3 lines of Makefile
+ so that the path names are correct
+
+(3) Make sure your system has python 2.6
+
+(4) Run 
+ make sal2xml
+ This will test if the hybridsal2xml is installed properly
+ Nothing works if hybridsal2xml is not installed properly
+
+ make 
+ This will test if the relational abstraction is installed properly.
+ Running make will automatically create abstractions of the
+ files in examples/*.hsal
+
+
+How to use the relational abstractions?
+---------------------------------------
+The relational abstraction are written in SAL files, hence
+SAL tools can be applied to it.
+For example, sal-inf-bmc can be used to perform infinite 
+bounded model checking on the SAL files to verify safety
+properties or obtain counter examples.
+Note: Auxiliary lemmas may be needed.
+ In some cases, <filename>.sal.proved contains such
+ auxiliary lemmas and the sal command to prove properties.
+ Do a "diff <filename>.sal.proved <filename>.sal" to see
+ what auxiliary lemmas were added.
+
+----------------------------------------------------
+Author: Ashish Tiwari (tiwari@csl.sri.com)
+----------------------------------------------------

@@ -1,14 +1,29 @@
 
-This directory is svn at spartan
-It was created using
-svn co svn+ssh://spartan.csl.sri.com/svn/internal/ashish-tools/
+Contents of this directory:
+---------------------------
 
-The following files and directories are svn added:
-Makefile
-src
-examples
+README: This file
 
-The following are NOT on svn yet
-hybridsal2xml
-devel
+COPYRIGHT: The content in file COPYRIGHT applies to ALL files 
+(recursively) inside this directory except the hybridsal2xml 
+subdirectory.  Files in that directory inherit the SAL licence.
+
+INSTALL: Instructions for installing the software
+
+Makefile: Makefile
+
+src/ : Source code of the relational abstractor for hybrid systems
+
+examples/ : Examples 
+  The examples are written as <filename>.hsal 
+  The relational abstractor AUTOMATICALLY constructs
+  <filename>.hasal and <filename>.sal
+    <filename>.hsal :  HybridSAL specification of the hybrid system
+    <filename>.hasal: Augmented HybridSAL (original + abstraction)
+    <filename>.sal:   SAL file containing abstraction of <filename>.hsal
+
+hybridsal2xml/ : This directory contains code that parses a HybridSAL
+ (or Augmented HybridSAL file) and creates an XML for it.
+ 
+
 
