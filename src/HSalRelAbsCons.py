@@ -381,10 +381,11 @@ def multirateAbs(rateL):
                 nodes.append(createNodeInfixApp('<=', xold, xnew))
             else:
                 nodes.append(createNodeInfixApp('>=', xold, xnew))
+            (xold,xnew) = (xold.cloneNode(True),xnew.cloneNode(True))
         else:
             s = createNodeTag("NUMERAL", str(srate))
             nodes.append(createNodeApp("multirateInv", [xold,xnew,r,yold,ynew,s], infix=False))
-        (xold,xnew,r) = (xold.cloneNode(True),xnew.cloneNode(True),r.cloneNode(True))
+            (xold,xnew,r) = (xold.cloneNode(True),xnew.cloneNode(True),r.cloneNode(True))
     return createNodeAnd(nodes)
 
 def createNodeVarType(varName, typeName):
