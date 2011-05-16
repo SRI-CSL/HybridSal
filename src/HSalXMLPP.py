@@ -121,13 +121,13 @@ def HSalPPNextOperator(node):
     return name+"'"
 
 def HSalPPSetPredExpr(node):
-    str0 = "{"
+    str0 = "{ "
     str0 += getNameTag(node, "IDENTIFIER")
-    str0 += ":"
+    str0 += " : "
     str0 += getNameTag(node, "TYPENAME")
-    str0 += "|"
+    str0 += " | "
     str0 += HSalPPExpr(getArg(node,3))
-    str0 += "}"
+    str0 += " }"
     return str0
 
 def HSalPPConditional(node):

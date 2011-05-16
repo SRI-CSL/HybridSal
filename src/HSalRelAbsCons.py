@@ -135,11 +135,17 @@ def createNodePlus(nodeList):
 
 def createNodeCXOne(c, x, flag):
     #node1 = createNodeTag("NUMERAL", str(c))
-    node1 = createNodeTag("NUMERAL", format(c,'.2f'))
+    if equal(c, 1):
+        node1 = None
+    else:
+        node1 = createNodeTag("NUMERAL", format(c,'.2f'))
     node2 = createNodeTag("NAMEEXPR", x)
     if flag:
         node2 = createNodeTagChild("NEXTOPERATOR", node2)
-    node3 = createNodeInfixApp('*', node1, node2)
+    if node1 == None:
+        node3 = node2
+    else:
+        node3 = createNodeInfixApp('*', node1, node2)
     return node3
 
 def dictKey(varlist, value):
@@ -465,7 +471,8 @@ def absGuardedCommandAux(varlist,A,b):
             continue
         lamb = lambL[0]
         for vec in vectors:
-            assert not(lamb == 0)
+            if (lamb == 0):
+                continue
             wec = linearAlgebra.multiplyAv(A2trans, vec)
             for j in range(len(wec)):
                 wec[j] /= lamb

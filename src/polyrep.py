@@ -21,6 +21,18 @@ def numeral2poly(node):
         return [ ]
     return [ [ num, dict() ] ]
 
+def isConstMono(cmu):
+    return len(cmu) == 2 and len(cmu[1]) == 0
+
+def isConstant(p):
+    return len(p) == 0 or (len(p) == 1 and isConstMono(p[0]))
+
+def getConstant(p):
+    if len(p) == 0:
+        return 0
+    else:
+        return p[0][0]
+
 def polyNeg(p):
     "Return -p; destructive"
     for i in p:
@@ -66,6 +78,16 @@ def polyMul(p, q):
             res.append(monoMul(i,j))
     return res
 
+def polyDiv(p, q):
+    "DESTUCTIVE Divide polynomials p by CONSTANT q; destructive"
+    if isConstant(q):
+        c = getConstant(q)
+        for i in p:
+            i[0] = i[0]/c
+    else:
+        print "Error: Can't divide by NON-CONSTANT"
+    return p
+
 def infixApp2poly(node):
     str1 = expr2poly(appArg(node,1))
     str2 = getNameTag(node, 'NAMEEXPR')
@@ -76,6 +98,8 @@ def infixApp2poly(node):
         return polySub(str1, str3)
     elif not(str2.find('*') == -1):
         return polyMul(str1, str3)
+    elif not(str2.find('/') == -1):
+        return polyDiv(str1, str3)
     else:
         print "Error: Unidentified operator %s" % str2
         return str1
