@@ -1,0 +1,60 @@
+%% nav01 benchmark
+%% MAP=[B 2 4; 4 3 4; 2 2 A]
+%% MatA = [ -1.2 0.1;0.1 -1.2]
+%% x0 in [2,3]x[1,2]
+%% v0 in [-0.3,0.3]x[-0.3,0]
+%% 0: n (0,1);  1: ne (0.7,0.7); 2: e (1,0);  3: se (0.7,-0.7)
+%% 4: s (0,-1); 5: sw (-.7,-.7); 6: w (-1,0); 7: nw (.7,-.7)
+%% 9 regions; [i,i+1]x[j,j+1] where i,j in {0,1,2}
+%% dynamics in (i,j) is determined by MAP(i,j) 
+%% We get following invariants: R(xinit,yinit,vxinit,vyinit,x,y,vx,vy):
+%%  (vxinit-1)+-vyinit >= 0 => 0 <= (vx-1) +- vy <= (vxinit-1) +- vyinit
+%%  (vxinit-1)+-vyinit <= 0 => 0 >= (vx-1) +- vy >= (vxinit-1) +- vyinit
+%%         +- means we can choose either + or -
+%%  (y - yinit) + 10/143*(vx - vxinit) + 120/143*(vy - vyinit) = 0
+%%  (x - xinit) + (vx - vxinit) + 2*(vy - vyinit) + 2.3*(y - yinit) >= 0
+%% There are infinitely many invariants of the last form.
+%% I picked coefficients 1,2,2.3 arbitrarily.
+%% We just need to ensure b=12a-10 and 10c = 12b-a
+%% a=0,b=-10,c=-12; 
+%% where a is coeff of (vx-vxinit), b of (vy-vyinit), c of (y-yinit)
+
+
+nav: CONTEXT = 
+BEGIN
+
+ STATES: TYPE = { unsafe, done, working };
+
+ nav01: MODULE = 
+ BEGIN
+  LOCAL x,y,vx,vy: REAL
+  LOCAL xdot,ydot,vxdot,vydot: REAL
+  OUTPUT flag: STATES
+  INITIALIZATION
+   flag = working;
+   x IN {z: REAL | 2 <= z AND z <= 3};
+   y IN {z: REAL | 1 <= z AND z <= 2};
+   vx IN {vz: REAL | -3/10 <= vz AND vz <= 3/10};
+   vy IN {vz: REAL | -3/10 <= vz AND vz <= 0}
+  TRANSITION
+  [
+   %% Region: [1,2] x [2,3]  Direction = east
+   %% MatA = [ -1.2 0.1;0.1 -1.2]
+   %% MAP=[B 2 4; 4 3 4; 2 2 A]
+   1 <= x AND x < 2 AND 2 <= y AND y <= 3 AND
+   1 <= x' AND x' <= 2 AND 2 <= y' AND y' <= 3 AND
+   (x' = 2 OR y' = 2 OR y' = 3) -->
+       xdot' = vx; ydot' = vy; 
+       vxdot' = -12/10*(vx-1)+1/10*vy;
+       vydot' = 1/10*(vx-1)-12/10*vy
+  ]
+ END;
+
+ correct: THEOREM 
+  nav01 |- G( flag /= unsafe );
+
+ canreach: THEOREM 
+  nav01 |- G( flag /= done );
+
+
+END
