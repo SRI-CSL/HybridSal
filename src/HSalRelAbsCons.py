@@ -100,6 +100,7 @@ def createNodeInfixApp(op, child1, child2):
     appNode.setAttribute('INFIX', 'YES')
     return appNode
 
+# unused function createNodeTime, delete it
 def createNodeTime(varName, rate):
     "Return varName' - varName / rate"
     rateNode = createNodeTag("NUMERAL", str(rate))
@@ -186,6 +187,26 @@ def createNodePnew(vec,x,A2transvec,y,const):
 def createNodePold(vec,x,A2transvec,y,const):
     return createNodePaux(vec,x,A2transvec,y,const,False)
 
+def createNodeMultirateInv():
+    """y'-y/s = x-x'/r"""
+    fname = createNodeTag("IDENTIFIER", "multirateInv")
+    vds = []
+    vds.append(createNodeVarType("xold", "REAL"))
+    vds.append(createNodeVarType("xnew", "REAL"))
+    vds.append(createNodeVarType("r", "REAL"))
+    vds.append(createNodeVarType("yold", "REAL"))
+    vds.append(createNodeVarType("ynew", "REAL"))
+    vds.append(createNodeVarType("s", "REAL"))
+    fparams = createNodeTagChildn("VARDECLS", vds)
+    ftype = createNodeTag("TYPENAME", "BOOLEAN")
+    num1 = createNodeApp("-", [ "xnew", "xold" ])
+    num2 = createNodeApp("-", [ "ynew", "yold" ])
+    lhs = createNodeApp("/", [ num1, "r" ])
+    rhs = createNodeApp("/", [ num2, "s" ])
+    fval = createNodeApp("=", [ lhs, rhs ])
+    ans = createNodeTagChild4("CONSTANTDECLARATION", fname, fparams, ftype, fval)
+    return ans
+
 def createNodeEigenInv():
     """0 <= nodePnew <= nodePold OR nodePold <= nodePnew <= 0 """
     fname = createNodeTag("IDENTIFIER", "eigenInv")
@@ -208,7 +229,7 @@ def createEigenInv(nodePnew,nodePold,lamb):
     "0 <= nodePnew <= nodePold OR nodePold <= nodePnew <= 0 if lamb < 0"
     "0 <= nodePold <= nodePnew OR nodePnew <= nodePold <= 0 if lamb > 0"
     "nodePold = nodePnew if lamb == 0"
-    if lamb == 0:
+    if equal(lamb, 0):
         ans = createNodeInfixApp('=', nodePold, nodePnew)
     elif lamb < 0:
         ans = createNodeApp("eigenInv", [ nodePold, nodePnew ], infix=False)
@@ -332,34 +353,38 @@ def partition(varlist, A, b):
     [A1,A2,b1,b2] = partitionAux(x, y, A, b)
     return [x,y,A1,A2,b1,b2]
 
-def multirateAbs(y, b2):
-    """Return y[i]'-y[i]/b1[i] are equal for all i
-       Return an XML SAL expression -- guard"""
-    m = len(b2)
-    node0 = None
-    nodes = list()
+def multirateList(y, b2):
+    """Return list of [y[i]',y[i],b1[i]],
+       where y,y' are XML nodes, b1[i] is a float"""
+    multirateL = list()
     yindices = y.values()
     yindices.sort()
     for i,v in enumerate(yindices):
-        if equal(b2[i], 0):
-            varName = dictKey(y, v)
-            varNode = createNodeTag("NAMEEXPR", varName)
-            varPrimeNode = createNodeTagChild("NEXTOPERATOR", varNode.cloneNode(True))
-            nodes.append(createNodeInfixApp('=', varNode, varPrimeNode))
-        elif node0 == None:
-            varName = dictKey(y, v)
-            node0 = createNodeTime(varName, b2[i])
-            varNode = createNodeTag("NAMEEXPR", varName)
-            varPrimeNode = createNodeTagChild("NEXTOPERATOR", varNode.cloneNode(True))
-            if b2[i] > 0:
-                nodes.append(createNodeInfixApp('<=', varNode, varPrimeNode))
+        varName = dictKey(y, v)
+        yold = createNodeTag("NAMEEXPR", varName)
+        ynew = createNodeTagChild("NEXTOPERATOR", yold.cloneNode(True))
+        multirateL.append([ynew, yold, b2[i]])
+    return multirateL
+
+def multirateAbs(rateL):
+    """rateL is list of [ynew, yold, rate]
+       Return an XML SAL expression -- guard"""
+    (xold,xnew,r) = (None,None,None)
+    nodes = list()
+    for [ynew,yold,srate] in rateL:
+        if equal(srate, 0):
+            nodes.append(createNodeInfixApp('=', yold, ynew))
+        elif xold == None:
+            (xold,xnew) = (yold,ynew)
+            r = createNodeTag("NUMERAL", str(srate))
+            if srate > 0:
+                nodes.append(createNodeInfixApp('<=', xold, xnew))
             else:
-                nodes.append(createNodeInfixApp('>=', varNode, varPrimeNode))
+                nodes.append(createNodeInfixApp('>=', xold, xnew))
         else:
-            nodei = createNodeTime(dictKey(y,v), b2[i])
-            tmp = node0.cloneNode(True)
-            nodes.append(createNodeInfixApp('=', node0, nodei))
-            node0 = tmp
+            s = createNodeTag("NUMERAL", str(srate))
+            nodes.append(createNodeApp("multirateInv", [xold,xnew,r,yold,ynew,s], infix=False))
+        (xold,xnew,r) = (xold.cloneNode(True),xnew.cloneNode(True),r.cloneNode(True))
     return createNodeAnd(nodes)
 
 def createNodeVarType(varName, typeName):
@@ -449,7 +474,8 @@ def absGuardedCommandAux(varlist,A,b):
     m = len(y)
     if n == 0:
         print "dx/dt is a constant for all x"
-    guardAbs1 = multirateAbs(y, b2)
+    multirateL = multirateList(y, b2) 
+    # guardAbs1 = multirateAbs(y, b2)
     A1trans = linearAlgebra.transpose(A1)
     eigen = linearAlgebra.eigen(A1trans)
     # CHECK above, tranpose added, [ l [ vectors ] l [ vectors ] ]
@@ -459,8 +485,8 @@ def absGuardedCommandAux(varlist,A,b):
     i = 0
     A2trans = linearAlgebra.transpose(A2)
     nodeL = list()
-    if not(guardAbs1 == None):
-        nodeL.append(guardAbs1)
+    #if not(guardAbs1 == None):
+        #nodeL.append(guardAbs1)
     while i < num:
         vectors = eigen[i+1]
         if vectors == None or len(vectors) == 0:
@@ -470,21 +496,39 @@ def absGuardedCommandAux(varlist,A,b):
         if len(lambL) > 1:
             continue
         lamb = lambL[0]
+        # Suppose d/dt(vec.x+wec.y+b)= 0
+        # vec.(A1 x + A2 y + b1) + wec.(b2) = 0
+        # vec.A1 = lamb.vec; Suppose d/dt(vec.x+wec.y+b)=lamb(...)
+        # Then, vec.(A1 x + A2 y + b1) + wec.(b2) = lamb(...)
+        # lamb.vec.x + vec.A2.y+vec.b1 + wec.b2 = lamb(vec.x+wec.y+b)
+        # vec.A2.y = lamb.wec.y AND vec.b1 + wec.b2 = lamb(b)
         for vec in vectors:
-            if (lamb == 0):
+            if isZero(vec):
                 continue
             wec = linearAlgebra.multiplyAv(A2trans, vec)
-            for j in range(len(wec)):
-                wec[j] /= lamb
             const = linearAlgebra.dotproduct(vec,b1)
-            const += linearAlgebra.dotproduct(wec,b2)
-            nodePnew = createNodePnew(vec,x,wec,y,const/lamb)
-            nodePold = createNodePold(vec,x,wec,y,const/lamb)
-            # vec could be 0 vector and hence nodePnew could be None
-            if not(nodePnew == None):
-                nodeL.append(createEigenInv(nodePnew,nodePold,lamb))
+            if equal(lamb, 0):
+                if isZero(wec):
+                    pold = createNodeCX(vec,x,False)
+                    pnew = createNodeCX(vec,x,True)
+                    multirateL.append([pnew,pold,const])
+                else:
+                    print "lamb==0, but no corr. invariant found"
+                    continue
+            else:
+                for j in range(len(wec)):
+                    wec[j] /= lamb
+                const += linearAlgebra.dotproduct(wec,b2)
+                const = float(const) / lamb
+                nodePnew = createNodePnew(vec,x,wec,y,const)
+                nodePold = createNodePold(vec,x,wec,y,const)
+                if not(nodePnew == None):
+                    nodeL.append(createEigenInv(nodePnew,nodePold,lamb))
             # Pick d' s.t. l d' = c' A2 or, d l = A2' c
             # Let p := (c'x+d'y+ (c'b1+d'b2)/l) THEN dp/dt = l p
+    multirateGuard = multirateAbs(multirateL)
+    if not(multirateGuard == None):
+        nodeL.append(multirateGuard)
     i = 0
     while i < num:
         lamb = eigen[i]
@@ -517,6 +561,8 @@ def absGuardedCommandAux(varlist,A,b):
         # c1,c2 satisfy a*(v'*b1+w2'*b2)+d*(u'*b1+w1'*b2)=(a*a+d*d)*c2
         # c1,c2 satisfy d*(v'*b1+w2'*b2)-a*(u'*b1+w1'*b2)=(-a*a-d*d)*c1
         for vec in vectors:
+            if isZero(vec):
+                continue
             u = vec
             tmp = linearAlgebra.multiplyAv(A1trans, u)
             v = [ (tmp[j] - a*u[j])/d for j in range(n) ] # v=(u'A1 - a*u')/d
@@ -545,8 +591,7 @@ def absGuardedCommandAux(varlist,A,b):
             nodeQnew = createNodePnew(v,x,w2,y,c2)
             nodeQold = createNodePold(v,x,w2,y,c2)
             # vec could be 0 vector and hence nodePnew could be None
-            if not(nodePnew == None):
-                nodeL.append(createQuadInv(nodePnew,nodePold,nodeQnew,nodeQold,a,b))
+            nodeL.append(createQuadInv(nodePnew,nodePold,nodeQnew,nodeQold,a,b))
     return createNodeAnd(nodeL)
 
 # collect all x s.t. dx/dt = constant
@@ -637,6 +682,7 @@ def handleContext(ctxt):
     assert len(cbody) == 1
     cbody[0].insertBefore(newChild=createNodeQuadInv(),refChild=cbody[0].firstChild)
     cbody[0].insertBefore(newChild=createNodeEigenInv(),refChild=cbody[0].firstChild)
+    cbody[0].insertBefore(newChild=createNodeMultirateInv(),refChild=cbody[0].firstChild)
     cbody[0].insertBefore(newChild=createModNode(),refChild=cbody[0].firstChild)
     return ctxt
 

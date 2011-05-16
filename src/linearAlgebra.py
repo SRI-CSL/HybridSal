@@ -125,7 +125,8 @@ def eigenvalueLargest(A):
     "return largest eigenvalue of A, iterated method"
     i = 0
     lambold = 0;
-    v = list(A[1])
+    v = [0 for i in range(len(A))]
+    v[0] = 1
     lamb = Avbyv(A,v)
     while noteq(lamb, lambold) and i < 100:
         v = nnormalize(v)

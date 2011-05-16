@@ -83,7 +83,7 @@ def polyDiv(p, q):
     if isConstant(q):
         c = getConstant(q)
         for i in p:
-            i[0] = i[0]/c
+            i[0] = float(i[0])/c
     else:
         print "Error: Can't divide by NON-CONSTANT"
     return p
