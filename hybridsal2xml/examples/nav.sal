@@ -1,0 +1,1063 @@
+%% NAVIGATION benchmarks
+%% SAL Models of the relational abstraction of the navigation benchmarks
+
+nav: CONTEXT = 
+BEGIN
+
+ STATES: TYPE = { unsafe, done, working };
+
+ abs(a:REAL):REAL = IF (a<0) THEN -a ELSE a ENDIF;
+
+ maxabs(a:REAL, b:REAL): REAL = 
+  LET aa:REAL=abs(a) IN LET bb:REAL=abs(b) IN 
+    IF (aa < bb) THEN bb ELSE aa ENDIF;
+
+ box(vx:REAL,vy:REAL,vx0:REAL,vy0:REAL,a:REAL): BOOLEAN =
+  LET mm:REAL = maxabs(a*vx0,vy0) IN
+   (a*vx <= mm AND -a*vx <= mm AND vy <= mm AND -vy <= mm);
+
+ box2(vx:REAL,vy:REAL,vx0:REAL,vy0:REAL,a:REAL,b:REAL): BOOLEAN =
+  % TRUE;
+   LET absvx0:REAL=abs(vx0) IN LET absvy0:REAL=abs(vy0) IN 
+     IF (absvy0 <= a*absvx0 AND absvx0 <= b*absvy0) THEN 
+  	 (abs(vx) <= absvx0 AND abs(vy) <= absvy0) 
+     ELSE box(vx,vy,vx0,vy0,a) AND box(vx,vy,vx0,vy0,1/b) ENDIF;
+
+ eigeninv(vx:REAL,vy:REAL,vx0:REAL,vy0:REAL,dx:REAL,dy:REAL,a:REAL): BOOLEAN =
+  % TRUE;
+  (((vx0-dx)+a*(vy0-dy) < 0 OR (0 <= (vx-dx)+a*(vy-dy) AND (vx-dx)+a*(vy-dy) <= (vx0-dx)+a*(vy0-dy))) AND
+   ((vx0-dx)+a*(vy0-dy) > 0 OR (0 >= (vx-dx)+a*(vy-dy) AND (vx-dx)+a*(vy-dy) >= (vx0-dx)+a*(vy0-dy))));
+
+ eigen2(vx:REAL,vy:REAL,vx0:REAL,vy0:REAL,dx:REAL,dy:REAL,a:REAL,b:REAL): BOOLEAN =
+   (eigeninv(vx,vy,vx0,vy0,dx,dy,a) AND
+    eigeninv(vx,vy,vx0,vy0,dx,dy,b));
+
+ boxeigen(vx:REAL,vy:REAL,vx0:REAL,vy0:REAL,dx:REAL,dy:REAL,a:REAL,b:REAL,c:REAL,d:REAL): BOOLEAN =
+     eigen2(vx,vy,vx0,vy0,dx,dy,a,b)
+	  AND box2(vx-dx,vy-dy,vx0-dx,vy0-dy,c,d);
+
+ east10(x:REAL, y:REAL, vx:REAL, vy:REAL, x0:REAL, y0:REAL, vx0:REAL, vy0:REAL): BOOLEAN = 
+   (vx-vx0 - 4*(vy-vy0) - 31/10*(y-y0) = 0 AND
+    vx-vx0 + vy-vy0 + x-x0 - 9/10*(y-y0) >= 0 AND
+    5*(vy-vy0) + x-x0 + 4*(y-y0) >= 0 AND
+    10*(vx-vx0) + 0*(vy-vy0) + 8*(x-x0) + (y-y0) >= 0 AND
+    8*(vx-vx0)  - 1*(vy-vy0) + 31/5*(x-x0) + 0*(y-y0) >= 0 AND
+    box2(vx-1,vy,vx0-1,vy0,4,8) AND
+    eigen2(vx,vy,vx0,vy0,1,0,10/14,-10/14)
+  );
+
+ west10(x:REAL, y:REAL, vx:REAL, vy:REAL, x0:REAL, y0:REAL, vx0:REAL, vy0:REAL): BOOLEAN = 
+   (vx-vx0 - 4*(vy-vy0) - 31/10*(y-y0) = 0 AND
+    vx-vx0 + vy-vy0 + x-x0 - 9/10*(y-y0) <= 0 AND
+    5*(vy-vy0) + x-x0 + 4*(y-y0) <= 0 AND
+    10*(vx-vx0) + 0*(vy-vy0) + 8*(x-x0) + (y-y0) <= 0 AND
+    8*(vx-vx0)  - 1*(vy-vy0) + 31/5*(x-x0) + 0*(y-y0) <= 0 AND
+    box2(vx+1,vy,vx0+1,vy0,4,8) AND
+    eigen2(vx,vy,vx0,vy0,-1,0,10/14,-10/14)
+  );
+
+ north10(x:REAL, y:REAL, vx:REAL, vy:REAL, x0:REAL, y0:REAL, vx0:REAL, vy0:REAL): BOOLEAN = 
+   (-8*(vx-vx0) + 1*(vy-vy0) - 31/10*(x-x0) = 0 AND
+     0*(vx-vx0) + 5*(vy-vy0) + 1*(x-x0) + 4*(y-y0) >= 0 AND
+     10*(vx-vx0) + 0*(vy-vy0) + 8*(x-x0) + 1*(y-y0) >= 0 AND
+     -1*(vx-vx0) + 4*(vy-vy0) + 0*(x-x0) + 31/10*(y-y0) >= 0 AND
+     1*(vx-vx0) + 1*(vy-vy0) + 1*(x-x0) + 9/10*(y-y0) >= 0 AND
+    box2(vx,vy-1,vx0,vy0-1,4,8) AND
+    eigen2(vx,vy,vx0,vy0,0,1,10/14,-10/14)
+  );
+
+ south10(x:REAL, y:REAL, vx:REAL, vy:REAL, x0:REAL, y0:REAL, vx0:REAL, vy0:REAL): BOOLEAN = 
+   (8*(vx-vx0) - 1*(vy-vy0) + 31/10*(x-x0) = 0 AND
+     0*(vx-vx0) + 5*(vy-vy0) + 1*(x-x0) + 4*(y-y0) <= 0 AND
+     10*(vx-vx0) + 0*(vy-vy0) + 8*(x-x0) + 1*(y-y0) <= 0 AND
+     -1*(vx-vx0) + 4*(vy-vy0) + 0*(x-x0) + 31/10*(y-y0) <= 0 AND
+     1*(vx-vx0) + 1*(vy-vy0) + 1*(x-x0) + 9/10*(y-y0) <= 0 AND
+    box2(vx,vy+1,vx0,vy0+1,4,8) AND
+    eigen2(vx,vy,vx0,vy0,0,-1,10/14,-10/14)
+  );
+
+ southeast10(x:REAL, y:REAL, vx:REAL, vy:REAL, x0:REAL, y0:REAL, vx0:REAL, vy0:REAL): BOOLEAN = 
+   (6*(vx-vx0) + 7*(vy-vy0) + 31/5*(x-x0) + 62/10*(y-y0) = 0 AND
+    0*(vx-vx0) - 5*(vy-vy0) - 1*(x-x0) + 4*(y-y0) >= 0 AND
+    5*(vx-vx0) - 0*(vy-vy0) + 4*(x-x0) + 1/2*(y-y0) >= 0 AND
+    1*(vx-vx0) - 4*(vy-vy0) + 0*(x-x0) - 31/10*(y-y0) >= 0 AND
+    8*(vx-vx0) - 1*(vy-vy0) + 31/5*(x-x0) - 0*(y-y0) >= 0 AND
+    1*(vx-vx0) + 1*(vy-vy0) + 1*(x-x0) + 9/10*(y-y0) >= 0 AND
+    box2(vx-7/10,vy+7/10,vx0-7/10,vy0+7/10,4,8) AND
+    eigen2(vx,vy,vx0,vy0,7/10,-7/10,10/14,-10/14)
+   );
+   
+ northwest10(x:REAL, y:REAL, vx:REAL, vy:REAL, x0:REAL, y0:REAL, vx0:REAL, vy0:REAL): BOOLEAN = 
+   (6*(vx-vx0) + 7*(vy-vy0) + 31/5*(x-x0) + 62/10*(y-y0) = 0 AND
+    0*(vx-vx0) - 5*(vy-vy0) - 1*(x-x0) + 4*(y-y0) <= 0 AND
+    5*(vx-vx0) - 0*(vy-vy0) + 4*(x-x0) + 1/2*(y-y0) <= 0 AND
+    1*(vx-vx0) - 4*(vy-vy0) + 0*(x-x0) - 31/10*(y-y0) <= 0 AND
+    8*(vx-vx0) - 1*(vy-vy0) + 31/5*(x-x0) - 0*(y-y0) <= 0 AND
+    1*(vx-vx0) + 1*(vy-vy0) + 1*(x-x0) + 9/10*(y-y0) <= 0 AND
+    box2(vx+7/10,vy-7/10,vx0+7/10,vy0-7/10,4,8) AND
+    eigen2(vx,vy,vx0,vy0,-7/10,7/10,10/14,-10/14)
+   );
+  
+
+ north(x:REAL, y:REAL, vx:REAL, vy:REAL, x0:REAL, y0:REAL, vx0:REAL, vy0:REAL): BOOLEAN = 
+    % (vy0 >= vx0 => vy >= vx) AND 
+    % (10*vy0 - 10*vx0 >= 1 => 11/10*(x-x0)+(vx-vx0) >= 0) AND
+    box2(vx+0/10,vy-10/10,vx0+0/10,vy0-10/10,12,12) AND
+    -143*x0 - 120*vx0 - 10*vy0 + 143*x + 120*vx>= -30
+AND  -x0>= -3  AND  -y0>= -3  AND  -vx0>= -3  AND  -vy0>= -3  AND  -x>= -3  AND  -y>= -3  AND  -vx>= -3  AND
+143*x0 + 120*vx0 + 10*vy0 - 143*x - 120*vx>= -30  AND  vx>= -3  AND  y>= 0  AND  x>= 0  AND  vy0>= -3  AND
+vx0>= -3  AND  y0>= 0  AND  x0>= 0  AND  18*x0 - 2*y0 + 15*vx0 - 18*x + 2*y - 15*vx>= 0  AND  18*x0 - y0 +
+15*vx0 - 18*x + y - 15*vx>= 0  AND  35*x0 - 3*y0 + 30*vx0 - 35*x + 3*y - 30*vx>= 0  AND  37*x0 - 3*y0 + 30*vx0 -
+37*x + 3*y - 30*vx>= 0 AND
+   eigen2(vx,vy,vx0,vy0,0,1,1,-1) AND
+   143/10*(y - y0) + 12*(vy - vy0) + (vx - vx0) >= 0  AND
+   11/10*(x-x0) + 11/10*(y - y0) + (vy - vy0) + (vx - vx0) > 0  AND
+   10*(vy-vy0) - (x-x0) + 12*(y-y0) >= 0 AND
+   -10*(vx-vx0) - 12*(x-x0) + (y-y0) >= 0 AND
+   143/10*(x - x0) + 12*(vx - vx0) + (vy - vy0) = 0 ;
+
+ west(x:REAL, y:REAL, vx:REAL, vy:REAL, x0:REAL, y0:REAL, vx0:REAL, vy0:REAL): BOOLEAN = 
+   143*y0 + 10*vx0 + 120*vy0 - 143*y - 10*vx - 120*vy = 0  AND  -274*x0 - 1461*y0 + 931*vx0 - 1255*vy0 + 274*x +
+100*y + 224*vx>= -11327  AND  -x0>= -3  AND  -143*y0 - 10*vx0 - 120*vy0 + 143*y + 10*vx>= -360  AND  -y0>= -3
+AND  -vx0>= -3  AND  -vy0>= -3  AND  -x>= -3  AND  -y>= -3  AND  -vx>= -3  AND  16*x0 - y0 + 10*vx0 - 16*x + y -
+10*vx>= 0  AND  vx>= -3  AND  y>= 0  AND  x>= 0  AND  vy0>= -3  AND  vx0>= -3  AND  y0>= 0  AND  143*y0 + 10*vx0
++ 120*vy0 - 143*y - 10*vx>= -360  AND  x0>= 0  AND  8*x0 - y0 + 10*vx0 - 8*x + y - 10*vx>= 0  AND  12*x0 - 5*y0
++ 10*vx0 - 12*x + 5*y - 10*vx>= 0  AND  12*x0 + 3*y0 + 10*vx0 - 12*x - 3*y - 10*vx>= 0 AND
+   eigen2(vx,vy,vx0,vy0,-1,0,1,-1) AND
+    box2(vx+10/10,vy-0/10,vx0+10/10,vy0-0/10,12,12) AND
+   143/10*(y - y0) + 12*(vy - vy0) + (vx - vx0) = 0  AND
+   143/10*(x - x0) + 12*(vx - vx0) + (vy - vy0) <= 0  AND
+   -11/10*(x-x0) - 11/10*(y-y0) - (vx-vx0) - (vy-vy0) >= 0;
+
+ east(x:REAL, y:REAL, vx:REAL, vy:REAL, x0:REAL, y0:REAL, vx0:REAL, vy0:REAL): BOOLEAN = 
+    % (11/10*(x-x0) + (vx-vx0) > 0) AND
+    box2(vx-10/10,vy-0/10,vx0-10/10,vy0-0/10,12,12) AND
+   143*y0 + 10*vx0 + 120*vy0 - 143*y - 10*vx - 120*vy = 0  AND  
+   -16*x0 + y0 - 10*vx0 + 16*x - y + 10*vx>= 0  AND
+   -12*x0 - 3*y0 - 10*vx0 + 12*x + 3*y + 10*vx>= 0  AND  
+   -12*x0 + 5*y0 - 10*vx0 + 12*x - 5*y + 10*vx>= 0  AND
+   -8*x0 + y0 - 10*vx0 + 8*x - y + 10*vx>= 0  AND  
+    -x0>= -3  AND  -143*y0 - 10*vx0 - 120*vy0 + 143*y + 10*vx>= -360 AND  
+    -y0>= -3  AND  -vx0>= -3  AND  -vy0>= -3  AND  -x>= -3  AND  
+    -y>= -3  AND  -vx>= -3  AND  
+   239*x0 + 1447*y0 + 214*vx0 + 1214*vy0 - 245*x - 100*y - 214*vx>= -3666 AND
+   vx>= -3  AND  y>= 0  AND  x>= 0  AND  vy0>= -3  AND 
+   vx0>= -3  AND  y0>= 0  AND  
+   143*y0 + 10*vx0 + 120*vy0 - 143*y - 10*vx>= -360  AND  
+   x0>= 0  AND  
+   224*x0 - 957*y0 - 913*vx0 - 803*vy0 - 224*x + 100*y - 211*vx>= -8368 AND
+   eigen2(vx,vy,vx0,vy0,1,0,1,-1) AND
+   (y - y0) + 10/143*(vx - vx0) + 120/143*(vy - vy0) = 0 AND
+   11/10*(x-x0) + 11/10*(y-y0) + (vx-vx0) + (vy-vy0) > 0 AND
+   143/10*(x-x0) + 12*(vx-vx0) + (vy-vy0) >= 0 AND
+   (x - x0) - 10*(vy - vy0) - 12*(y - y0) >= 0 ;
+  
+ south(x:REAL, y:REAL, vx:REAL, vy:REAL, x0:REAL, y0:REAL, vx0:REAL, vy0:REAL): BOOLEAN = 
+    box2(vx-0/10,vy+10/10,vx0-0/10,vy0+10/10,12,12) AND
+   11*x0 + 11*y0 + 10*vx0 + 10*vy0 - 11*x - 11*y - 10*vx - 10*vy = 0  AND  -226*x0 + 15*y0 - 150*vx0 + 226*x - 15*y
++ 150*vx>= 0  AND  -180*x0 - 31*y0 - 150*vx0 + 180*x + 31*y + 150*vx>= 0  AND  -180*x0 + 61*y0 - 150*vx0 + 180*x
+- 61*y + 150*vx>= 0  AND  -134*x0 + 15*y0 - 150*vx0 + 134*x - 15*y + 150*vx>= 0  AND  -11*x0 - 11*y0 - 10*vx0 -
+10*vy0 + 11*x + 11*y + 10*vx>= -30  AND  -x0>= -3  AND  -y0>= -3  AND  -vx0>= -3  AND  -vy0>= -3  AND  -x>= -3
+AND  -y>= -3  AND  -vx>= -3  AND  192*x0 - 8495*y0 - 7721*vx0 - 7723*vy0 - 192*x + 100*y - 226*vx>= -72201  AND
+vx>= -3  AND  y>= 0  AND  x>= 0  AND  vy0>= -3  AND  vx0>= -3  AND  y0>= 0  AND  x0>= 0  AND  11*x0 + 11*y0 +
+10*vx0 + 10*vy0 - 11*x - 11*y - 10*vx>= -30 AND
+   eigen2(vx,vy,vx0,vy0,0,-1,1,-1) AND
+   143/10*(x - x0) + (vy - vy0) + 12*(vx - vx0) = 0 AND
+   -143/10*(y-y0) - (vx-vx0) - 12*(vy-vy0) >= 0 AND
+   11/10*(x-x0) + 11/10*(y-y0) + (vx-vx0) + (vy-vy0) <= 0 AND 
+   -12*(y - y0) - 10*(vy - vy0) + (x - x0) >= 0 ;
+
+ southeast(x:REAL, y:REAL, vx:REAL, vy:REAL, x0:REAL, y0:REAL, vx0:REAL, vy0:REAL): BOOLEAN = 
+    % (11/10*(x-x0) + (vx-vx0) >= 0) AND
+    box2(vx-7/10,vy+7/10,vx0-7/10,vy0+7/10,12,12) AND
+   11*x0 + 11*y0 + 10*vx0 + 10*vy0 - 11*x - 11*y - 10*vx - 10*vy = 0  AND  
+  -226*x0 + 15*y0 - 150*vx0 + 226*x - 15*y + 150*vx>= 0  AND  
+  -180*x0 - 31*y0 - 150*vx0 + 180*x + 31*y + 150*vx>= 0  AND  
+  -180*x0 + 61*y0 - 150*vx0 + 180*x - 61*y + 150*vx>= 0  AND  
+  -134*x0 + 15*y0 - 150*vx0 + 134*x - 15*y + 150*vx>= 0  AND  
+  -11*x0 - 11*y0 - 10*vx0 - 10*vy0 + 11*x + 11*y + 10*vx>= -30  AND  
+  -x0>= -3  AND  -y0>= -3  AND  -vx0>= -3  AND  -vy0>= -3  AND  -x>= -3 AND  
+  -y>= -3  AND  -vx>= -3  AND  
+  192*x0 - 8495*y0 - 7721*vx0 - 7723*vy0 - 192*x + 100*y - 226*vx>= -72201 AND
+  vx>= -3  AND  y>= 0  AND  x>= 0  AND  vy0>= -3  AND  vx0>= -3  AND  
+  y0>= 0  AND  x0>= 0  AND  
+  11*x0 + 11*y0 + 10*vx0 + 10*vy0 - 11*x - 11*y - 10*vx>= -30 AND
+   eigen2(vx,vy,vx0,vy0,7/10,-7/10,1,-1) AND
+   11/10*(x-x0) + 11/10*(y-y0) + (vx-vx0) + (vy-vy0) = 0 AND
+   -143/10*(y-y0) - (vx-vx0) - 12*(vy-vy0) >= 0 AND
+   143/10*(x-x0) + 12*(vx-vx0) + (vy-vy0) >= 0;
+
+ southwest(x:REAL, y:REAL, vx:REAL, vy:REAL, x0:REAL, y0:REAL, vx0:REAL, vy0:REAL): BOOLEAN = 
+   13*x0 - 13*y0 + 10*vx0 - 10*vy0 - 13*x + 13*y - 10*vx + 10*vy = 0  AND  -13*x0 + 13*y0 - 10*vx0 + 10*vy0 + 13*x
+- 13*y + 10*vx>= -30  AND  -x0>= -3  AND  -y0>= -3  AND  -vx0>= -3  AND  -vy0>= -3  AND  -x>= -3  AND  -y>= -3
+AND  -vx>= -3  AND  73*x0 - 5*y0 + 50*vx0 - 73*x + 5*y - 50*vx>= 0  AND  vx>= -3  AND  y>= 0  AND  x>= 0  AND
+vy0>= -3  AND  vx0>= -3  AND  y0>= 0  AND  x0>= 0  AND  13*x0 - 13*y0 + 10*vx0 - 10*vy0 - 13*x + 13*y - 10*vx>=
+-30  AND  30*x0 - 9*y0 + 25*vx0 - 30*x + 9*y - 25*vx>= 0  AND  30*x0 + 4*y0 + 25*vx0 - 30*x - 4*y - 25*vx>= 0
+AND  47*x0 - 5*y0 + 50*vx0 - 47*x + 5*y - 50*vx>= 0 AND
+   eigen2(vx,vy,vx0,vy0,-7/10,-7/10,1,-1) AND
+    box2(vx+7/10,vy+7/10,vx0+7/10,vy0+7/10,12,12) AND
+   13/10*(x-x0) - 13/10*(y-y0) + (vx-vx0) - (vy-vy0) = 0 AND
+   11/10*(x-x0) + 11/10*(y-y0) + (vx-vx0) + (vy-vy0) <= 0 AND
+   -143/10*(y-y0) - (vx-vx0) - 12*(vy-vy0) >= 0 AND
+   -143/10*(x-x0) - 12*(vx-vx0) - (vy-vy0) >= 0;
+
+ northeast(x:REAL, y:REAL, vx:REAL, vy:REAL, x0:REAL, y0:REAL, vx0:REAL, vy0:REAL): BOOLEAN = 
+    % (11/10*(x-x0) + (vx-vx0) >= 0) AND
+    box2(vx-7/10,vy-7/10,vx0-7/10,vy0-7/10,12,12) AND
+  (13*x0 - 13*y0 + 10*vx0 - 10*vy0 - 13*x + 13*y - 10*vx + 10*vy = 0  AND  
+   -73*x0 + 5*y0 - 50*vx0 + 73*x - 5*y + 50*vx>= 0  AND  
+   -47*x0 + 5*y0 - 50*vx0 + 47*x - 5*y + 50*vx>= 0  AND  
+   -30*x0 - 4*y0 - 25*vx0 + 30*x + 4*y + 25*vx>= 0  AND  
+   -30*x0 + 9*y0 - 25*vx0 + 30*x - 9*y + 25*vx>= 0  AND  
+   -x0>= -3  AND  -y0>= -3  AND  -vx0>= -3  AND  -vy0>= -3  AND  
+    -x>= -3  AND  -y>= -3 AND  -vx>= -3  AND  vy >= -3 AND 
+    vx>= -3  AND  y>= 0  AND -vy >= -3 AND
+    x>= 0  AND  vy0>= -3  AND  vx0>= -3  AND  y0>= 0  AND  x0>= 0) AND
+   eigen2(vx,vy,vx0,vy0,7/10,7/10,1,-1) AND
+   13/10*(x-x0) - 13/10*(y-y0) + (vx-vx0) - (vy-vy0) = 0 AND
+   11/10*(x-x0) + 11/10*(y-y0) + (vx-vx0) + (vy-vy0) >= 0 AND
+   143/10*(y-y0) + (vx-vx0) + 12*(vy-vy0) >= 0 AND
+   143/10*(x-x0) + 12*(vx-vx0) + (vy-vy0) >= 0;
+
+ northwest(x:REAL, y:REAL, vx:REAL, vy:REAL, x0:REAL, y0:REAL, vx0:REAL, vy0:REAL): BOOLEAN = 
+   11*x0 + 11*y0 + 10*vx0 + 10*vy0 - 11*x - 11*y - 10*vx - 10*vy = 0  AND  -11*x0 - 11*y0 - 10*vx0 - 10*vy0 + 11*x
++ 11*y + 10*vx>= -30  AND  -x0>= -3  AND  -y0>= -3  AND  -vx0>= -3  AND  -vy0>= -3  AND  -x>= -3  AND  -y>= -3
+AND  -vx>= -3  AND  226*x0 - 15*y0 + 150*vx0 - 226*x + 15*y - 150*vx>= 0  AND  vx>= -3  AND  y>= 0  AND  x>= 0
+AND  vy0>= -3  AND  vx0>= -3  AND  y0>= 0  AND  x0>= 0  AND  11*x0 + 11*y0 + 10*vx0 + 10*vy0 - 11*x - 11*y -
+10*vx>= -30  AND  134*x0 - 15*y0 + 150*vx0 - 134*x + 15*y - 150*vx>= 0  AND  180*x0 - 61*y0 + 150*vx0 - 180*x +
+61*y - 150*vx>= 0  AND  180*x0 + 31*y0 + 150*vx0 - 180*x - 31*y - 150*vx>= 0 AND
+   eigen2(vx,vy,vx0,vy0,-7/10,7/10,1,-1) AND
+    box2(vx+7/10,vy-7/10,vx0+7/10,vy0-7/10,12,12) AND
+   11/10*(x-x0) + 11/10*(y-y0) + (vx-vx0) + (vy-vy0) = 0 AND
+   143/10*(y-y0) + (vx-vx0) + 12*(vy-vy0) >= 0 AND
+   -143/10*(x-x0) - 12*(vx-vx0) - (vy-vy0) >= 0;
+
+ inRegion(x:REAL, y: REAL, a:REAL, b:REAL, c:REAL, d:REAL):BOOLEAN =
+  (a <= x AND x <= b AND c <= y AND y <= d);
+
+ onBdry(x:REAL, y: REAL, a:REAL, b:REAL, c:REAL, d:REAL):BOOLEAN =
+  (inRegion(x,y,a,b,c,d) AND
+   (x = a OR x = b OR y = c OR y = d));
+
+ inwards(x:REAL, y:REAL, vx:REAL, vy:REAL, a:REAL, b:REAL, c:REAL, d:REAL):BOOLEAN =
+  (x = a => vx > 0) AND (x = b => vx < 0) AND
+  (y = c => vy > 0) AND (y = d => vy < 0);
+
+ %% In all benchmarks:
+ %% 2-d space [0,m-1]x[0,n-1] is partitioned into (mxn) cells, 
+ %% dynamics in cell (i,j) is determined by MAP(i,j) 
+ %% B is unsafe region, A is the target region to reach
+ %% dynamics: xdot=vx, ydot=vy, [vxdot,vydot] = MatA.[vx-a,vx-b]
+ %% where a,b is determined by MAP(i,j)
+ %% MAP(i,j) can be a value in [0,7] and it defines a,b as below:
+ %% 0: n (0,1);  1: ne (0.7,0.7); 2: e (1,0);  3: se (0.7,-0.7)
+ %% 4: s (0,-1); 5: sw (-.7,-.7); 6: w (-1,0); 7: nw (.7,-.7)
+
+ %% nav01
+ %% MAP=[B 2 4; 4 3 4; 2 2 A]
+ %% MatA = [ -1.2 0.1;0.1 -1.2]
+ %% x0 in [2,3]x[1,2]
+ %% v0 in [-0.3,0.3]x[-0.3,0]
+ nav01: MODULE = 
+ BEGIN
+  OUTPUT x,y,vx,vy: REAL
+  OUTPUT flag: STATES
+  INITIALIZATION
+   flag = working;
+   x IN {z: REAL | 2 <= z AND z <= 3};
+   y IN {z: REAL | 1 <= z AND z <= 2};
+   vx IN {vz: REAL | -3/10 <= vz AND vz <= 3/10};
+   vy IN {vz: REAL | -3/10 <= vz AND vz <= 0}
+  TRANSITION
+  [
+   %% Region: [1,2] x [2,3]  Direction = east
+   inRegion(x,y,1,2,2,3) AND onBdry(x',y',1,2,2,3) AND
+   NOT( inwards(x',y',vx',vy',1,2,2,3) ) AND inwards(x,y,vx,vy,1,2,2,3) AND
+   east(x',y',vx',vy',x,y,vx,vy) -->
+    x' IN {z: REAL | TRUE}; y' IN {z: REAL | TRUE};
+    vx' IN {z: REAL | TRUE}; vy' IN {z: REAL | TRUE}
+  []
+   %% Region: [0,2] x [0,1]  Direction = east
+   inRegion(x,y,0,2,0,1) AND
+   onBdry(x',y',0,2,0,1) AND
+   NOT( inwards(x',y',vx',vy',0,2,0,1) ) AND inwards(x,y,vx,vy,0,2,0,1) AND
+   east(x',y',vx',vy',x,y,vx,vy) -->
+    x' IN {z: REAL | TRUE}; y' IN {z: REAL | TRUE};
+    vx' IN {z: REAL | TRUE}; vy' IN {z: REAL | TRUE}
+  []
+   %% Region: [2,3] x [1,3]  Direction = south
+   inRegion(x,y,2,3,1,3) AND
+   onBdry(x',y',2,3,1,3) AND
+   NOT( inwards(x',y',vx',vy',2,3,1,3) ) AND inwards(x,y,vx,vy,2,3,1,3) AND
+   south(x',y',vx',vy',x,y,vx,vy) -->
+    x' IN {z: REAL | TRUE}; y' IN {z: REAL | TRUE};
+    vx' IN {z: REAL | TRUE}; vy' IN {z: REAL | TRUE}
+  []
+   %% Region: [0,1] x [1,2]  Direction = south
+   inRegion(x,y,0,1,1,2) AND
+   onBdry(x',y',0,1,1,2) AND
+   NOT( inwards(x',y',vx',vy',0,1,1,2) ) AND inwards(x,y,vx,vy,0,1,1,2) AND
+   south(x',y',vx',vy',x,y,vx,vy) -->
+    x' IN {z: REAL | TRUE}; y' IN {z: REAL | TRUE};
+    vx' IN {z: REAL | TRUE}; vy' IN {z: REAL | TRUE}
+  []
+   %% Region: [1,2] x [1,2]  Direction = south-east
+   inRegion(x,y,1,2,1,2) AND
+   onBdry(x',y',1,2,1,2) AND
+   NOT( inwards(x',y',vx',vy',1,2,1,2) ) AND inwards(x,y,vx,vy,1,2,1,2) AND
+   southeast(x',y',vx',vy',x,y,vx,vy) -->
+    x' IN {z: REAL | TRUE}; y' IN {z: REAL | TRUE};
+    vx' IN {z: REAL | TRUE}; vy' IN {z: REAL | TRUE}
+  []
+   %% Region: [0,1] x [2,3] 
+   onBdry(x,y,0,1,2,3) AND inwards(x,y,vx,vy,0,1,2,3)
+	--> flag' = unsafe
+  []
+   %% Region: [2,3] x [0,1]  
+   onBdry(x,y,2,3,0,1) AND inwards(x,y,vx,vy,2,3,0,1)
+   	--> flag' = done
+  ]
+ END;
+
+ lemma1: THEOREM
+  nav01 |- G( (x = 1 => vx >= 0) AND vy <= 0 );
+
+ % k-induction proves it with depth=4, not with less!!
+ correct1: THEOREM 
+  nav01 |- G( flag /= unsafe );
+
+ % violated in depth 1
+ canreach1: THEOREM 
+  nav01 |- G( flag /= done );
+
+ % can't violate it at any depth
+ canreach11: THEOREM 
+  nav01 |- G( F (flag = done) );
+
+ % not violated in depth 4; hence we get a proof, assuming "a few things"
+ canreach12: THEOREM
+  nav01 |- G( flag = done OR X(flag = done) OR X(X(flag = done)) OR X(X(X(flag=done))));
+
+ %% nav02
+ %% MAP=[B 2 4; 4 3 4; 2 2 A]
+ %% MatA = [ -1.2 0.1;0.1 -1.2]
+ %% x0 in [2,3]x[1,2]
+ %% v0 in [-0.3,0.3]x[-0.3,0.3]
+ nav02: MODULE = 
+ BEGIN
+  LOCAL x,y,vx,vy: REAL
+  OUTPUT flag: STATES
+  INITIALIZATION
+   flag = working;
+   x IN {z: REAL | 2 <= z AND z <= 3};
+   y IN {z: REAL | 1 <= z AND z <= 2};
+   vx IN {vz: REAL | -3/10 <= vz AND vz <= 3/10};
+   vy IN {vz: REAL | -3/10 <= vz AND vz <= 3/10}
+  TRANSITION
+  [
+   %% Region: [1,2] x [2,3]  Direction = east
+   inRegion(x,y,1,2,2,3) AND onBdry(x',y',1,2,2,3) AND
+   NOT( inwards(x',y',vx',vy',1,2,2,3) ) AND inwards(x,y,vx,vy,1,2,2,3) AND
+   east(x',y',vx',vy',x,y,vx,vy) -->
+    x' IN {z: REAL | TRUE}; y' IN {z: REAL | TRUE};
+    vx' IN {z: REAL | TRUE}; vy' IN {z: REAL | TRUE}
+  []
+   %% Region: [0,2] x [0,1]  Direction = east
+   inRegion(x,y,0,2,0,1) AND
+   onBdry(x',y',0,2,0,1) AND
+   NOT( inwards(x',y',vx',vy',0,2,0,1) ) AND inwards(x,y,vx,vy,0,2,0,1) AND
+   east(x',y',vx',vy',x,y,vx,vy) -->
+    x' IN {z: REAL | TRUE}; y' IN {z: REAL | TRUE};
+    vx' IN {z: REAL | TRUE}; vy' IN {z: REAL | TRUE}
+  []
+   %% Region: [2,3] x [1,3]  Direction = south
+   inRegion(x,y,2,3,1,3) AND
+   onBdry(x',y',2,3,1,3) AND
+   NOT( inwards(x',y',vx',vy',2,3,1,3) ) AND inwards(x,y,vx,vy,2,3,1,3) AND
+   south(x',y',vx',vy',x,y,vx,vy) -->
+    x' IN {z: REAL | TRUE}; y' IN {z: REAL | TRUE};
+    vx' IN {z: REAL | TRUE}; vy' IN {z: REAL | TRUE}
+  []
+   %% Region: [0,1] x [1,2]  Direction = south
+   inRegion(x,y,0,1,1,2) AND
+   onBdry(x',y',0,1,1,2) AND
+   NOT( inwards(x',y',vx',vy',0,1,1,2) ) AND inwards(x,y,vx,vy,0,1,1,2) AND
+   south(x',y',vx',vy',x,y,vx,vy) -->
+    x' IN {z: REAL | TRUE}; y' IN {z: REAL | TRUE};
+    vx' IN {z: REAL | TRUE}; vy' IN {z: REAL | TRUE}
+  []
+   %% Region: [1,2] x [1,2]  Direction = south-east
+   inRegion(x,y,1,2,1,2) AND
+   onBdry(x',y',1,2,1,2) AND
+   NOT( inwards(x',y',vx',vy',1,2,1,2) ) AND inwards(x,y,vx,vy,1,2,1,2) AND
+   southeast(x',y',vx',vy',x,y,vx,vy) -->
+    x' IN {z: REAL | TRUE}; y' IN {z: REAL | TRUE};
+    vx' IN {z: REAL | TRUE}; vy' IN {z: REAL | TRUE}
+  []
+   %% Region: [0,1] x [2,3] 
+   onBdry(x,y,0,1,2,3) AND inwards(x,y,vx,vy,0,1,2,3) --> flag' = unsafe
+  []
+   %% Region: [2,3] x [0,1]  
+   onBdry(x,y,2,3,0,1) AND inwards(x,y,vx,vy,2,3,0,1) --> flag' = done
+  ]
+ END;
+
+ % k-induction proves it with depth=4, not with less!!
+ correct2: THEOREM 
+  nav02 |- G( flag /= unsafe );
+
+ % violated at depth=1
+ canreach2: THEOREM 
+  nav02 |- G( flag /= done );
+
+ %% NAV03
+ %% MAP=[B 2 4; 4 3 4; 2 2 A]
+ %% MatA = [ -1.2 0.1;0.1 -1.2]
+ %% x0 in [2,3]x[1,2]
+ %% v0 in [-0.4,0.4]x[-0.4,0.4]
+ nav03: MODULE = 
+ BEGIN
+  LOCAL x,y,vx,vy: REAL
+  OUTPUT flag: STATES
+  INITIALIZATION
+   flag = working;
+   x IN {z: REAL | 2 <= z AND z <= 3};
+   y IN {z: REAL | 1 <= z AND z <= 2};
+   vx IN {vz: REAL | -4/10 <= vz AND vz <= 4/10};
+   vy IN {vz: REAL | -4/10 <= vz AND vz <= 4/10}
+  TRANSITION
+  [
+   %% Region: [1,2] x [2,3]  Direction = east
+   inRegion(x,y,1,2,2,3) AND onBdry(x',y',1,2,2,3) AND
+   NOT( inwards(x',y',vx',vy',1,2,2,3) ) AND inwards(x,y,vx,vy,1,2,2,3) AND
+   east(x',y',vx',vy',x,y,vx,vy) -->
+    x' IN {z: REAL | TRUE}; y' IN {z: REAL | TRUE};
+    vx' IN {z: REAL | TRUE}; vy' IN {z: REAL | TRUE}
+  []
+   %% Region: [0,2] x [0,1]  Direction = east
+   inRegion(x,y,0,2,0,1) AND
+   onBdry(x',y',0,2,0,1) AND
+   NOT( inwards(x',y',vx',vy',0,2,0,1) ) AND inwards(x,y,vx,vy,0,2,0,1) AND
+   east(x',y',vx',vy',x,y,vx,vy) -->
+    x' IN {z: REAL | TRUE}; y' IN {z: REAL | TRUE};
+    vx' IN {z: REAL | TRUE}; vy' IN {z: REAL | TRUE}
+  []
+   %% Region: [2,3] x [1,3]  Direction = south
+   inRegion(x,y,2,3,1,3) AND
+   onBdry(x',y',2,3,1,3) AND
+   NOT( inwards(x',y',vx',vy',2,3,1,3) ) AND inwards(x,y,vx,vy,2,3,1,3) AND
+   south(x',y',vx',vy',x,y,vx,vy) -->
+    x' IN {z: REAL | TRUE}; y' IN {z: REAL | TRUE};
+    vx' IN {z: REAL | TRUE}; vy' IN {z: REAL | TRUE}
+  []
+   %% Region: [0,1] x [1,2]  Direction = south
+   inRegion(x,y,0,1,1,2) AND
+   onBdry(x',y',0,1,1,2) AND
+   NOT( inwards(x',y',vx',vy',0,1,1,2) ) AND inwards(x,y,vx,vy,0,1,1,2) AND
+   south(x',y',vx',vy',x,y,vx,vy) -->
+    x' IN {z: REAL | TRUE}; y' IN {z: REAL | TRUE};
+    vx' IN {z: REAL | TRUE}; vy' IN {z: REAL | TRUE}
+  []
+   %% Region: [1,2] x [1,2]  Direction = south-east
+   inRegion(x,y,1,2,1,2) AND
+   onBdry(x',y',1,2,1,2) AND
+   NOT( inwards(x',y',vx',vy',1,2,1,2) ) AND inwards(x,y,vx,vy,1,2,1,2) AND
+   southeast(x',y',vx',vy',x,y,vx,vy) -->
+    x' IN {z: REAL | TRUE}; y' IN {z: REAL | TRUE};
+    vx' IN {z: REAL | TRUE}; vy' IN {z: REAL | TRUE}
+  []
+   %% Region: [0,1] x [2,3] 
+   onBdry(x,y,0,1,2,3) AND inwards(x,y,vx,vy,0,1,2,3) --> flag' = unsafe
+  []
+   %% Region: [2,3] x [0,1]  
+   onBdry(x,y,2,3,0,1) AND inwards(x,y,vx,vy,2,3,0,1) --> flag' = done
+  ]
+ END;
+
+ % sal-inf-bmc -i -d 4 nav correct3 proves the property
+ correct3: THEOREM 
+  nav03 |- G( flag /= unsafe );
+
+ % violated at depth 1 
+ canreach3: THEOREM 
+  nav03 |- G( flag /= done );
+
+ %% NAV04
+ %% MAP=[B 2 4; 2 2 4; 1 1 A]
+ %% MatA = [ -1.2 0.1;0.1 -1.2]
+ %% x0 in [0,1]x[0,1]
+ %% v0 in [0.1,0.5]x[0.05,0.25]
+ nav04: MODULE = 
+ BEGIN
+  GLOBAL x,y,vx,vy:REAL
+  OUTPUT flag: STATES
+  INITIALIZATION
+   flag = working;
+   x IN {z: REAL | 0 <= z AND z <= 1};
+   y IN {z: REAL | 0 <= z AND z <= 1};
+   vx IN {vz: REAL | 1/10 <= vz AND vz <= 5/10};
+   vy IN {vz: REAL | 5/100 <= vz AND vz <= 25/100}
+  TRANSITION
+  [
+   %% Region: [1,2] x [1,3]  Direction = east
+   inRegion(x,y,1,2,1,3) AND onBdry(x',y',1,2,1,3) AND
+   NOT( inwards(x',y',vx',vy',1,2,1,3) ) AND inwards(x,y,vx,vy,1,2,1,3) AND
+   east(x',y',vx',vy',x,y,vx,vy) -->
+    x' IN {z: REAL | TRUE}; y' IN {z: REAL | TRUE};
+    vx' IN {z: REAL | TRUE}; vy' IN {z: REAL | TRUE}
+  []
+   %% Region: [0,1] x [1,2]  Direction = east
+   inRegion(x,y,0,1,1,2) AND
+   onBdry(x',y',0,1,1,2) AND
+   NOT( inwards(x',y',vx',vy',0,1,1,2) ) AND inwards(x,y,vx,vy,0,1,1,2) AND
+   east(x',y',vx',vy',x,y,vx,vy) -->
+    x' IN {z: REAL | TRUE}; y' IN {z: REAL | TRUE};
+    vx' IN {z: REAL | TRUE}; vy' IN {z: REAL | TRUE}
+  []
+   %% Region: [2,3] x [1,3]  Direction = south
+   inRegion(x,y,2,3,1,3) AND
+   onBdry(x',y',2,3,1,3) AND
+   NOT( inwards(x',y',vx',vy',2,3,1,3) ) AND inwards(x,y,vx,vy,2,3,1,3) AND
+   south(x',y',vx',vy',x,y,vx,vy) -->
+    x' IN {z: REAL | TRUE}; y' IN {z: REAL | TRUE};
+    vx' IN {z: REAL | TRUE}; vy' IN {z: REAL | TRUE}
+  []
+   %% Region: [0,2] x [0,1]  Direction = north-east
+   inRegion(x,y,0,2,0,1) AND
+   onBdry(x',y',0,2,0,1) AND
+   NOT( inwards(x',y',vx',vy',0,2,0,1) ) AND inwards(x,y,vx,vy,0,2,0,1) AND
+   northeast(x',y',vx',vy',x,y,vx,vy) -->
+    x' IN {z: REAL | TRUE}; y' IN {z: REAL | TRUE};
+    vx' IN {z: REAL | TRUE}; vy' IN {z: REAL | TRUE}
+  []
+   %% Region: [0,1] x [2,3] 
+   onBdry(x,y,0,1,2,3) AND inwards(x,y,vx,vy,0,1,2,3) --> flag' = unsafe
+  []
+   onBdry(x,y,2,3,0,1) AND inwards(x,y,vx,vy,2,3,0,1) --> flag' = done
+  ]
+ END;
+
+ % sal-inf-bmc -i -d 4 nav lemma4   WORKS! no less depth works
+ lemma4: LEMMA
+  nav04 |- G((vx>=0));
+
+ % sal-inf-bmc -i -d 4 -l lemma4 nav correct4   WORKS! no less depth works
+ correct4: THEOREM 
+  nav04 |- G( flag /= unsafe );
+
+ % violated at depth=3
+ canreach4: THEOREM 
+  nav04 |- G( flag /= done );
+
+ % violated at depth=12
+ terminate4: THEOREM
+  nav04 |- G( flag=done OR X(flag=done) OR X(X(flag=done)) OR X(X(X(flag=done))) OR X(X(X(X(flag=done)))) OR X(X(X(X(X(flag=done)))) OR X(X(X(X(X(X(flag=done))))))) OR X(X(X(X(X(X(X(flag=done))))))) OR X(X(X(X(X(X(X(X(flag=done)))))))) OR X(X(X(X(X(X(X(X(X(flag=done))))))))) OR X(X(X(X(X(X(X(X(X(X(flag=done)))))))))) ) ;
+
+ %% NAV05
+ %% MAP=[B 2 4; 1 2 4; 1 1 A]
+ %% MatA = [ -1.2 0.1;0.1 -1.2]
+ %% x0 in [0,1]x[0,1]
+ %% v0 in [0.3,0.5]x[0.05,0.25]
+ nav05: MODULE = 
+ BEGIN
+  GLOBAL x,y,vx,vy:REAL
+  OUTPUT flag: STATES
+  INITIALIZATION
+   flag = working;
+   x IN {z: REAL | 0 <= z AND z <= 1};
+   y IN {z: REAL | 0 <= z AND z <= 1};
+   vx IN {vz: REAL | 3/10 <= vz AND vz <= 5/10};
+   vy IN {vz: REAL | 5/100 <= vz AND vz <= 25/100}
+  TRANSITION
+  [
+   %% Region: [1,2] x [1,3]  Direction = east
+   inRegion(x,y,1,2,1,3) AND onBdry(x',y',1,2,1,3) AND
+   NOT( inwards(x',y',vx',vy',1,2,1,3) ) AND inwards(x,y,vx,vy,1,2,1,3) AND
+   east(x',y',vx',vy',x,y,vx,vy) -->
+    x' IN {z: REAL | TRUE}; y' IN {z: REAL | TRUE};
+    vx' IN {z: REAL | TRUE}; vy' IN {z: REAL | TRUE}
+  []
+   %% Region: [0,1] x [0,2]  Direction = northeast
+   inRegion(x,y,0,1,0,2) AND
+   onBdry(x',y',0,1,0,2) AND
+   NOT( inwards(x',y',vx',vy',0,1,0,2) ) AND inwards(x,y,vx,vy,0,1,0,2) AND
+   northeast(x',y',vx',vy',x,y,vx,vy) -->
+    x' IN {z: REAL | TRUE}; y' IN {z: REAL | TRUE};
+    vx' IN {z: REAL | TRUE}; vy' IN {z: REAL | TRUE}
+  []
+   %% Region: [2,3] x [1,3]  Direction = south
+   inRegion(x,y,2,3,1,3) AND
+   onBdry(x',y',2,3,1,3) AND
+   NOT( inwards(x',y',vx',vy',2,3,1,3) ) AND inwards(x,y,vx,vy,2,3,1,3) AND
+   south(x',y',vx',vy',x,y,vx,vy) -->
+    x' IN {z: REAL | TRUE}; y' IN {z: REAL | TRUE};
+    vx' IN {z: REAL | TRUE}; vy' IN {z: REAL | TRUE}
+  []
+   %% Region: [0,2] x [0,1]  Direction = north-east
+   inRegion(x,y,0,2,0,1) AND
+   onBdry(x',y',0,2,0,1) AND
+   NOT( inwards(x',y',vx',vy',0,2,0,1) ) AND inwards(x,y,vx,vy,0,2,0,1) AND
+   northeast(x',y',vx',vy',x,y,vx,vy) -->
+    x' IN {z: REAL | TRUE}; y' IN {z: REAL | TRUE};
+    vx' IN {z: REAL | TRUE}; vy' IN {z: REAL | TRUE}
+  []
+   %% Region: [0,1] x [2,3] 
+   onBdry(x,y,0,1,2,3) AND inwards(x,y,vx,vy,0,1,2,3) --> flag' = unsafe
+  []
+   onBdry(x,y,2,3,0,1) AND inwards(x,y,vx,vy,2,3,0,1) --> flag' = done
+  ]
+ END;
+
+ % depth 8 works!
+ lemma5: LEMMA
+  nav05 |- G((vx>=0));
+
+ % depth 8 works!
+ correct5: THEOREM 
+  nav05 |- G( flag /= unsafe );
+
+ % depth 4 counter-example
+ canreach5: THEOREM 
+  nav05 |- G( flag /= done );
+
+  %% NAV06
+  % MAP=[B 2 4; 3 0 4; 2 1 A]
+  % MatA = [ -1.2 0.1;0.1 -1.2]
+  % x0 in [0,1]x[0,1]
+  % v0 in [0.3,0.5]x[0.05,0.25]
+ nav06: MODULE = 
+ BEGIN
+  GLOBAL x,y,vx,vy:REAL
+  OUTPUT flag: STATES
+  INITIALIZATION
+   flag = working;
+   %x IN {z: REAL | 0 <= z AND z <= 1};
+   x IN {z: REAL | 1/2 <= z AND z <= 1};
+   y IN {z: REAL | 0 <= z AND z <= 1};
+   % vx IN {vz: REAL | 3/10 <= vz AND vz <= 5/10};
+   vx IN {vz: REAL | 6/10 <= vz AND vz <= 10/10};
+   vy IN {vz: REAL | 5/100 <= vz AND vz <= 10/100}
+   % vy IN {vz: REAL | 5/100 <= vz AND vz <= 25/100}
+  TRANSITION
+  [
+   %% Region: [1,2] x [2,3]  Direction = east
+   inRegion(x,y,1,2,2,3) AND onBdry(x',y',1,2,2,3) AND
+   NOT( inwards(x',y',vx',vy',1,2,2,3) ) AND inwards(x,y,vx,vy,1,2,2,3) AND
+   east(x',y',vx',vy',x,y,vx,vy) -->
+    x' IN {z: REAL | TRUE}; y' IN {z: REAL | TRUE};
+    vx' IN {z: REAL | TRUE}; vy' IN {z: REAL | TRUE}
+  []
+   %% Region: [0,1] x [1,2]  Direction = southeast
+   inRegion(x,y,0,1,1,2) AND
+   onBdry(x',y',0,1,1,2) AND
+   NOT( inwards(x',y',vx',vy',0,1,1,2) ) AND inwards(x,y,vx,vy,0,1,1,2) AND
+   southeast(x',y',vx',vy',x,y,vx,vy) -->
+    x' IN {z: REAL | TRUE}; y' IN {z: REAL | TRUE};
+    vx' IN {z: REAL | TRUE}; vy' IN {z: REAL | TRUE}
+  []
+   %% Region: [2,3] x [1,3]  Direction = south
+   inRegion(x,y,2,3,1,3) AND
+   onBdry(x',y',2,3,1,3) AND
+   NOT( inwards(x',y',vx',vy',2,3,1,3) ) AND inwards(x,y,vx,vy,2,3,1,3) AND
+   south(x',y',vx',vy',x,y,vx,vy) -->
+    x' IN {z: REAL | TRUE}; y' IN {z: REAL | TRUE};
+    vx' IN {z: REAL | TRUE}; vy' IN {z: REAL | TRUE}
+  []
+   %% Region: [1,2] x [0,1]  Direction = north-east
+   inRegion(x,y,1,2,0,1) AND
+   onBdry(x',y',1,2,0,1) AND
+   NOT( inwards(x',y',vx',vy',1,2,0,1) ) AND inwards(x,y,vx,vy,1,2,0,1) AND
+   northeast(x',y',vx',vy',x,y,vx,vy) -->
+    x' IN {z: REAL | TRUE}; y' IN {z: REAL | TRUE};
+    vx' IN {z: REAL | TRUE}; vy' IN {z: REAL | TRUE}
+  []
+   %% Region: [0,1] x [0,1]  Direction = east 
+   inRegion(x,y,0,1,0,1) AND
+   onBdry(x',y',0,1,0,1) AND
+   NOT( inwards(x',y',vx',vy',0,1,0,1) ) AND inwards(x,y,vx,vy,0,1,0,1) AND
+   east(x',y',vx',vy',x,y,vx,vy) -->
+    x' IN {z: REAL | TRUE}; y' IN {z: REAL | TRUE};
+    vx' IN {z: REAL | TRUE}; vy' IN {z: REAL | TRUE}
+  []
+   %% Region: [1,2] x [1,2]  Direction = north
+   inRegion(x,y,1,2,1,2) AND
+   onBdry(x',y',1,2,1,2) AND
+   NOT( inwards(x',y',vx',vy',1,2,1,2) ) AND inwards(x,y,vx,vy,1,2,1,2) AND
+   north(x',y',vx',vy',x,y,vx,vy) -->
+    x' IN {z: REAL | TRUE}; y' IN {z: REAL | TRUE};
+    vx' IN {z: REAL | TRUE}; vy' IN {z: REAL | TRUE}
+  []
+   %% Region: [0,1] x [2,3] 
+   onBdry(x,y,0,1,2,3) AND inwards(x,y,vx,vy,0,1,2,3) --> flag' = unsafe
+  []
+   onBdry(x,y,2,3,0,1) AND inwards(x,y,vx,vy,2,3,0,1) --> flag' = done
+  ]
+ END;
+
+ % depth 8 works!
+ % x+vx = vx - 1.2(vx-aa) + .1(vy+-bb) 
+ % vx-.1y -> -1.2 vx + .1(vy-1) -.1vy
+ lemma6: LEMMA
+  nav06 |- G((vx>=0 OR x>1));
+  %nav06 |- G( (x<2 AND vx>=0 AND vy>=0) OR (x>=2 AND vx>=0 AND vy>=-1) );
+
+ lemma61: LEMMA
+  nav06 |- G((11/10*x+vx >= 11/10 OR (x>=2 AND vx>=0 AND vy>=-1)));
+
+ lemma62: LEMMA
+  nav06 |- G((vx>=-12/10 AND vx <= 12/10 AND vy >= -12/10 AND vy <= 12/10 ));
+
+ % depth 8 works! I think we can prove with lemma, but can't prove lemma itself.
+ % k-induction fails at depth 16 
+ correct6: THEOREM 
+  nav06 |- G( flag /= unsafe );
+
+ % depth 4 counter-example
+ canreach6: THEOREM 
+  nav06 |- G( flag /= done );
+
+ %% NAV10
+ %%MAP=[2 4 6 6 6;2 4 7 7 4;2 4 B 3 4;2 4 6 6 6;2 A 0 0 0]
+ %%MatA = [-0.8 -0.1;-0.2 -0.8]
+ %%x0 in [3.5,4]x[3.5,4]
+ %%v0 in [-0.5,0.5]x[-0.5,-0]
+ nav10: MODULE = 
+ BEGIN
+  GLOBAL x,y,vx,vy:REAL
+  OUTPUT flag: STATES
+  INITIALIZATION
+   flag = working;
+   x IN {z: REAL | 7/2 <= z AND z <= 4};
+   y IN {z: REAL | 7/2 <= z AND z <= 4};
+   vx IN {vz: REAL | -1/2 <= vz AND vz <= 5/10};
+   vy IN {vz: REAL | -1/2 <= vz AND vz <= 0}
+  TRANSITION
+  [
+   %% Region: [0,1] x [0,5]  Direction = east
+   %inRegion(x,y,0,1,0,5) AND onBdry(x',y',0,1,0,5) AND
+   %NOT( inwards(x',y',vx',vy',0,1,0,5) ) AND inwards(x,y,vx,vy,0,1,0,5) AND
+   %east10(x',y',vx',vy',x,y,vx,vy) -->
+    %x' IN {z: REAL | TRUE}; y' IN {z: REAL | TRUE};
+    %vx' IN {z: REAL | TRUE}; vy' IN {z: REAL | TRUE}
+  %[]
+   %% Region: [1,2] x [1,5]  Direction = north-east
+   inRegion(x,y,1,2,1,5) AND
+   onBdry(x',y',1,2,1,5) AND
+   NOT( inwards(x',y',vx',vy',1,2,1,5) ) AND inwards(x,y,vx,vy,1,2,1,5) AND
+   south10(x',y',vx',vy',x,y,vx,vy) -->
+    x' IN {z: REAL | TRUE}; y' IN {z: REAL | TRUE};
+    vx' IN {z: REAL | TRUE}; vy' IN {z: REAL | TRUE}
+  []
+   %% Region: [2,5] x [1,2]  Direction = west
+   inRegion(x,y,2,5,1,2) AND
+   onBdry(x',y',2,5,1,2) AND
+   NOT( inwards(x',y',vx',vy',2,5,1,2) ) AND inwards(x,y,vx,vy,2,5,1,2) AND
+   west10(x',y',vx',vy',x,y,vx,vy) -->
+    x' IN {z: REAL | TRUE}; y' IN {z: REAL | TRUE};
+    vx' IN {z: REAL | TRUE}; vy' IN {z: REAL | TRUE}
+  []
+   %% Region: [2,5] x [4,5]  Direction = west
+   inRegion(x,y,2,5,4,5) AND
+   onBdry(x',y',2,5,4,5) AND
+   NOT( inwards(x',y',vx',vy',2,5,4,5) ) AND inwards(x,y,vx,vy,2,5,4,5) AND
+   west10(x',y',vx',vy',x,y,vx,vy) -->
+    x' IN {z: REAL | TRUE}; y' IN {z: REAL | TRUE};
+    vx' IN {z: REAL | TRUE}; vy' IN {z: REAL | TRUE}
+  []
+   %% Region: [2,4] x [3,4]  Direction = west
+   inRegion(x,y,2,4,3,4) AND
+   onBdry(x',y',2,4,3,4) AND
+   NOT( inwards(x',y',vx',vy',2,4,3,4) ) AND inwards(x,y,vx,vy,2,4,3,4) AND
+   northwest10(x',y',vx',vy',x,y,vx,vy) -->
+    x' IN {z: REAL | TRUE}; y' IN {z: REAL | TRUE};
+    vx' IN {z: REAL | TRUE}; vy' IN {z: REAL | TRUE}
+  []
+   %% Region: [4,5] x [2,4]  Direction = north-east
+   inRegion(x,y,4,5,2,4) AND
+   onBdry(x',y',4,5,2,4) AND
+   NOT( inwards(x',y',vx',vy',4,5,2,4) ) AND inwards(x,y,vx,vy,4,5,2,4) AND
+   south10(x',y',vx',vy',x,y,vx,vy) -->
+    x' IN {z: REAL | TRUE}; y' IN {z: REAL | TRUE};
+    vx' IN {z: REAL | TRUE}; vy' IN {z: REAL | TRUE}
+  []
+   %% Region: [2,5] x [0,1]  Direction = west
+   %inRegion(x,y,2,5,0,1) AND
+   %onBdry(x',y',2,5,0,1) AND
+   %NOT( inwards(x',y',vx',vy',2,5,0,1) ) AND inwards(x,y,vx,vy,2,5,0,1) AND
+   %north10(x',y',vx',vy',x,y,vx,vy) -->
+    %x' IN {z: REAL | TRUE}; y' IN {z: REAL | TRUE};
+    %vx' IN {z: REAL | TRUE}; vy' IN {z: REAL | TRUE}
+  %[]
+   %% Region: [3,4] x [2,3]  Direction = east 
+   inRegion(x,y,3,4,2,3) AND
+   onBdry(x',y',3,4,2,3) AND
+   NOT( inwards(x',y',vx',vy',3,4,2,3) ) AND inwards(x,y,vx,vy,3,4,2,3) AND
+   southeast10(x',y',vx',vy',x,y,vx,vy) -->
+    x' IN {z: REAL | TRUE}; y' IN {z: REAL | TRUE};
+    vx' IN {z: REAL | TRUE}; vy' IN {z: REAL | TRUE}
+  []
+   %% Region: [0,1] x [2,3] 
+   onBdry(x,y,2,3,2,3) AND inwards(x,y,vx,vy,2,3,2,3) --> flag' = unsafe
+  []
+   onBdry(x,y,1,2,0,1) AND inwards(x,y,vx,vy,1,2,0,1) --> flag' = done
+  ]
+ END;
+
+ correct10: THEOREM 
+  nav10 |- G( flag /= unsafe );
+
+ canreach10: THEOREM 
+  nav10 |- G( flag /= done );
+
+ northeast7(x:REAL, y:REAL, vx:REAL, vy:REAL, x0:REAL, y0:REAL, vx0:REAL, vy0:REAL): BOOLEAN = 
+    box2(vx-7/10,vy-7/10,vx0-7/10,vy0-7/10,4,4) AND
+17*x0 - 17*y0 + 15*vx0 - 25*vy0 - 17*x + 17*y - 15*vx + 25*vy = 0 AND  -31*x0 - 6*y0 - 30*vx0 + 31*x + 6*y + 30*vx>= 0 AND  -24*x0 - 13*y0 - 30*vx0 + 24*x + 13*y + 30*vx>= 0 AND  -24*x0 + y0 - 30*vx0 + 24*x - y + 30*vx>= 0 AND  -17*x0 - 6*y0 - 30*vx0 + 17*x + 6*y + 30*vx>= 0 AND  -17*x0 + 17*y0 - 15*vx0 + 25*vy0 + 17*x - 17*y + 15*vx>= -75 AND  -x0>= -3 AND  -y0>= -3 AND  -vx0>= -3 AND  -vy0>= -3 AND  -x>= -3 AND  -y>= -3 AND  -vx>= -3 AND  17*x0 - 17*y0 + 15*vx0 - 25*vy0 - 17*x + 17*y - 15*vx>= -75 AND  vx>= -3 AND  y>= 0 AND  x>= 0 AND  vy0>= -3 AND  vx0>= -3 AND  y0>= 0 AND  x0>= 0;
+
+ east7(x:REAL, y:REAL, vx:REAL, vy:REAL, x0:REAL, y0:REAL, vx0:REAL, vy0:REAL): BOOLEAN = 
+    box2(vx-10/10,vy-0/10,vx0-10/10,vy0-0/10,4,4) AND
+17*y0 + 5*vx0 + 20*vy0 - 17*y - 5*vx - 20*vy = 0 AND  -16*x0 - 3*y0 - 15*vx0 + 16*x + 3*y + 15*vx>= 0 AND  -12*x0 - 7*y0 - 15*vx0 + 12*x + 7*y + 15*vx>= 0 AND  -12*x0 + y0 - 15*vx0 + 12*x - y + 15*vx>= 0 AND  -8*x0 - 3*y0 - 15*vx0 + 8*x + 3*y + 15*vx>= 0 AND  -x0>= -3 AND  -17*y0 - 5*vx0 - 20*vy0 + 17*y + 5*vx>= -60 AND  -y0>= -3 AND  -vx0>= -3 AND  -vy0>= -3 AND  -x>= -3 AND  -y>= -3 AND  -vx>= -3 AND  x0>= 0 AND  vx>= -3 AND  y>= 0 AND  x>= 0 AND  vy0>= -3 AND  vx0>= -3 AND  y0>= 0 AND  17*y0 + 5*vx0 + 20*vy0 - 17*y - 5*vx>= -60;
+
+ southeast7(x:REAL, y:REAL, vx:REAL, vy:REAL, x0:REAL, y0:REAL, vx0:REAL, vy0:REAL): BOOLEAN = 
+    box2(vx-7/10,vy+10/10,vx0-7/10,vy0+10/10,4,4) AND
+17*x0 + 17*y0 + 25*vx0 + 15*vy0 - 17*x - 17*y - 25*vx - 15*vy = 0 AND  -47*x0 - 10*y0 - 50*vx0 + 47*x + 10*y + 50*vx>= 0 AND  -40*x0 - 17*y0 - 50*vx0 + 40*x + 17*y + 50*vx>= 0 AND  -40*x0 - 3*y0 - 50*vx0 + 40*x + 3*y + 50*vx>= 0 AND  -33*x0 - 10*y0 - 50*vx0 + 33*x + 10*y + 50*vx>= 0 AND  -17*x0 - 17*y0 - 25*vx0 - 15*vy0 + 17*x + 17*y + 25*vx>= -45 AND  -x0>= -3 AND  -y0>= -3 AND  -vx0>= -3 AND  -vy0>= -3 AND  -x>= -3 AND  -y>= -3 AND  -vx>= -3 AND  17*x0 + 17*y0 + 25*vx0 + 15*vy0 - 17*x - 17*y - 25*vx>= -45 AND  vx>= -3 AND  y>= 0 AND  x>= 0 AND  vy0>= -3 AND  vx0>= -3 AND  y0>= 0 AND  x0>= 0 ;
+
+ south7(x:REAL, y:REAL, vx:REAL, vy:REAL, x0:REAL, y0:REAL, vx0:REAL, vy0:REAL): BOOLEAN = 
+    box2(vx,vy+1,vx0,vy0+1,4,4) AND
+17*x0 + 20*vx0 - 5*vy0 - 17*x - 20*vx + 5*vy = 0 AND  -17*x0 - 20*vx0 + 5*vy0 + 17*x + 20*vx>= -15 AND  -x0>= -3 AND  -y0>= -3 AND  -vx0>= -3 AND  -vy0>= -3 AND  -x>= -3 AND  -y>= -3 AND  -vx>= -3 AND  17*x0 + 20*vx0 - 5*vy0 - 17*x - 20*vx>= -15 AND  vx>= -3 AND  y>= 0 AND  x>= 0 AND  vy0>= -3 AND  vx0>= -3 AND  y0>= 0 AND  x0>= 0 AND  11*x0 + 3*y0 + 15*vx0 - 11*x - 3*y - 15*vx>= 0 AND  12*x0 + 2*y0 + 15*vx0 - 12*x - 2*y - 15*vx>= 0 AND  12*x0 + 4*y0 + 15*vx0 - 12*x - 4*y - 15*vx>= 0 AND  13*x0 + 3*y0 + 15*vx0 - 13*x - 3*y - 15*vx>= 0;
+
+ southwest7(x:REAL, y:REAL, vx:REAL, vy:REAL, x0:REAL, y0:REAL, vx0:REAL, vy0:REAL): BOOLEAN = 
+    box2(vx+7/10,vy+7/10,vx0+7/10,vy0+7/10,4,4) AND
+17*x0 - 17*y0 + 15*vx0 - 25*vy0 - 17*x + 17*y - 15*vx + 25*vy = 0 AND  -17*x0 + 17*y0 - 15*vx0 + 25*vy0 + 17*x - 17*y + 15*vx>= -75 AND  -x0>= -3 AND  -y0>= -3 AND  -vx0>= -3 AND  -vy0>= -3 AND  -x>= -3 AND  -y>= -3 AND  -vx>= -3 AND  31*x0 + 6*y0 + 30*vx0 - 31*x - 6*y - 30*vx>= 0 AND  vx>= -3 AND  y>= 0 AND  x>= 0 AND  vy0>= -3 AND  vx0>= -3 AND  y0>= 0 AND  x0>= 0 AND  17*x0 - 17*y0 + 15*vx0 - 25*vy0 - 17*x + 17*y - 15*vx>= -75 AND  17*x0 + 6*y0 + 30*vx0 - 17*x - 6*y - 30*vx>= 0 AND  24*x0 - y0 + 30*vx0 - 24*x + y - 30*vx>= 0 AND  24*x0 + 13*y0 + 30*vx0 - 24*x - 13*y - 30*vx>= 0 ;
+
+ west7(x:REAL, y:REAL, vx:REAL, vy:REAL, x0:REAL, y0:REAL, vx0:REAL, vy0:REAL): BOOLEAN = 
+    box2(vx+10/10,vy+0/10,vx0+10/10,vy0+0/10,4,4) AND
+17*y0 + 5*vx0 + 20*vy0 - 17*y - 5*vx - 20*vy = 0 AND  -x0>= -3 AND  -17*y0 - 5*vx0 - 20*vy0 + 17*y + 5*vx>= -60 AND  -y0>= -3 AND  -vx0>= -3 AND  -vy0>= -3 AND  -x>= -3 AND  -y>= -3 AND  -vx>= -3 AND  16*x0 + 3*y0 + 15*vx0 - 16*x - 3*y - 15*vx>= 0 AND  vx>= -3 AND  y>= 0 AND  x>= 0 AND  vy0>= -3 AND  vx0>= -3 AND  y0>= 0 AND  17*y0 + 5*vx0 + 20*vy0 - 17*y - 5*vx>= -60 AND  x0>= 0 AND  8*x0 + 3*y0 + 15*vx0 - 8*x - 3*y - 15*vx>= 0 AND  12*x0 - y0 + 15*vx0 - 12*x + y - 15*vx>= 0 AND  12*x0 + 7*y0 + 15*vx0 - 12*x - 7*y - 15*vx>= 0;
+
+ northwest7(x:REAL, y:REAL, vx:REAL, vy:REAL, x0:REAL, y0:REAL, vx0:REAL, vy0:REAL): BOOLEAN = 
+    box2(vx+7/10,vy-7/10,vx0+7/10,vy0-7/10,4,4) AND
+17*x0 + 17*y0 + 25*vx0 + 15*vy0 - 17*x - 17*y - 25*vx - 15*vy = 0 AND  -17*x0 - 17*y0 - 25*vx0 - 15*vy0 + 17*x + 17*y + 25*vx>= -45 AND  -x0>= -3 AND  -y0>= -3 AND  -vx0>= -3 AND  -vy0>= -3 AND  -x>= -3 AND  -y>= -3 AND  -vx>= -3 AND  47*x0 + 10*y0 + 50*vx0 - 47*x - 10*y - 50*vx>= 0 AND  vx>= -3 AND  y>= 0 AND  x>= 0 AND  vy0>= -3 AND  vx0>= -3 AND  y0>= 0 AND  x0>= 0 AND  17*x0 + 17*y0 + 25*vx0 + 15*vy0 - 17*x - 17*y - 25*vx>= -45 AND  33*x0 + 10*y0 + 50*vx0 - 33*x - 10*y - 50*vx>= 0 AND  40*x0 + 3*y0 + 50*vx0 - 40*x - 3*y - 50*vx>= 0 AND  40*x0 + 17*y0 + 50*vx0 - 40*x - 17*y - 50*vx>= 0;
+
+ north7(x:REAL, y:REAL, vx:REAL, vy:REAL, x0:REAL, y0:REAL, vx0:REAL, vy0:REAL): BOOLEAN = 
+    box2(vx+0/10,vy-10/10,vx0+0/10,vy0-10/10,4,4) AND
+17*x0 + 20*vx0 - 5*vy0 - 17*x - 20*vx + 5*vy = 0 AND  -17*x0 - 20*vx0 + 5*vy0 + 17*x + 20*vx>= -15 AND  -13*x0 - 3*y0 - 15*vx0 + 13*x + 3*y + 15*vx>= 0 AND  -12*x0 - 4*y0 - 15*vx0 + 12*x + 4*y + 15*vx>= 0 AND  -12*x0 - 2*y0 - 15*vx0 + 12*x + 2*y + 15*vx>= 0 AND  -11*x0 - 3*y0 - 15*vx0 + 11*x + 3*y + 15*vx>= 0 AND  -x0>= -3 AND  -y0>= -3 AND  -vx0>= -3 AND  -vy0>= -3 AND  -x>= -3 AND  -y>= -3 AND  -vx>= -3 AND  17*x0 + 20*vx0 - 5*vy0 - 17*x - 20*vx>= -15 AND  vx>= -3 AND  y>= 0 AND  x>= 0 AND  vy0>= -3 AND  vx0>= -3 AND  y0>= 0 AND  x0>= 0 ;
+
+%% NAV07
+% MAP=[0 2 3 4;B 2 3 4;4 3 4 4;2 A 6 6]
+% MatA = [-0.8 -0.2;0.2 -0.8]
+% x0 in [2,3]x[3,4]
+% v0 in [0.1,0.5]x[-0.5,-0.1]
+ nav07: MODULE = 
+ BEGIN
+  GLOBAL x,y,vx,vy:REAL
+  OUTPUT flag: STATES
+  INITIALIZATION
+   flag = working;
+   x IN {z: REAL | 2 <= z AND z <= 3};
+   y IN {z: REAL | 3 <= z AND z <= 4};
+   vx IN {vz: REAL | 1/10 <= vz AND vz <= 5/10};
+   vy IN {vz: REAL | -5/10 <= vz AND vz <= -1/10}
+  TRANSITION
+  [
+   %% Region: [1,2] x [2,4]  Direction = east
+   inRegion(x,y,1,2,2,4) AND
+   onBdry(x',y',1,2,2,4) AND
+   NOT( inwards(x',y',vx',vy',1,2,2,4) ) AND inwards(x,y,vx,vy,1,2,2,4) AND
+   east7(x',y',vx',vy',x,y,vx,vy) -->
+    x' IN {z: REAL | TRUE}; y' IN {z: REAL | TRUE};
+    vx' IN {z: REAL | TRUE}; vy' IN {z: REAL | TRUE}
+  []
+   %% Region: [2,3] x [2,4]  Direction = southeast
+   inRegion(x,y,2,3,2,4) AND
+   onBdry(x',y',2,3,2,4) AND
+   NOT( inwards(x',y',vx',vy',2,3,2,4) ) AND inwards(x,y,vx,vy,2,3,2,4) AND
+   southeast7(x',y',vx',vy',x,y,vx,vy) -->
+    x' IN {z: REAL | TRUE}; y' IN {z: REAL | TRUE};
+    vx' IN {z: REAL | TRUE}; vy' IN {z: REAL | TRUE}
+  []
+   %% Region: [3,4] x [2,4]  Direction = south
+   inRegion(x,y,3,4,2,4) AND
+   onBdry(x',y',3,4,2,4) AND
+   NOT( inwards(x',y',vx',vy',3,4,2,4) ) AND inwards(x,y,vx,vy,3,4,2,4) AND
+   south7(x',y',vx',vy',x,y,vx,vy) -->
+    x' IN {z: REAL | TRUE}; y' IN {z: REAL | TRUE};
+    vx' IN {z: REAL | TRUE}; vy' IN {z: REAL | TRUE}
+  []
+   %% Region: [2,4] x [1,2]  Direction = south
+   inRegion(x,y,2,4,1,2) AND
+   onBdry(x',y',2,4,1,2) AND
+   NOT( inwards(x',y',vx',vy',2,4,1,2) ) AND inwards(x,y,vx,vy,2,4,1,2) AND
+   south7(x',y',vx',vy',x,y,vx,vy) -->
+    x' IN {z: REAL | TRUE}; y' IN {z: REAL | TRUE};
+    vx' IN {z: REAL | TRUE}; vy' IN {z: REAL | TRUE}
+  []
+   %% Region: [2,4] x [0,1]  Direction = west
+   inRegion(x,y,2,4,0,1) AND
+   onBdry(x',y',2,4,0,1) AND
+   NOT( inwards(x',y',vx',vy',2,4,0,1) ) AND inwards(x,y,vx,vy,2,4,0,1) AND
+   west7(x',y',vx',vy',x,y,vx,vy) -->
+    x' IN {z: REAL | TRUE}; y' IN {z: REAL | TRUE};
+    vx' IN {z: REAL | TRUE}; vy' IN {z: REAL | TRUE}
+  []
+   %% Region: [0,1] x [3,4]  Direction = north
+   inRegion(x,y,0,1,3,4) AND
+   onBdry(x',y',0,1,3,4) AND
+   NOT( inwards(x',y',vx',vy',0,1,3,4) ) AND inwards(x,y,vx,vy,0,1,3,4) AND
+   north7(x',y',vx',vy',x,y,vx,vy) -->
+    x' IN {z: REAL | TRUE}; y' IN {z: REAL | TRUE};
+    vx' IN {z: REAL | TRUE}; vy' IN {z: REAL | TRUE}
+  []
+   %% Region: [0,1] x [0,1]  Direction = east
+   inRegion(x,y,0,1,0,1) AND
+   onBdry(x',y',0,1,0,1) AND
+   NOT( inwards(x',y',vx',vy',0,1,0,1) ) AND inwards(x,y,vx,vy,0,1,0,1) AND
+   east7(x',y',vx',vy',x,y,vx,vy) -->
+    x' IN {z: REAL | TRUE}; y' IN {z: REAL | TRUE};
+    vx' IN {z: REAL | TRUE}; vy' IN {z: REAL | TRUE}
+  []
+   %% Region: [0,1] x [1,2]  Direction = south
+   inRegion(x,y,0,1,1,2) AND
+   onBdry(x',y',0,1,1,2) AND
+   NOT( inwards(x',y',vx',vy',0,1,1,2) ) AND inwards(x,y,vx,vy,0,1,1,2) AND
+   south7(x',y',vx',vy',x,y,vx,vy) -->
+    x' IN {z: REAL | TRUE}; y' IN {z: REAL | TRUE};
+    vx' IN {z: REAL | TRUE}; vy' IN {z: REAL | TRUE}
+  []
+   %% Region: [1,2] x [1,2]  Direction = southeast
+   inRegion(x,y,1,2,1,2) AND
+   onBdry(x',y',1,2,1,2) AND
+   NOT( inwards(x',y',vx',vy',1,2,1,2) ) AND inwards(x,y,vx,vy,1,2,1,2) AND
+   southeast7(x',y',vx',vy',x,y,vx,vy) -->
+    x' IN {z: REAL | TRUE}; y' IN {z: REAL | TRUE};
+    vx' IN {z: REAL | TRUE}; vy' IN {z: REAL | TRUE}
+  []
+   %% Region: [0,1] x [2,3] 
+   onBdry(x,y,0,1,2,3) AND inwards(x,y,vx,vy,0,1,2,3) --> flag' = unsafe
+  []
+   onBdry(x,y,1,2,0,1) AND inwards(x,y,vx,vy,1,2,0,1) --> flag' = done
+  ]
+ END;
+
+ % was proved by k-induction with depth=8
+ correct7: THEOREM 
+  nav07 |- G( flag /= unsafe );
+
+%% NAV08
+% MAP=[4 6 3 4;B 6 3 4;0 7 4 4;2 A 6 6]
+% MatA = [-0.8 -0.2;0.2 -0.8]
+% x0 in [2,3]x[3,4]
+% v0 in [0.1,0.5]x[-0.5,-0.1]
+ nav08: MODULE = 
+ BEGIN
+  GLOBAL x,y,vx,vy:REAL
+  OUTPUT flag: STATES
+  INITIALIZATION
+   flag = working;
+   x IN {z: REAL | 2 <= z AND z <= 3};
+   %y IN {z: REAL | 4 <= z AND z <= 4};
+   y IN {z: REAL | 3 <= z AND z <= 4};
+   vx IN {vz: REAL | 1/10 <= vz AND vz <= 5/10};
+   vy IN {vz: REAL | -5/10 <= vz AND vz <= -1/10}
+  TRANSITION
+  [
+   %% Region: [0,1] x [2,3] 
+   onBdry(x,y,0,1,2,3) AND inwards(x,y,vx,vy,0,1,2,3) --> flag' = unsafe
+  []
+   % onBdry(x,y,1,2,0,1) AND inwards(x,y,vx,vy,1,2,0,1) --> flag' = done
+   onBdry(x,y,1,2,0,1) --> flag' = done
+  ]
+ END;
+
+ % with init states restricted to y=4, no CE until depth=8
+ % k-ind with depth=4 fails; depth=8 also fails; depth=12 also fails.
+ correct8: THEOREM 
+  nav08 |- G( flag /= unsafe );
+
+ 
+ northeast9(x:REAL, y:REAL, vx:REAL, vy:REAL, x0:REAL, y0:REAL, vx0:REAL, vy0:REAL): BOOLEAN = 
+ boxeigen(vx,vy,vx0,vy0,7/10,7/10,1,-1,9,9) AND
+2270*x0 - 2271*y0 + 1410*vx0 - 1340*vy0 - 2270*x + 2271*y - 1410*vx + 1340*vy = 0 AND  -2270*x0 + 2271*y0 - 1410*vx0 + 1340*vy0 + 2270*x - 2271*y + 1410*vx>= -4020 AND  -337*x0 - 15*y0 - 150*vx0 + 337*x + 15*y + 150*vx>= 0 AND  -203*x0 - 15*y0 - 150*vx0 + 203*x + 15*y + 150*vx>= 0 AND  -135*x0 - 41*y0 - 75*vx0 + 135*x + 41*y + 75*vx>= 0 AND  -135*x0 + 26*y0 - 75*vx0 + 135*x - 26*y + 75*vx>= 0 AND  -x0>= -3 AND  -y0>= -3 AND  -vx0>= -3 AND  -vy0>= -3 AND  -x>= -3 AND  -y>= -3 AND  -vx>= -3 AND  2270*x0 - 2271*y0 + 1410*vx0 - 1340*vy0 - 2270*x + 2271*y - 1410*vx>= -4020 AND  vx>= -3 AND  y>= 0 AND  x>= 0 AND  vy0>= -3 AND  vx0>= -3 AND  y0>= 0 AND  x0>= 0 ;
+
+ east9(x:REAL, y:REAL, vx:REAL, vy:REAL, x0:REAL, y0:REAL, vx0:REAL, vy0:REAL): BOOLEAN = 
+ boxeigen(vx,vy,vx0,vy0,10/10,0/10,1,-1,9,9) AND
+161*y0 - 10*vx0 + 90*vy0 - 161*y + 10*vx - 90*vy = 0 AND  -24*x0 - y0 - 10*vx0 + 24*x + y + 10*vx>= 0 AND  -18*x0 - 7*y0 - 10*vx0 + 18*x + 7*y + 10*vx>= 0 AND  -18*x0 + 5*y0 - 10*vx0 + 18*x - 5*y + 10*vx>= 0 AND  -12*x0 - y0 - 10*vx0 + 12*x + y + 10*vx>= 0 AND  -x0>= -3 AND  -161*y0 + 10*vx0 - 90*vy0 + 161*y - 10*vx>= -270 AND  -y0>= -3 AND  -vx0>= -3 AND  -vy0>= -3 AND  -x>= -3 AND  -y>= -3 AND  -vx>= -3 AND  x0>= 0 AND  vx>= -3 AND  y>= 0 AND  x>= 0 AND  vy0>= -3 AND  vx0>= -3 AND  y0>= 0 AND  161*y0 - 10*vx0 + 90*vy0 - 161*y + 10*vx>= -270 ;
+
+ southeast9(x:REAL, y:REAL, vx:REAL, vy:REAL, x0:REAL, y0:REAL, vx0:REAL, vy0:REAL): BOOLEAN = 
+ boxeigen(vx,vy,vx0,vy0,7/10,-7/10,1,-1,9,9) AND
+2274*x0 + 2273*y0 + 1130*vx0 + 1200*vy0 - 2274*x - 2273*y - 1130*vx - 1200*vy = 0 AND  -2274*x0 - 2273*y0 - 1130*vx0 - 1200*vy0 + 2274*x + 2273*y + 1130*vx>= -3600 AND  -22*x0 - y0 - 10*vx0 + 22*x + y + 10*vx>= 0 AND  -18*x0 - 5*y0 - 10*vx0 + 18*x + 5*y + 10*vx>= 0 AND  -18*x0 + 3*y0 - 10*vx0 + 18*x - 3*y + 10*vx>= 0 AND  -14*x0 - y0 - 10*vx0 + 14*x + y + 10*vx>= 0 AND  -x0>= -3 AND  -y0>= -3 AND  -vx0>= -3 AND  -vy0>= -3 AND  -x>= -3 AND  -y>= -3 AND  -vx>= -3 AND  2274*x0 + 2273*y0 + 1130*vx0 + 1200*vy0 - 2274*x - 2273*y - 1130*vx>= -3600 AND  vx>= -3 AND  y>= 0 AND  x>= 0 AND  vy0>= -3 AND  vx0>= -3 AND  y0>= 0 AND  x0>= 0 ;
+
+ south9(x:REAL, y:REAL, vx:REAL, vy:REAL, x0:REAL, y0:REAL, vx0:REAL, vy0:REAL): BOOLEAN = 
+ boxeigen(vx,vy,vx0,vy0,0/10,-10/10,1,-1,9,9) AND
+161*x0 + 90*vx0 - 5*vy0 - 161*x - 90*vx + 5*vy = 0 AND  -161*x0 - 90*vx0 + 5*vy0 + 161*x + 90*vx>= -15 AND  -x0>= -3 AND  -y0>= -3 AND  -vx0>= -3 AND  -vy0>= -3 AND  -x>= -3 AND  -y>= -3 AND  -vx>= -3 AND  161*x0 + 90*vx0 - 5*vy0 - 161*x - 90*vx>= -15 AND  vx>= -3 AND  y>= 0 AND  x>= 0 AND  vy0>= -3 AND  vx0>= -3 AND  y0>= 0 AND  x0>= 0 AND  27*x0 + y0 + 15*vx0 - 27*x - y - 15*vx>= 0 AND  27*x0 + 2*y0 + 15*vx0 - 27*x - 2*y - 15*vx>= 0 AND  53*x0 + 3*y0 + 30*vx0 - 53*x - 3*y - 30*vx>= 0 AND  55*x0 + 3*y0 + 30*vx0 - 55*x - 3*y - 30*vx>= 0 ;
+
+ southwest9(x:REAL, y:REAL, vx:REAL, vy:REAL, x0:REAL, y0:REAL, vx0:REAL, vy0:REAL): BOOLEAN = 
+ boxeigen(vx,vy,vx0,vy0,-7/10,-7/10,1,-1,9,9) AND
+2270*x0 - 2271*y0 + 1410*vx0 - 1340*vy0 - 2270*x + 2271*y - 1410*vx + 1340*vy = 0 AND  -2270*x0 + 2271*y0 - 1410*vx0 + 1340*vy0 + 2270*x - 2271*y + 1410*vx>= -4020 AND  -x0>= -3 AND  -y0>= -3 AND  -vx0>= -3 AND  -vy0>= -3 AND  -x>= -3 AND  -y>= -3 AND  -vx>= -3 AND  2270*x0 - 2271*y0 + 1410*vx0 - 1340*vy0 - 2270*x + 2271*y - 1410*vx>= -4020 AND  vx>= -3 AND  y>= 0 AND  x>= 0 AND  vy0>= -3 AND  vx0>= -3 AND  y0>= 0 AND  x0>= 0 AND  135*x0 - 26*y0 + 75*vx0 - 135*x + 26*y - 75*vx>= 0 AND  135*x0 + 41*y0 + 75*vx0 - 135*x - 41*y - 75*vx>= 0 AND  203*x0 + 15*y0 + 150*vx0 - 203*x - 15*y - 150*vx>= 0 AND  337*x0 + 15*y0 + 150*vx0 - 337*x - 15*y - 150*vx>= 0 ;
+
+ west9(x:REAL, y:REAL, vx:REAL, vy:REAL, x0:REAL, y0:REAL, vx0:REAL, vy0:REAL): BOOLEAN = 
+ boxeigen(vx,vy,vx0,vy0,-10/10,0/10,1,-1,9,9) AND
+161*y0 - 10*vx0 + 90*vy0 - 161*y + 10*vx - 90*vy = 0 AND  -x0>= -3 AND  -161*y0 + 10*vx0 - 90*vy0 + 161*y - 10*vx>= -270 AND  -y0>= -3 AND  -vx0>= -3 AND  -vy0>= -3 AND  -x>= -3 AND  -y>= -3 AND  -vx>= -3 AND  24*x0 + y0 + 10*vx0 - 24*x - y - 10*vx>= 0 AND  vx>= -3 AND  y>= 0 AND  x>= 0 AND  vy0>= -3 AND  vx0>= -3 AND  y0>= 0 AND  161*y0 - 10*vx0 + 90*vy0 - 161*y + 10*vx>= -270 AND  x0>= 0 AND  12*x0 + y0 + 10*vx0 - 12*x - y - 10*vx>= 0 AND  18*x0 - 5*y0 + 10*vx0 - 18*x + 5*y - 10*vx>= 0 AND  18*x0 + 7*y0 + 10*vx0 - 18*x - 7*y - 10*vx>= 0 ;
+
+ northwest9(x:REAL, y:REAL, vx:REAL, vy:REAL, x0:REAL, y0:REAL, vx0:REAL, vy0:REAL): BOOLEAN = 
+ boxeigen(vx,vy,vx0,vy0,-7/10,7/10,1,-1,9,9) AND
+2274*x0 + 2273*y0 + 1130*vx0 + 1200*vy0 - 2274*x - 2273*y - 1130*vx - 1200*vy = 0 AND  -2274*x0 - 2273*y0 - 1130*vx0 - 1200*vy0 + 2274*x + 2273*y + 1130*vx>= -3600 AND  -x0>= -3 AND  -y0>= -3 AND  -vx0>= -3 AND  -vy0>= -3 AND  -x>= -3 AND  -y>= -3 AND  -vx>= -3 AND  2274*x0 + 2273*y0 + 1130*vx0 + 1200*vy0 - 2274*x - 2273*y - 1130*vx>= -3600 AND  vx>= -3 AND  y>= 0 AND  x>= 0 AND  vy0>= -3 AND  vx0>= -3 AND  y0>= 0 AND  x0>= 0 AND  14*x0 + y0 + 10*vx0 - 14*x - y - 10*vx>= 0 AND  18*x0 - 3*y0 + 10*vx0 - 18*x + 3*y - 10*vx>= 0 AND  18*x0 + 5*y0 + 10*vx0 - 18*x - 5*y - 10*vx>= 0 AND  22*x0 + y0 + 10*vx0 - 22*x - y - 10*vx>= 0 ;
+
+ north9(x:REAL, y:REAL, vx:REAL, vy:REAL, x0:REAL, y0:REAL, vx0:REAL, vy0:REAL): BOOLEAN = 
+    boxeigen(vx,vy,vx0,vy0,0,1,1,-1,9,9) AND
+161*x0 + 90*vx0 - 5*vy0 - 161*x - 90*vx + 5*vy = 0 AND  -161*x0 - 90*vx0 + 5*vy0 + 161*x + 90*vx>= -15 AND  -55*x0 - 3*y0 - 30*vx0 + 55*x + 3*y + 30*vx>= 0 AND  -53*x0 - 3*y0 - 30*vx0 + 53*x + 3*y + 30*vx>= 0 AND  -27*x0 - 2*y0 - 15*vx0 + 27*x + 2*y + 15*vx>= 0 AND  -27*x0 - y0 - 15*vx0 + 27*x + y + 15*vx>= 0 AND  -x0>= -3 AND  -y0>= -3 AND  -vx0>= -3 AND  -vy0>= -3 AND  -x>= -3 AND  -y>= -3 AND  -vx>= -3 AND  161*x0 + 90*vx0 - 5*vy0 - 161*x - 90*vx>= -15 AND  vx>= -3 AND  y>= 0 AND  x>= 0 AND  vy0>= -3 AND  vx0>= -3 AND  y0>= 0 AND  x0>= 0 ;
+
+ guard(x:REAL,y:REAL,vx:REAL,vy:REAL,x0:REAL,y0:REAL,vx0:REAL,vy0:REAL,a:REAL,b:REAL,c:REAL,d:REAL):BOOLEAN =
+   inRegion(x0,y0,a,c,b,d) AND
+   onBdry(x,y,a,c,b,d) AND
+   NOT(inwards(x,y,vx,vy,a,c,b,d)) AND inwards(x0,y0,vx0,vy0,a,c,b,d);
+
+%% NAV09
+% MAP=[4 6 4 4;B 6 4 4;0 7 5 5;2 A 6 6]
+% MatA = [-1.8 -0.2;-0.2 -1.8]
+% x0 in [2.5,3.5]x[3,4]
+% v0 in [-0.1,0.1]x[-0.5,-0.1]
+ nav09: MODULE = 
+ BEGIN
+  GLOBAL x,y,vx,vy:REAL
+  OUTPUT flag: STATES
+  INITIALIZATION
+   flag = working;
+   x IN {z: REAL | 5/2 <= z AND z <= 7/2};
+   y IN {z: REAL | 6/2 <= z AND z <= 4};
+   vx IN {vz: REAL | -1/10 <= vz AND vz <= 1/10};
+   vy IN {vz: REAL | -5/10 <= vz AND vz <= -1/10}
+  TRANSITION
+  [
+   flag = working AND
+   NOT(onBdry(x,y,1,2,0,1)) AND (
+ (guard(x',y',vx',vy',x,y,vx,vy,0,0,1,1) AND east9(x',y',vx',vy',x,y,vx,vy)) OR
+ (guard(x',y',vx',vy',x,y,vx,vy,2,0,4,1) AND west9(x',y',vx',vy',x,y,vx,vy)) OR
+ (guard(x',y',vx',vy',x,y,vx,vy,0,1,1,2) AND north9(x',y',vx',vy',x,y,vx,vy)) OR
+ (guard(x',y',vx',vy',x,y,vx,vy,1,1,2,2) AND northwest9(x',y',vx',vy',x,y,vx,vy)) OR
+ (guard(x',y',vx',vy',x,y,vx,vy,2,1,4,2) AND southwest9(x',y',vx',vy',x,y,vx,vy)) OR
+ (guard(x',y',vx',vy',x,y,vx,vy,2,2,4,4) AND south9(x',y',vx',vy',x,y,vx,vy)) OR
+ (guard(x',y',vx',vy',x,y,vx,vy,1,2,2,4) AND west9(x',y',vx',vy',x,y,vx,vy)) OR
+ (guard(x',y',vx',vy',x,y,vx,vy,0,3,1,4) AND south9(x',y',vx',vy',x,y,vx,vy)))
+ -->
+    x' IN {z: REAL | TRUE}; y' IN {z: REAL | TRUE};
+    vx' IN {z: REAL | TRUE}; vy' IN {z: REAL | TRUE}
+  []
+   %% Region: [0,1] x [2,3] 
+   onBdry(x,y,0,1,2,3) AND inwards(x,y,vx,vy,0,1,2,3) --> flag' = unsafe
+  []
+   % onBdry(x,y,1,2,0,1) AND inwards(x,y,vx,vy,1,2,0,1) --> flag' = done
+   onBdry(x,y,1,2,0,1) --> flag' = done
+  ]
+ END;
+
+ lemma9: THEOREM
+  nav09 |- G( x > 2 OR y <= 1 );
+ lemma91: THEOREM
+  nav09 |- G( x = 0 );
+
+ % just using basic invs sent by Sriram, we get ce at depth 4.
+ % even if we add eigen and box invariants, we still get ce.
+ % changing problem s.t. (2,2)to(4,4) points SE and not S, then
+ % sriram's inv give ce, adding eigen eliminates ce at depth 4.
+ correct9: THEOREM 
+  nav09 |- G( flag /= unsafe );
+END

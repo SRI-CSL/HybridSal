@@ -1,2 +1,2 @@
-#!/bin/sh
-python ../src/HSalRelAbsCons.py $1
+#! /bin/bash
+python  /home/tiwari/hs-constraints/ashish-tools/src/HSalRelAbsCons.py $1

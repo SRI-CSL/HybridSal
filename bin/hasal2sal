@@ -1,3 +1,2 @@
-#!/bin/sh
-python ../src/HSalExtractRelAbs.py $1
-
+#! /bin/bash
+python  /home/tiwari/hs-constraints/ashish-tools/src/HSalExtractRelAbs.py $1
