@@ -25,7 +25,7 @@ example6=nav
 example7=RLC
 example8=nav01
 
-EXPLS=Linear1.hsal Linear2.hsal Linear3.hsal Linear4.hsal SimpleThermo4.hsal nav.hsal nav01.hsal RLC.hsal
+EXPLS=Linear1.hsal Linear2.hsal Linear3.hsal Linear4.hsal SimpleThermo4.hsal nav.hsal nav01.hsal RLC.hsal nav01b.hsal
 HXMLS=$(EXPLS:.hsal=.hxml)
 SALS=$(EXPLS:.hsal=.sal)
 

@@ -1,0 +1,1897 @@
+\documentclass{seminar}
+\usepackage{epic,/homes/tiwari/Talks/Special/relative,latexsym,url}
+\usepackage{/homes/tiwari/Talks/Special/gastex}
+\usepackage{wrapfig}
+
+\usepackage{fancybox}
+\usepackage{semlayer}
+\usepackage{epsfig}
+\usepackage{amssymb}
+\usepackage{semcolor}
+
+\graphicspath{{figures/}{../nasa-feb09/}{/homes/tiwari/nasa/irac/}}
+%\graphicspath{{../nasa-feb09/}}
+
+\def\printlandscape{\special{landscape}}    % Works with dvips.
+\renewcommand{\printlandscape}{\special{landscape}}
+\special{! /landplus90 true store}
+
+\input{/homes/tiwari/Talks/Special/slideprel}
+\slideframe{oval}
+\usepackage{times} 		%% for PDF purposes
+
+\newcommand\progparam{p}
+\newcommand\exit{\texttt{Exit}}
+\newcommand\entry{\texttt{Entry}}
+
+\newcommand\mdsfinit{{\mbox{(Initial)}}}
+\newcommand\mdsfprog{{\mbox{(B2)}}}
+\newcommand\mdsfprop{{\mbox{(Property)}}}
+\newcommand\mdsfsprop{{\mbox{(Property')}}}
+\newcommand\mdsfindu{{\mbox{(Induct)}}}
+\newcommand\mdsfpindu{{\mbox{(PInduct)}}}
+\newcommand\mdsfdiscprog{{\mbox{(DProgress)}}}
+\newcommand\mdsfcontprog{{\mbox{(CProgress)}}}
+
+\newcommand\state[1]{\vec{{\texttt{#1}}}}
+\newcommand\Init{\texttt{Init}}
+\newcommand\Safe{\texttt{Safe}}
+\newcommand\Inv{\texttt{Inv}}
+\newcommand\PInv{\texttt{PInv}}
+\newcommand\pp{P}
+\newcommand\vv{V}
+\newcommand\rr{{\texttt{R}}}
+\newcommand\ff{{\bf{F}}}
+\newcommand\cff{{\bf{F^c}}}
+\newcommand\cU{\mathrel{{\mathcal{U}}^c}}
+\newcommand\cds{{\mathtt{CDS}}}
+\newcommand\reach{\mbox{\texttt{Reach}}}
+\newcommand\swl{\texttt{SwL}}
+\newcommand\mds{\texttt{MDS}}
+\newcommand\hs{\texttt{HS}}
+\newcommand\sslogic{\texttt{SynthSwitchLogic}}
+\newcommand\mInv{\texttt{StateInv}}
+
+\newcommand\FF{{\mathbb{F}}}
+\newcommand\GG{{\mathbb{G}}}
+\newcommand\UU{{\;\mathbb{U}\;}}
+\newcommand\cUU{{\;\mathbb{U}^c\;}}
+
+\newcommand\implies{\mathrel{\Rightarrow}}  
+\newcommand\wwedge{\;\wedge\;}
+
+\newcommand\Inwards{\texttt{Inwards}}
+\newcommand\eInward{\texttt{hInward}}
+\newcommand\Progress{{\mbox{\texttt{Progress}}}}
+
+\newcommand\mode{q}
+\newcommand\Modes{{\bf Q}}
+
+\newcommand\Ind{\texttt{Ind}}
+\newcommand\Reach{\texttt{Reach}}
+
+\newcommand\RR{\mathbb{R}}
+
+\newcommand\init{{\mbox{(Initial)}}}
+\newcommand\prog{{\mbox{(Progress)}}}
+\newcommand\prop{{\mbox{(Property)}}}
+\newcommand\indu{{\mbox{(Induct)}}}
+
+\newcommand\inv{{\cem{\mathit{Inv}}}}
+\newcommand\Tmp{{\cem{{\cal I}\!{\mathit{nv}}}}}
+\newcommand\Ass{{\cem{{\cal A}}}}
+\newcommand\cinv{{\cem{{\cal C}\!\mathit{Inv}}}}
+\newcommand\safe{{\crm{\mathit{Safe}}}}
+\newcommand\bdry{\mathit{Bdry}}
+
+\newcommand\grad{{{\vec{\nabla}}}}
+\newcommand\vars{{\texttt{X}}}
+\newcommand\vals{{\texttt{\bf{X}}}}
+
+\newcommand\ignore[1]{{{}}}
+
+%\usepackage{ifpdf}
+%\usepackage{graphicx}
+%\ifpdf\else
+%%%%%%%%
+% to fix problems making landscape seminar pdfs
+% Letter...
+%\pdfpagewidth=11truein
+%\pdfpageheight=8.5truein
+% A4
+\pdfpagewidth=297truemm % your milage may vary....
+\pdfpageheight=210truemm
+\pdfhorigin=1truein     % default value(?), but doesn't work without
+\pdfvorigin=1truein     % default value(?), but doesn't work without
+%\fi
+% -------------------------------------------------------
+
+%---------------------------------------------------------------------
+\begin{document}
+%---------------------------------------------------------------------
+
+%\newcommand{\mytitle}{Symbolic Verification of Adaptive Systems}
+\newcommand{\mytitle}{Relational Abstraction in HybridSAL}
+
+\newpagestyle{mypagestyle}%
+ {\smaller \hfill }
+ {\smaller Ashish Tiwari
+\hfill \mytitle: \thepage/9
+}
+
+\pagestyle{mypagestyle}	% No pagenumbers, thanks!
+
+%---------------------------------------------------------------------
+\begin{slide}
+\heading{\mytitle}
+
+\vskip 1.5em
+\begin{center}
+\begin{tabular}{c}
+\underline{\green{Ashish Tiwari}} 
+\\
+SRI International
+\\
+Menlo Park
+\\
+CA 94025
+\end{tabular}
+\end{center}
+
+%\vskip 1.5em
+%\begin{center}
+%Supported in part by 
+%NASA IRAC NRA grant number {\cem{NNX08AB95A}}
+%and NSF grants {\cem{CNS-0720721}},
+%{\cem{CSR-EHS-0834810}} and
+%{\cem{CSR-0917398}}
+%\end{center}
+
+\end{slide}
+% -------------------------------------------------------
+%\renewcommand{\mytitle}{Symbolic Verification of Adaptive Systems: Introduction}
+% -------------------------------------------------------
+\ignore{
+\begin{slide}
+\heading{Outline}
+
+\begin{itemize}
+\item
+  {\cem{Introduction to the Topic}}
+\item
+  First Year Accomplishments
+\item
+  Second Year: So Far
+\item
+  Plan for the Future 
+\end{itemize}
+
+\end{slide}
+\endignore}
+% -------------------------------------------------------
+\begin{slide}
+\heading{Relational Abstraction: Concept}
+
+Consider a dynamical system $(X, \rightarrow)$
+where
+\begin{tabular}{l@{:}l}
+$X$ & variables defining {\cem{state space}} of the system
+\\
+$\rightarrow$ & binary relation over state space defining {\cem{system dynamics}}
+\end{tabular}
+
+\medskip
+We do not care if 
+\begin{itemize}
+\item
+the system is {\cem{discrete-}} or {\cem{continuous-}} or {\cem{hybrid-time}}, or 
+\item
+the system
+has a {\cem{discrete}}, {\cem{continuous}}, or {\cem{hybrid state space}}
+\end{itemize}
+
+\medskip
+For discrete-time systems, $\rightarrow$ is the one-step transition relation
+\\
+For continuous-time systems, $\rightarrow = \cup_{t\geq 0} \stackrel{t}{\rightarrow}$ 
+where
+$\stackrel{t}{\rightarrow}$ 
+is the transition relation corresponding to an elapse of $t$ time units
+
+\end{slide}
+% -------------------------------------------------------
+\begin{slide}
+\heading{Relational Abstraction: Concept}
+
+Relational abstraction of
+a dynamical system 
+$(X, {\cem{\rightarrow}})$
+is another dynamical system
+$(X, {\crm{\rightarrow}})$
+such that
+$$
+\mbox{TransitiveClosure}({\cem{\rightarrow}})  \;\subseteq\; {\crm{\rightarrow}}
+$$
+
+\medskip
+{\cem{Relational Abstraction:}}
+An over-approximation of the transitive closure of the transition relation
+
+\bigskip
+{\cem{Benefit:}}
+\\
+Eliminates need for iterative fixpoint computation 
+\\
+Useful for proving safety properties, and establishing
+conservative safety bounds
+
+\end{slide}
+% -------------------------------------------------------
+\begin{slide}
+\heading{Relational Abstraction: Example}
+
+For the continuous-time continuous-space dynamical system:
+\begin{eqnarray*}
+ \frac{dx}{dt} & = & -x + y
+\\
+ \frac{dy}{dt} & = & -x - y
+\end{eqnarray*}
+
+we have the following continuous-space discrete-time relational abstraction:
+\begin{eqnarray*}
+(x,y) \;{\crm{\rightarrow}}\; (x',y')  & := &
+   \mathtt{max}(|x|,|y|) \geq 
+   \mathtt{max}(|x'|,|y'|)
+\end{eqnarray*}
+
+If initially $x \in [0,3], y \in [-2,2]$, then in {\cem{any}} future time,
+$x,y$ will remain in the range $[-3,3]$
+
+
+\end{slide}
+% -------------------------------------------------------
+\begin{slide}
+\heading{Relational Abstraction: Challenge}
+
+Is it possible to {\cem{compute}} relational abstractions?
+
+\bigskip
+
+We do {\cem{not}} want to abstract discrete-time transition relations,
+because model checkers (and static analyzers) can handle them (compute fixpoint)
+
+\bigskip
+Is it possible to {\cem{compute}} relational abstractions of
+continuous-time dynamics?
+
+\ignore{
+\small{
+\begin{verbatim}
+% Vending machine in SAL
+vm: CONTEXT = 
+BEGIN
+
+ DollarAmount: TYPE = [0..5];
+ QuarterAmount: TYPE = [0..20];
+ CakeAmount: TYPE = [0..5];
+ AppleAmount: TYPE = [0..10];
+
+ machine: MODULE = 
+ BEGIN
+  OUTPUT 
+   d: DollarAmount, q: QuarterAmount, c: CakeAmount, a: AppleAmount
+  INITIALIZATION
+   d IN {v: DollarAmount | v <= 4};
+   q = 0;  c = 0; a = 0;
+\end{verbatim}
+}
+\endignore}
+
+\end{slide}
+% -------------------------------------------------------
+\begin{slide}
+\heading{Computing Relational Abstractions}
+
+We have an {\cem{algorithm}} for computing relational abstractions
+of {\cem{linear}} systems
+
+\bigskip
+
+\begin{tabular}{|l|l|}
+\hline
+Dynamics & Relational Abstraction
+\\
+\hline \hline
+$\dot{x} = 1, \dot{y} = 1$
+&
+$x'-x = y'-y$
+\\
+\hline
+$\dot{x} = 2, \dot{y} = 3$
+&
+$(x'-x)/2 = (y'-y)/3$
+\\
+\hline
+$\dot{\vec{x}} = A\vec{x}$
+&
+$(0 \leq p' \leq p) \vee (0 \geq p' \geq p)$, where
+\\
+&
+$p = \vec{c}^T\vec{x}$, $\vec{c}$ eigenvector
+of $A^T$ corr. to negative eigenvalue
+\\
+\hline
+$\dot{\vec{x}} = A\vec{x} + \vec{b}$
+& 
+$\ldots$
+\\
+\hline
+\end{tabular}
+
+\end{slide}
+% -------------------------------------------------------
+\begin{slide}
+\heading{Computing Relational Abstractions}
+
+For linear systems, we can use plenty of linear algebra
+to {\cem{automatically}} generate relational abstractions
+
+\medskip
+More generally, there is a {\cem{standard}} way to generate
+relational abstractions using {\cem{constraint solving}}
+
+\medskip
+The relation $\crm{\rightarrow}$ is a rel.abs. of $\cem{\rightarrow}$ if
+\begin{eqnarray*}
+ \mathtt{Init}(\vec{x}) & \Rightarrow &  \vec{x} {\crm{\rightarrow}} \vec{x}
+\\
+ \vec{x} {\crm{\rightarrow}} \vec{x}  \;\wedge\;
+ \vec{x'} {\cem{\rightarrow}} \vec{y}  & \Rightarrow &
+ \vec{x} {\crm{\rightarrow}} \vec{y}
+\end{eqnarray*}
+
+We can search for $\crm{\rightarrow}$ that satisfies the above two formulas.
+
+We can do so by fixing a form/template for $\crm{\rightarrow}$
+
+Then, we will get a $\exists\forall$ constraint, whose solution will give us
+a relational invariant
+
+\end{slide}
+% -------------------------------------------------------
+\begin{slide}
+\heading{Note for Linear Systems}
+
+The algorithm for creating relational abstractions can be viewed as
+a special case of the generic method described above, where the
+$\exists\forall$ problems are being solved using linear algebra tricks.
+
+\end{slide}
+% -------------------------------------------------------
+\begin{slide}
+\heading{HybridSAL Implementation of RelAbs}
+
+Old HybridSAL:
+
+\begin{center}
+HybridSAL  $\stackrel{\mathtt{Qualitative Abstraction}}{\Longrightarrow}$ SAL
+\end{center}
+Resulting SAL was finite-state model, could be model checked
+
+
+\bigskip
+Now we can also create relational abstractions from HybridSAL:
+\begin{center}
+HybridSAL  $\stackrel{\mathtt{Relational Abstraction}}{\Longrightarrow}$ SAL
+\end{center}
+Resulting SAL is {\cem{infinite-state}} model, can be {\cem{infinite bounded model checked}}
+
+\end{slide}
+\end{document}
+% -------------------------------------------------------
+\begin{slide}
+\heading{SAL Example: Analysis}
+
+One can use the {\cem{sal symbolic model checker}} to model check 
+the two properties
+
+\small{
+\begin{verbatim}
+sal-smc vm prop
+sal-smc vm prop2
+\end{verbatim}
+}
+
+The first gives a counter-example:
+\\
+ start with 4 dollar bills, change when you have 4 quarters
+
+The second says "proved".
+
+\end{slide}
+% -------------------------------------------------------
+\begin{slide}
+\heading{SAL Modeling: Other Aspects}
+
+\begin{itemize}
+\item
+ Modules can be composed: \\
+ \small{
+ \begin{verbatim}
+   Module = Module [] Module; 
+   Module = Module || Module;
+ \end{verbatim} }
+\item
+ Modules can be parameterized: Module(i: Index) = ...
+\item
+ And composed: 
+ \small{
+ \begin{verbatim}
+   Module = ([] (i: Index) Module[i]) || Observer
+ \end{verbatim} }
+\item
+ Modules can use 'helper' functions, datatypes as ARRAYS of ARRAYS of ...
+\end{itemize}
+
+\end{slide}
+% -------------------------------------------------------
+\begin{slide}
+\heading{SAL Analysis: Other Aspects}
+
+Sal Tools
+\begin{itemize}
+\item
+ sal-smc: symbolic model checker
+\item
+ sal-bmc: bounded model checker (converts to SAT)
+\item
+ sal-inf-bmc: infinite bounded model checker (SMT)
+\item
+ sal-path-finder: for simulating
+\item
+ sal-bmc -i, sal-inf-bmc -i: prove by k-induction
+\item
+ sal-emc: explicit state model checker
+\item
+ sal-deadlock-checker: check for deadlocked states
+\item
+ your script: sal-atg: Automated test generator
+\end{itemize}
+
+\end{slide}
+% -------------------------------------------------------
+\begin{slide}
+\heading{HybridSAL: Modeling}
+
+\begin{tabular}{cc}
+
+\begin{minipage}[c]{0.3\textwidth}
+%\begin{wrapfigure}{L}{0.3\textwidth}
+\begin{center}
+%\includegraphics[width=0.28\textwidth]{robot}
+\includegraphics[width=0.95\textwidth]{robot}
+\end{center}
+%\end{wrapfigure}
+\end{minipage}
+&
+\begin{minipage}[c]{0.65\textwidth}
+The goal is to prove that the robot 
+remains inside $\Safe$ 
+starting from $\Init$:
+\begin{eqnarray*}
+ \Init & :=  & (x\in[-1,1], \;y=0, \; v_x = 0,\; v_y = 0)
+\\
+ \Safe & := & (|x| \leq 3)
+\end{eqnarray*}
+\end{minipage}
+\end{tabular}
+
+The robot can move in 2 modes:
+\begin{itemize}
+\item 
+Mode 1: Force applied in $(1,1)$-direction
+$$
+ \frac{dx}{dt} = v_x, \quad \frac{dv_x}{dt} = 1 - v_x, \quad
+ \frac{dy}{dt} = v_y, \quad \frac{dv_y}{dt} = 1 - v_y
+$$
+\item
+Mode 2: Force applied in $(-1,1)$-direction
+$$
+ \frac{dx}{dt} = v_x, \quad \frac{dv_x}{dt} = -1 - v_x, \quad
+ \frac{dy}{dt} = v_y, \quad \frac{dv_y}{dt} = 1 - v_y
+$$
+\end{itemize}
+
+\end{slide}
+% -------------------------------------------------------
+\begin{slide}
+\heading{Example: Driving a Robot}
+
+Consider a {\cem{non-deterministic controller}}:
+\begin{itemize}
+\item Switch from Mode 1 to Mode 2 when $x + v_x + 2 \leq 0$
+\item Switch from Mode 2 to Mode 1 when $x + v_x - 2 \geq 0$
+\end{itemize}
+
+{\crm{Two possible simulation}} trajectories:
+
+\begin{center}
+\begin{tabular}{c@{\qquad}c}
+\includegraphics[width=0.40\textwidth]{robotplott}
+&
+%\includegraphics[width=0.40\textwidth]{pendplot}
+\end{tabular}
+\end{center}
+
+%{\cem{How to discover the correct switching logic?}}
+\end{slide}
+% -------------------------------------------------------
+\begin{slide}
+\heading{HybridSAL Model of Robot}
+
+\begin{small}
+\begin{bf}
+\begin{verbatim}
+robot:CONTEXT = 
+BEGIN
+system: MODULE =
+ BEGIN
+ LOCAL direction : BOOLEAN  % moving left/right
+ LOCAL x, vx, y, vy : REAL
+ LOCAL xdot, vxdot, ydot, vydot : REAL
+ INVARIANT TRUE
+ INITFORMULA
+  -1 <= x AND x <= 1 AND vx = 0 AND vy = 0 AND y = 0
+ ...
+\end{verbatim}
+\end{bf}
+\end{small}
+
+\end{slide}
+% -------------------------------------------------------
+\begin{slide}
+\heading{HybridSAL Model of Robot}
+
+\begin{small}
+\begin{verbatim}
+ TRANSITION
+ [  direction = TRUE AND x + vx >= -2 -->
+     xdot' = vx;  vxdot' = -1 - vx;
+     ydot' = vy;  vydot' = 1 - vy
+ [] direction = FALSE AND x + vx <= 2 -->
+     xdot' = vx;  vxdot' = 1 - vx;
+     ydot' = vy;  vydot' = 1 - vy
+ [] direction = TRUE AND x + vx <= -2 -->
+     direction' = FALSE
+ [] direction = FALSE AND x + vx >= 2 -->
+     direction' = TRUE  ]
+ END;
+ ...
+
+\end{verbatim}
+\end{small}
+
+\end{slide}
+% -------------------------------------------------------
+\begin{slide}
+\heading{HybridSAL Model of Robot}
+
+\begin{small}
+\begin{verbatim}
+robot: CONTEXT
+BEGIN
+system: MODULE =
+ BEGIN
+   LOCAL ...
+   INVARIANT ...
+   INITFORMULA ...
+   TRANSITION
+   [ ... [] ... [] ... ]
+ END;
+
+ correct: THEOREM
+     system |- G( 0 <= x+3 AND x <= 3 );
+END
+\end{verbatim}
+\end{small}
+
+\end{slide}
+% -------------------------------------------------------
+\begin{slide}
+\heading{HybridSAL Analysis}
+
+HybridSAL provides an {\cem{abstractor}} that takes
+a {\cem{HybridSAL}} model and outputs a 
+{\cem{finite state SAL}} model
+
+HybridSAL is written in {\cem{Lisp}} has a {\cem{command-line interface}}:
+\begin{verbatim}
+mlisp
+(load "load.lisp")
+(in-package :sal)
+(abstract "robot" 'system :property 'correct)
+\end{verbatim}
+
+This creates a file ``{\cem{robotABS.sal}}''
+
+\end{slide}
+% -------------------------------------------------------
+\begin{slide}
+\heading{Abstract Model in SAL}
+
+\begin{small}
+\begin{verbatim}
+%% Abstract variable to Polynomial Mapping:
+%% g11 --> -1*x - 3
+%% g10 --> x - 3
+%% g9 --> -1*x - 1
+%% g8 --> x - 1
+%% g7 --> vx
+%% g6 --> vy
+%% g5 --> y
+%% g4 --> x + vx + 2
+%% g3 --> x + vx - 2
+%% g2 --> -1*vy + 1
+%% g1 --> -1*vx - 1
+%% g0 --> -1*vx + 1
+...
+\end{verbatim}
+\end{small}
+
+\end{slide}
+% -------------------------------------------------------
+\begin{slide}
+\heading{Abstract Model in SAL}
+
+\begin{small}
+\begin{verbatim}
+robotABS: CONTEXT =
+ BEGIN
+  SIGN: TYPE = {pos, neg, zero};
+
+  ASSVP(x0: SIGN, x1: SIGN): [SIGN -> BOOLEAN] = ...
+  ASSVN(x0: SIGN, x1: SIGN): [SIGN -> BOOLEAN] = ...
+
+  INV12(g11: SIGN, ..., g0: SIGN): BOOLEAN = ...
+
+  system: MODULE = BEGIN
+    GLOBAL g0, ..., g11: SIGN
+    LOCAL  direction: BOOLEAN
+    INITIALIZATION g11 = neg; ... ; g0 = pos
+    ...
+\end{verbatim}
+\end{small}
+\end{slide}
+% -------------------------------------------------------
+\begin{slide}
+\heading{Abstract Model in SAL}
+
+\begin{small}
+\begin{verbatim}
+    TRANSITION
+    [(direction = TRUE AND (g4 = pos OR g4 = zero)) AND
+      INV12(g11', ..., g0') AND (g4' = pos OR g4' = zero) -->
+     g11' IN ASSVN(g11, g7); ...; g0' IN ASSVN(g0, g1)
+     []
+     (direction = FALSE AND (g3 = neg OR g3 = zero)) AND
+      INV12(g11', ..., g0') AND (g3' = neg OR g3' = zero) -->
+     g11' IN ASSVN(g11, g7); ...; g0' IN ASSVN(g0, g0)
+     []
+     (direction = TRUE AND (g4 = neg OR g4 = zero)) AND
+      INV12(g11', ..., g0') -->
+     direction' = FALSE
+     []
+     (direction = FALSE AND (g3 = pos OR g3 = zero)) AND
+      INV12(g11', ..., g0') -->
+     direction' = TRUE
+     ]
+    END;
+    ...
+\end{verbatim}
+\end{small}
+\end{slide}
+% -------------------------------------------------------
+\begin{slide}
+\heading{Abstract Model in SAL}
+
+\begin{small}
+\begin{verbatim}
+robotABS: CONTEXT =
+BEGIN
+  ...
+  system: MODULE = ...
+
+  correct: THEOREM
+    system |- G((g11 = neg OR g11 = zero) AND
+                 (g10 = neg OR g10 = zero));
+END
+\end{verbatim}
+\end{small}
+
+\end{slide}
+% -------------------------------------------------------
+\begin{slide}
+\heading{Model Check the Abstract Model}
+
+If SAL is installed, then we can analyze the abstract SAL model
+
+\begin{verbatim}
+sal-deadlock-checker robotABS system
+sal-smc -v 3 robotABS correct
+\end{verbatim}
+
+We can thus {\cem{verify the safety property of the hybrid robot model}}.
+
+If property is not true of abstract model,
+then we get a {\cem{counter-example}} in the {\cem{abstract}}
+
+Which {\cem{may be spurious}}
+
+\end{slide}
+% -------------------------------------------------------
+\begin{slide}
+\heading{HybridSAL: Discussion}
+
+\begin{itemize}
+\item
+  Predicates for abstraction are chosen {\cem{automatically}}
+\item
+  This {\cem{choice}} is {\cem{crucial}}, and can be 
+  {\cem{influenced}} by {\cem{command-line}} input
+\item
+  The abstraction process is {\cem{completely automatic}},
+  but it can {\cem{take long}}
+\item
+  Tool is still {\cem{work in progress}}: several features
+  of SAL are {\cem{not supported}} in HybridSAL
+\item
+  Such as {\cem{compositional abstraction}}
+\item
+  {\url{http://sal.csl.sri.com/hybridsal/}}
+\end{itemize}
+
+\end{slide}
+% -------------------------------------------------------
+\begin{slide}
+\heading{Extensions and Other Tools}
+
+Also {\cem{developing}} 
+{\cem{constraint-based approach}} for analysis of hybrid systems
+
+{\cem{Key idea}}: Bounded search for certificate of a {\cem{specific form}} 
+
+\bigskip
+{\cem{Constraint-Based Verification}}:
+\begin{enumerate}
+\item
+ Fix a form ({\cem{template}}) for the certificate 
+  \\
+  Progress function, $a x^2 + b y^2$, for reachability
+  \\
+  Invariant set,  $a x^2 + b y^2 \geq 0$, for safety
+\item
+ Once the form is fixed, existence of a certificate reduces to
+ existence of template variables $a,b,\ldots$:
+\item
+ Overall formula takes the form:
+  $$
+  \exists{a,b,\ldots}:\forall{x,y,\ldots}:  \cdots
+  $$
+\item
+ We solve the $\exists\forall$ formula to find values for $a,b,\ldots$
+\end{enumerate}
+
+\end{slide}
+% -------------------------------------------------------
+\begin{slide}
+\heading{Extensions and Other Tools}
+
+\begin{itemize}
+\item
+Constraint-based approach can also be used for {\cem{synthesis}}
+\begin{itemize}
+ \item E.g. synthesizing the {\cem{guards}} for when the robot
+ should switch from one mode to another
+\end{itemize}
+
+\item
+Enhancing HybridSAL:
+\begin{itemize}
+\item
+ Probabilistic Extension
+\item
+ Composition
+\item
+ Integrating {\cem{constraint-based}} approach
+\end{itemize}
+
+\end{itemize}
+
+
+\end{slide}
+% -------------------------------------------------------
+\ignore{
+\begin{slide}
+\heading{Quick Introduction to Logic}
+
+Let $V(a,b,x,y) := ax^2 + by^2$ 
+
+There {\cem{exist}} values for $a,b,c$ such that 
+{\cem{for all}} values of $x,y$, {\crm{if}}
+$V(a,b,x,y) \geq c$, {\crm{then}} $\dot{V} < 0$
+\begin{eqnarray*}
+  {\cem{\exists}}{a,b,c}:{\cem{\forall}}{x,y}: V(a,b,x,y)\geq c \;\;{\crm{\Rightarrow}}\;\; \frac{dV}{dt} < 0
+\end{eqnarray*}
+
+Add requirement that $a,b,c$ are positive
+\begin{eqnarray*}
+  {\cem{\exists}}{a,b,c}:a>0
+  \;{\crm{\wedge}}\; b>0
+  \;{\crm{\wedge}}\; c>0
+  \;{\crm{\wedge}}\;
+({\cem{\forall}}{x,y}: V(a,b,x,y)\geq c \;\;{\crm{\Rightarrow}}\;\; \frac{dV}{dt} < 0)
+\end{eqnarray*}
+
+\medskip
+{\cem{Tarski's Result}}:  These formulas can be {\cem{solved}}
+
+\end{slide}
+% -------------------------------------------------------
+\begin{slide}
+\heading{Safety Verification using Inductive Invariants}
+
+A discrete-time system always remains inside the
+set ${{\safe(\vec{x})}}$ of good states if 
+\\
+there is an inductive {\cem{invariant}} $\inv(\vec{x})$ such that
+\\
+\[
+\begin{array}{l@{\qquad\qquad}rcl}
+ \Init : &
+ \forall{\vec{x}}:  \init(\vec{x}) & \Rightarrow &  {{\inv(\vec{x})}}
+\\
+ \Ind : &
+ \forall{\vec{x},\vec{x'}}:  {{\inv(\vec{x})}} \wedge t(\vec{x},\vec{x'})& \Rightarrow &  {{\inv(\vec{x'})}}
+\\
+ \Safe : &
+ \forall{\vec{x}}:  {{\inv(\vec{x})}} & \Rightarrow &  {{\safe(\vec{x})}}
+%\\ \hline
+% &
+% \forall{\vec{x_0},\vec{x}}: \init(\vec{x_0}) \wedge t^*(\vec{x_0},\vec{x}) & \Rightarrow &  \safe(\vec{x})
+% \\
+ %\multicolumn{4}{c}{G(\safe(\vec{x}))}
+\end{array}
+\]
+
+\bigskip
+{Template}:  {{$\Tmp(\vec{a},\vec{x})$}}
+\\
+{\cem{Generated Constraint}}:
+\begin{eqnarray*}
+\exists{\vec{a}}:\forall{\vec{x},\vec{x'}}: & &
+ (\init(\vec{x})  \Rightarrow   {{\Tmp(\vec{a},\vec{x})}}) \;\wedge\;
+  \\ & & 
+ ({{\Tmp(\vec{a},\vec{x})}} \wedge t(\vec{x},\vec{x'}) \Rightarrow   {{\Tmp(\vec{a},\vec{x'})}}) \;\wedge\;
+  \\ & & 
+ ({{\Tmp(\vec{a},\vec{x})}} \Rightarrow  {{\safe(\vec{x})}})
+\end{eqnarray*}
+
+\end{slide}
+% -------------------------------------------------------
+\begin{slide}
+\heading{Safety Verification: Continuous-Time}
+
+A {\cem{continuous-time}} system $\dot{\vec{x}} = f(\vec{x})$ always remains inside the
+set $\safe(\vec{x})$ of good states if 
+\\
+there is an inductive invariant $\Tmp(\vec{a},\vec{x})$ such that
+\\
+\begin{eqnarray*}
+\exists{\vec{a}}:\forall{\vec{x}}: & &
+ (\init(\vec{x})  \Rightarrow   \Tmp(\vec{a},\vec{x})) \;\wedge\;
+  \\ & & 
+ (\vec{x} \in \partial\Tmp(\vec{a},\vec{x}) \Rightarrow  f(\vec{x})\in {{{\mathit{\bf{T}}}}} \Tmp(\vec{a},\vec{x})) \;\wedge\;
+  \\ & & 
+ (\Tmp(\vec{a},\vec{x}) \Rightarrow  \safe(\vec{x}))
+\end{eqnarray*}
+
+\bigskip
+
+{\cem{The middle condition can be formulated for polynomial systems as:}}
+$p\geq 0$ is inductive if
+\\
+$$\forall(\vec{x}):
+p(\vec{x}) = 0
+  \Rightarrow  
+  \vec{\nabla}p(\vec{x})\cdot f(\vec{x}) \geq 0
+$$
+
+\end{slide}
+% -------------------------------------------------------
+\begin{slide}
+\heading{Digression}
+
+
+Unsound, but sound variant and even relatively complete
+variants exist
+
+\begin{figure}[t!]
+\begin{eqnarray*}
+(A1) \qquad & \Init \Rightarrow p \geq 0  &
+\\
+(A2) \qquad & p = 0 \Rightarrow  L_f(p) \geq 0 &
+\\
+(A3) \qquad & p \geq 0 \Rightarrow \Safe
+\\
+(A4) \qquad & p = 0 \Rightarrow \grad{p}\neq 0 &
+\\ \hline
+ & \texttt{Reach}(\cds) \subseteq \Safe &
+\end{eqnarray*}
+\caption{Sound, but incomplete, rule 
+for safety verification of polynomial CDS 
+$\cds := (\vars, \Init, f)$ and safety property $\Safe\subseteq \vals$.}
+\label{fig-sound2-rule}
+\end{figure}
+
+\medskip
+Relatively complete
+\end{slide}
+% -------------------------------------------------------
+\begin{slide}
+\heading{Bounded Stability Verification}
+
+\begin{figure}[t]
+\begin{center}
+\begin{tabular}{cc}
+\begin{minipage}[c]{2.0in}
+\[
+\begin{array}{l@{\quad}rcl}
+(S1): &
+ \Init & \Rightarrow & V \geq 0  
+\\
+(S2): &
+ V > 0 & \Rightarrow &  \frac{dV}{dt} < 0
+\\
+(S3): &
+ V \leq 0 & \Rightarrow & \phi
+\\ \hline
+&
+ \Init & \Rightarrow & \FF(\phi)
+\end{array}
+\]
+\end{minipage}
+&
+\begin{minipage}[c]{2.5in}
+\[
+\begin{array}{l@{\quad}rcl}
+(T1): &
+ \neg\phi & \Rightarrow & V > 0  
+\\
+(T2): &
+ \neg\phi & \Rightarrow &  \frac{dV}{dt} < 0
+\\ \hline
+&
+ \mathit{true} & \Rightarrow & \GG(\FF(\phi))
+\end{array}
+\]
+\end{minipage}
+%\\*[3em]
+%(a) & (b)
+\end{tabular}
+\end{center}
+\caption{On the left, an inference rule for verifying that a  continuous 
+system $\cds := (\vars, f)$ eventually reaches $\phi$ 
+starting from any state in $\Init$.  On the right,
+an inference rule for verifying that a  continuous 
+system $\cds := (\vars, f)$ always eventually reaches $\phi$.
+}\label{fig-ff}
+\end{figure}
+
+\end{slide}
+% -------------------------------------------------------
+\begin{slide}
+\heading{Proving Bounded Stability}
+
+Constraints can also encode that some function is a 
+{\cem{Lyapunov function}}.
+
+\bigskip
+Some systems may {\cem{not}} be globally stable
+
+\bigskip
+We can also generate {\cem{assumptions}} on the inputs
+(subset of the global state space)
+that will guarantee stability or safety 
+
+\bigskip
+Idea:  Use a {\cem{template}} for the assumption
+\end{slide}
+% -------------------------------------------------------
+\begin{slide}
+%\heading{Proving Bounded Stability}
+
+
+\begin{center}
+%\includegraphics[angle=0,scale=0.50]{algorithm}
+\end{center}
+
+\end{slide}
+% -------------------------------------------------------
+\begin{slide}
+\heading{Controllability Verification}
+
+Our approach can be used to {\cem{synthesize}} controllers
+that preserve {\crm{safety}} and/or {\crm{stability}}
+
+\bigskip
+
+A {\cem{continuous-time}} system $\dot{\vec{x}} = f(\vec{x},\vec{u})$ 
+{\cem{can be made to}} remain inside the
+set $\safe(\vec{x})$ of good states if 
+\\
+there is an {\cem{controlled inductive invariant}} $\cinv(\vec{a},\vec{x})$ such that
+\\
+\begin{eqnarray*}
+\exists{\vec{a}}:\forall{\vec{x}}: & &
+ (\init(\vec{x})  \Rightarrow   \cinv(\vec{a},\vec{x})) \;\wedge\;
+  \\ & & 
+ (\vec{x} \in \partial\cinv(\vec{a},\vec{x}) \Rightarrow  {\crm{\exists{\vec{u}}}}:f(\vec{x},\vec{u})\in {{{\mathit{\bf{T}}}}} \cinv(\vec{a},\vec{x})) \;\wedge\;
+  \\ & & 
+ (\cinv(\vec{a},\vec{x}) \Rightarrow  \safe(\vec{x}))
+\end{eqnarray*}
+
+\medskip
+Similarly for {\crm{controlled Lyapunov function}}
+
+\end{slide}
+\endignore}
+% -------------------------------------------------------
+\begin{slide}
+\heading{Overview of Bounded Synthesis}
+
+Given multimodal dynamical system, and property $\Safe\UU\Reach$:
+\begin{itemize}\itemsep=1em
+\item Guess templates for the certificate for controlled-property
+\item
+ Generate the $\exists{a,b,\ldots}:\forall{x,y,\ldots}:\phi$ 
+ % {\cem{verification condition}}
+\item
+ \mbox{\cem{Solve}} the formula to get values for ${a},b,\ldots$
+\end{itemize}
+
+\end{slide}
+% -------------------------------------------------------
+\begin{slide}
+\heading{Generating the $\exists\forall$ formula}
+
+We used {\cem{two special}} predicates:
+ {\crm{Inwards}} and {\crm{Progress}}
+
+\bigskip
+Inwards is determined by the {\cem{direction}} of the vector field
+\begin{eqnarray*}
+ \Inwards(p\geq 0, \state{x}, f) & \approx & L_f(p)(\state{x}) > 0
+\end{eqnarray*}
+
+\bigskip
+Progress of $\vv$ is determined by the {\cem{rate of change}} of $\vv$
+\begin{eqnarray*}
+ \Progress(\vv, \state{x}, f, \epsilon) & \approx & L_f(\vv)(\state{x}) \geq \epsilon
+\end{eqnarray*}
+where 
+$$
+ L_f(p) = \frac{dp}{dt} = \sum_i \frac{dp}{dx_i} \frac{dx_i}{dt}
+$$
+
+\bigskip
+These are {\cem{sound}} approximations
+\end{slide}
+% -------------------------------------------------------
+%\renewcommand{\mytitle}{Part II: Solving $\exists\forall$ formulas}
+% -------------------------------------------------------
+\begin{slide}
+\heading{Solving $\exists\forall$ formulas}
+
+Bounded verification/synthesis:  verification/synthesis 
+of hybrid systems $\mapsto$ checking
+validity of
+  $\exists{\vec{u}}:\forall{\vec{x}}:\phi$ 
+
+\bigskip
+When $\phi$ contains only {\cem{polynomials}}, this is {\cem{decidable}} (e.g. QEPCAD)
+
+\bigskip
+More {\crm{practically}},
+use {\crm{heuristics}} to decide $\exists{\vec{u}}:\forall{\vec{x}}:\phi$ 
+
+\begin{enumerate}
+\item
+ QEPCAD can not handle very large formulas
+\item
+ Can often {\cem{divide-and-conquer }}
+\item
+ Use QEPCAD in conjunction with {\cem{ODE simulators}} and 
+ {\cem{nonlinear optimizers}}
+to find $a,b,\ldots$
+
+ % {\mbox{\cem{Eliminate $\forall$}}}:
+  % $\exists{\vec{u}}:\forall{\vec{x}}:\phi$ 
+  % $\mapsto$
+  % $\exists{\vec{u}}:\exists{\vec{\lambda}}:\phi'$ 
+% \item
+ % Search for $\vec{u}$ and $\vec{\lambda}$ over a finite domain
+ % using {\cem{SMT (bit vector) solver}}
+\end{enumerate}
+
+\end{slide}
+% -----------------------------------------------------------
+\ignore{
+\begin{slide}
+\heading{Step 1: $\exists\forall$ to $\exists$}
+
+For linear arithmetic, {\cem{Farkas' Lemma}} eliminates $\forall$
+
+$\forall{\vec{x}}: p_1 \geq 0 \wedge p_2 \geq 0 \Rightarrow p_3 \geq 0$,
+iff
+$\exists{\vec{\lambda}}:
+  p_3 = \lambda_1 p_1 + \lambda_2 p_2 
+  \;\wedge\; \lambda_1 \geq 0 
+  \;\wedge\; \lambda_2 \geq 0$
+
+
+\bigskip
+For nonlinear, we can still use this and be {\crm{sound}}, but {\crm{incomplete}}
+
+\bigskip
+We can partially regain {\cem{completeness}} by 
+using {\cem{Positivstellensatz}}
+
+\end{slide}
+% -----------------------------------------------------------
+\begin{slide}
+\heading{Step 2: $\exists$ to Bit-Vectors}
+
+Farkas Lemma/Posit. : $\exists\forall \;\mapsto\; \exists$
+\\
+Solving the $\exists$ formula
+
+One approach:
+Search for solutions in a {\cem{finite range}} using 
+{\cem{bit-vector decision procedures}}
+
+\bigskip
+
+$\exists{u\in\mathbb{R}}: (u^2 - 2 u = 3 \wedge u > 0)$
+\\
+$\Leftarrow \;\; 
+   \exists{u\in\mathbb{Z}}: (u^2 - 2 u = 3 \wedge u > 0)$
+\\
+$\Leftarrow \;\; 
+   \exists{u\in\mathbb{Z}}: (-32 \leq u < 32\;\wedge\;u^2 - 2 u = 3 \wedge u > 0)$
+\\
+$\Leftarrow \;\; 
+   \exists{\vec{b}\in\mathbb{B}^6}: (u*u - 2*u = 3 \wedge u > 0)$
+
+\bigskip
+We use {\cem{Yices}} to search for finite bit length solutions
+for the original nonlinear constraint
+$$
+  \vec{b} = 000011
+$$
+
+\end{slide}
+\endignore}
+% -------------------------------------------------------
+\begin{slide}
+\heading{Related Work}
+
+{\cem{Bounded Synthesis}} generalizes the {\cem{bounded verification}} approach
+
+\bigskip
+The bounded verification approach encompasses
+\begin{itemize}
+\item
+ {\cem{Template-based}} invariant generation (Sankaranarayanan et al., Kapur)
+\item
+ {\cem{Barrier certificates}} (Prajna et al.)
+\item
+ {\cem{Constraint-based approach}} for verification (Gulwani et al.)
+\end{itemize}
+
+\bigskip
+{\cem{Bounded verification}} is the dual of {\cem{bounded falsification}}
+\\
+(aka bounded model checking)
+
+\bigskip
+{\cem{Deductive inference rules}} for verification of hybrid systems (Platzer)
+
+\end{slide}
+% -------------------------------------------------------
+\begin{slide}
+\heading{Related Work}
+
+{\cem{Progress invariants}} are similar to 
+\begin{itemize}
+\item   {\crm{transition invariants}} (PodelskiRybalchenko)
+\item   {\crm{ranking functions}} (ColonSipma)
+\end{itemize}
+
+\bigskip
+Controller synthesis using {\cem{iterative fixpoint computation}} 
+ (AsarinEtAl, TomlinEtAl)
+
+\bigskip
+{\cem{Stability analysis}} of continuous/hybrid systems (TopcuEtAl)
+
+\bigskip
+Exists-Forall solving using {\cem{sum-of-squares programming}}
+%\bigskip
+%The {\cem{real}} problem is 
+%\\
+%{\cem{deciding $\exists\forall$ formulas over the reals}}
+%
+\end{slide}
+% -----------------------------------------------------------
+\ignore{
+\begin{slide}
+\heading{Overall Approach}
+
+Given hybrid system $\hs$ and optionally property $\safe$:
+\begin{itemize}
+\item
+ Guess a template for certificate $\Tmp(\vec{u},\vec{x})$
+\item
+ Generate the verification condition:
+ $\exists{\vec{u}}:\forall{\vec{x}}: \phi$
+\item
+ Solve using either QEPCAD or 
+ \begin{itemize}
+ \item
+ Eliminate $\forall$ using Farkas' Lemma:
+ $\exists{\vec{u}}:\exists{\vec{\lambda}}: \psi$
+ \item
+ Guess sizes for $\vec{u},\vec{\lambda}$:
+ $\exists{\vec{bv_u}}:\exists{\vec{bv_\lambda}}: \psi'$
+ \item
+ Ask {\cem{Yices}} to search for solutions
+ \end{itemize}
+\item
+ If a satisfying assignment is found, 
+ {\cem{system proved safe}}
+\end{itemize}
+
+\end{slide}
+\endignore}
+\ignore{
+% -------------------------------------------------------
+%\renewcommand{\mytitle}{Part III.I: Modeling Direct MRAC}
+% -------------------------------------------------------
+\begin{slide}
+\heading{Part III.I}
+\heading{Modeling NN Direct}
+\heading{Model Reference Adaptive Control}
+
+\end{slide}
+% -------------------------------------------------------
+\begin{slide}
+\heading{NN Direct Model Reference Adaptive Control}
+
+\begin{center}
+%\includegraphics[angle=0,scale=0.45]{direct-nn}
+\end{center}
+
+\bigskip
+
+Sources:
+\begin{itemize}
+\item
+  N. Nguyen and K. Krishnakumar, 
+  ``{\em{An optimal control modification to model-reference adaptive
+ control for fast adaptation}}'', AIAA GNC 2008.
+\item
+  Matlab scripts for simulating direct, indirect, and hybrid
+  adaptive flight control (source: Stephen A. Jacklin, NASA Ames)
+\end{itemize}
+
+\end{slide}
+% -------------------------------------------------------
+\begin{slide}
+\heading{Step 1: Modeling Direct MRAC}
+
+$\vec{x}$:   $3\times 1$ vector of roll, pitch, and yaw rates of the aircraft.
+
+$\vec{u}$:  $3\times 1$ vector of aileron, elevator, and rudder inputs.
+
+$\vec{z}$:  $3\times 1$ trim state vector of angle of attack, angle of sideslip, and engine throttle.
+
+The dynamics of the aircraft are given by
+\begin{eqnarray}
+ \dot{\vec{x}} & = & A\vec{x} + B\vec{u} + G\vec{z} + f(\vec{x},\vec{u},\vec{z})
+\label{eqn-x}
+\end{eqnarray}
+where $A,B,G$ are known matrices in $\Re^{3\times 3}$  and
+$f$ represent the unknown term (caused by uncertainty or damage to the aircraft).
+
+
+\end{slide}
+% -------------------------------------------------------
+\begin{slide}
+\heading{Step 1: Modeling Direct MRAC}
+
+We tried to build a {\cem{continuous dynamical system}} model 
+
+{\cem{State space}}: $x_m, intx_e, x, L, \beta, f$
+
+\begin{eqnarray*}
+\dot{x_m}  & = &  {\cem{A_m (x_m - r)}}
+\\
+\dot{intx_e} & = & {\crm{x_m - x}}
+\\
+\dot{x} & = & {\cem{A_m(x_m-r)}}  + K_p {\crm{(x_m-x)}} + 
+   K_i intx_e - L'\beta + f
+\\
+\dot{L} & = & -\Gamma \beta (intx_e^T K_i^{-1} + (x_m-x)^T K_p^{-1}(I + K_i^{-1}))
+\\
+\dot{\beta} & = & \ldots
+\\
+\dot{f} & = & \ldots
+\end{eqnarray*}
+
+\begin{tabular}{lcl}
+Constants & : & $\Gamma$, $K_p$, $K_i$, $A_m$,
+\\
+Unknown/Symbolic Parameters & : & $r$,  $f$, $\dot{f}$ 
+\end{tabular}
+
+\end{slide}
+% -------------------------------------------------------
+\begin{slide}
+\subheading{Step 1: Modeling Direct MRAC}
+
+\begin{tabular}{ll}
+$r$ & 
+ commanded value for ${x}$
+\\
+$x_m$ & 
+ desired value for $x$,  calculated using reference model
+\\
+$x$ & 
+ actual value for $x$,  determined by the damaged aircraft
+\\
+$x_e$ & 
+ error, $x_m - x$
+\\
+$intx_e$ &
+ integral of the error, $\int x_e$
+\\
+$L$ & weights of the NN
+\\
+$\beta$ & fixed functions, $L'\beta$ = adaptive control term
+\\
+$f$ & Damaged dynamics, $f = \dot{x} - \dot{x}_u$
+\\
+$u_e$ & $K_p x_e + K_i intx_e$
+\\
+$\dot{x_d}$ &  $\dot{x_m} + u_e - uad$
+\\
+$\dot{L}$ & weight update / neural net learning
+\end{tabular}
+
+% Invert dynamics:
+ % wddot = F1u w + F2u sigma + Gu delta 
+ % and therefore, we set delta to:
+ % delta := Guinv ( wddot - F1u w - F2u sigma )
+% 
+ % F1u, F2u, Gu : undamaged aircraft...
+% 
+% Aircraft Plant:
+ % wdot = F1 w + F2 sigma + G delta
+% 
+ % F1, F2, G : damaged aircraft...
+ % Assume F1 w + F2 sigma + G delta = F1u w + F2u sigma + Gu delta + f
+% 
+% Neural net learning :
+ % Ldot = -gamma ( beta ( intweT Kiinv + weT Kpinv (I + Kiinv) ) )
+ % gamma is a constant factor, 
+ % Kpinv denotes inverse of Kp,  weT denotes transpose of we.
+
+\end{slide}
+% -------------------------------------------------------
+\begin{slide}
+\heading{Step 1: Modeling Direct MRAC:  Issues}
+
+% \begin{center}$\dot{\beta} = \ldots$\end{center}
+Dynamics for $\beta$:   $\dot{\beta} = \ldots$
+\begin{itemize}
+\item 
+ There are two options here:
+ \begin{description}
+  \item[Option 1.] Use $\beta$ from the NASA Matlab scripts
+  \item[Option 2.] Leave $\beta$ as unknown symbolic parameters
+ \end{description}
+
+\item  If we use {\cem{Option 1}}
+  \begin{quote}
+  There is an {\cem{algebraic loop}} on $u$: $u(t)$ depends on $u(t)$
+  \\
+  Leads to {\cem{complications}} -- not pursued further.
+  \end{quote}
+
+\item If we use {\cem{Option 2}}
+  \begin{quote}
+  Analysis independent of $\beta$
+  \\ 
+  Need assumption on $\beta$ (to capture damaged dynamics $f$)
+   \\
+  Used in [NguyenKrishnakumar08]
+  \end{quote}
+\end{itemize}
+
+\end{slide}
+% -------------------------------------------------------
+\begin{slide}
+\heading{Step 1: Modeling Direct MRAC:  Issues}
+
+Dynamics of $f$:  $\dot{f} = \ldots$
+
+\begin{itemize}
+\item Dynamics of damaged aircraft:
+  \begin{eqnarray*}
+    \dot{x}  & = & A_u\vec{x} + B_u\vec{\sigma} + F_u\vec{u} + f(\vec{x},\vec{\sigma},\vec{u})
+  \end{eqnarray*}
+  $f$ is {\cem{unknown}}
+
+\item
+  $\dot{f}$ is also {\cem{unknown}}
+
+\item
+  We leave $f$ and $\dot{f}$ as {\crm{unknown symbolic parameters}}
+
+\item
+  We wish to {\cem{prove}} properties of the system for {\cem{any $f$, $\dot{f}$}}
+
+\item
+  Which is not possible, hence need {\crm{assumptions}}
+\end{itemize}
+
+We will {\cem{verify}} $\ldots$ {\crm{assuming that}} $\ldots$
+\end{slide}
+% -------------------------------------------------------
+\begin{slide}
+\heading{Step 1: Final Model}
+
+\begin{eqnarray*}
+\dot{x_e} & = & -K_p x_e - K_i intx_e + L'\beta -f 
+\\
+\dot{intx_e} & = & x_e
+\\
+\dot{L} & = & -\Gamma \beta (intx_e^T K_i^{-1} + (x_m-x)^T K_p^{-1}(I + K_i^{-1}))
+\\
+\dot{\beta} & = &  f_1
+\\
+\dot{f} & = & f_2
+\end{eqnarray*}
+
+\begin{tabular}{ll}
+state variables & $x_e, intx_e, L, \beta, f$
+\\
+unknown parameters & $f_1, f_2$
+\\
+fixed parameters & $\Gamma, K_p, K_i$
+\end{tabular}
+
+\end{slide}
+\endignore}
+\ignore{
+% -------------------------------------------------------
+%\renewcommand{\mytitle}{Part IV: Discussion and Conclusion}
+% -------------------------------------------------------
+\begin{slide}
+\heading{Part IV}
+\heading{Discussion and Conclusion}
+
+\end{slide}
+% -------------------------------------------------------
+\begin{slide}
+\heading{What is novel in the technique?}
+
+Computer Science
+\begin{itemize}
+\item
+  The template+constraint-solving approach is {\cem{different}}
+  from the {\crm{usual}} verification approaches
+  \begin{itemize}
+  \item {\crm{reachability}}
+  \item {\crm{abstraction}}
+  \end{itemize}
+\item
+  % Bounded verification vs. bounded model checking
+  {\crm{Bounded Falsification (BMC)}} vs.  {\cem{Bounded Verification}}
+\end{itemize}
+
+\medskip
+Control
+\begin{itemize}
+\item 
+ The approach is {\cem{standard}}, but the novelty is in
+ generating {\cem{more precise constraints}} and using {\cem{symbolic}}
+ solvers for testing their {\cem{feasibility}}
+\end{itemize}
+
+\end{slide}
+% -----------------------------------------------------------
+\begin{slide}
+\heading{Why is the technique so effective?}
+
+\begin{itemize}
+\item
+This is the {\cem{classical}} approach -- only {\cem{slightly modified}} to
+\begin{itemize}
+\item 
+ generate more {\crm{precise}} constraints
+\item
+ that can be {\crm{non-convex}}
+\item
+ solved using modern solvers such as
+  \begin{itemize}
+  \item {\crm{fast}} constraint solvers called {\crm{SMT solvers}}
+  \item {\crm{complete}} symbolic solver like QEPCAD
+  \end{itemize}
+ replacing {\crm{optimization}} by {\crm{feasibility or satisfiability}}
+\end{itemize}
+
+\item
+Systems have {\cem{several}} invariants/Lyapunov functions -- that can be searched using {\cem{few}} templates
+
+\item
+{\crm{Correct systems have simple certificates}}
+
+\item
+Robust technique does {\cem{not}} require any {\cem{careful tuning}}
+or a {\cem{smart user}}
+\\
+Handles unknown parameters
+
+%Like {\bf{\cem{BMC}}}, SMT solver provides scalability
+\end{itemize}
+
+\end{slide}
+% -------------------------------------------------------
+\begin{slide}
+\heading{Future Work}
+
+\begin{itemize}
+ \item  {\cem{Modeling and Analysis}}
+   \begin{itemize}
+   \item
+   Complete analysis of NN direct MRAC
+   \item
+   Analyze {\crm{other variants of direct MRAC}}
+   \item
+   Analyze {\crm{indirect}} and {\crm{hybrid}} NN adaptive flight control
+   \end{itemize}
+ \item  
+   Add {\crm{automation for template generation}} for this specific domain
+ \item
+   Improve {\crm{automation for constraint solving}}
+\end{itemize}
+
+\end{slide}
+% -------------------------------------------------------
+\begin{slide}
+\heading{Tool}
+
+We have {\cem{generic}} prototype implementations for:
+\begin{itemize}
+\item
+  {\crm{Generating constraint from continuous dynamical model:}}
+  Given a CDS and templates, generates
+  an $\exists\forall$ constraint
+
+\item
+  {\crm{Eliminating $\forall$ quantifier:}}
+  Given an $\exists\forall$ constraint, eliminates the $\forall$
+  and return an $\exists$ formula
+
+\item 
+  {\crm{Solver for $\exists$ formulas}}
+
+\item
+  Off-the-shelf tool QEPCAD
+\end{itemize}
+
+\end{slide}
+% -------------------------------------------------------
+\begin{slide}
+\heading{Tool Development:  Issues}
+
+\begin{itemize}
+\item Constraint generation only for {\cem{safety verification}}
+  \begin{itemize}
+   \item Need constraint generation for {\cem{stability verification}}
+   \item May need a careful study of the underlying proof rule
+  \end{itemize}
+
+\item {\mbox{\cem{Extracting CDS model}}} from a more 
+ intuitive front-end description ?
+
+\item  Solver for {\cem{$\exists\forall$ constraints}}
+  \begin{itemize}
+  \item Need to balance {\crm{completeness}} and {\crm{efficiency}}  
+  \item Domain-specific {\crm{heuristics}}
+  \end{itemize}
+
+\end{itemize}
+
+\end{slide}
+\endignore}
+% -------------------------------------------------------
+\ignore{
+\begin{slide}
+\heading{Solving $\exists\forall$}
+
+Restrict to {\cem{polynomial systems}} 
+\\ $\Rightarrow$ \\
+$\phi$ contains only polynomial expressions
+\\ $\Rightarrow$ \\
+Validity of
+  $\exists{\vec{u}}:\forall{\vec{x}}:\phi$ is {\cem{decidable}}
+
+\bigskip
+More {\crm{practically}},
+use {\crm{heuristics}} to decide $\exists{\vec{u}}:\forall{\vec{x}}:\phi$ 
+
+\begin{enumerate}
+\item
+ {\mbox{\cem{Eliminate $\forall$}}}:
+  $\exists{\vec{u}}:\forall{\vec{x}}:\phi$ 
+  $\mapsto$
+  $\exists{\vec{u}}:\exists{\vec{\lambda}}:\phi'$ 
+\item
+ Search for $\vec{u}$ and $\vec{\lambda}$ over a finite domain
+ using {\cem{SMT (bit vector) solver}}
+\end{enumerate}
+
+\end{slide}
+% -----------------------------------------------------------
+\begin{slide}
+\heading{Step 1: $\exists\forall$ to $\exists$}
+
+For linear arithmetic, {\cem{Farkas' Lemma}} eliminates $\forall$
+
+$\forall{\vec{x}}: p_1 \geq 0 \wedge p_2 \geq 0 \Rightarrow p_3 \geq 0$,
+iff
+$\exists{\vec{\lambda}}:
+  p_3 = \lambda_1 p_1 + \lambda_2 p_2 
+  \;\wedge\; \lambda_1 \geq 0 
+  \;\wedge\; \lambda_2 \geq 0$
+
+
+\bigskip
+For nonlinear, we can still use this and be {\crm{sound}}
+
+\bigskip
+In theory, we can preserve {\cem{completeness}} by 
+using {\cem{Positivstellensatz}}
+
+\end{slide}
+% -----------------------------------------------------------
+\begin{slide}
+\heading{Step 2: $\exists$ to Bit-Vectors}
+
+Search for solutions in a {\cem{finite range}} using 
+{\cem{bit-vector decision procedures}}
+
+\bigskip
+
+$\exists{u\in\mathbb{R}}: (u^2 - 2 u = 3 \wedge u > 0)$
+\\
+$\Leftarrow \;\; 
+   \exists{u\in\mathbb{Z}}: (u^2 - 2 u = 3 \wedge u > 0)$
+\\
+$\Leftarrow \;\; 
+   \exists{u\in\mathbb{Z}}: (-32 \leq u < 32\;\wedge\;u^2 - 2 u = 3 \wedge u > 0)$
+\\
+$\Leftarrow \;\; 
+   \exists{\vec{b}\in\mathbb{B}^6}: (u*u - 2*u = 3 \wedge u > 0)$
+
+\bigskip
+We use {\cem{Yices}} to search for finite bit length solutions
+for the original nonlinear constraint
+$$
+  \vec{b} = 000011
+$$
+
+\end{slide}
+% -----------------------------------------------------------
+\begin{slide}
+\heading{Publications: 2008}
+
+\bigskip
+
+(1) {\cem{Ashish Tiwari}}, 
+  ``{\em{Generating Box Invariants}}'', In Proc. Hybrid Systems:
+  Computation and Control, {\crm{HSCC 2008}}, Springer LNCS 4981, pp 658--661.
+  Apr 22-24, 2008, St. Louis, MO.
+
+\bigskip
+
+(2) {\cem{Sumit Gulwani and Ashish Tiwari}}, 
+  ``{\em{Constraint-based Approach for
+  Analysis of Hybrid Systems}}'', In Proc. 20th Intl. Conf. on Computer
+  Aided Verification, {\crm{CAV 2008}}, Springer LNCS 5123, pp 190-203.
+  July 7-14, 2008, Princeton, NJ.
+
+\end{slide}
+% -----------------------------------------------------------
+\begin{slide}
+\heading{Publications: 2009}
+
+\bigskip
+
+(3) {\cem{Ankur Taly, Sumit Gulwani and Ashish Tiwari}}, 
+  ``{\em{Synthesizing Switching Logic using Constraint Solving}}'',  
+  In Proc. 10th Intl. Conf. on
+  Verification, Model Checking and Abstract Interpretation, {\crm{VMCAI 2009}},
+  Jan 18-20, 2009, Savannah, GA.
+
+\bigskip
+
+(4) {\cem{Ankur Taly and Ashish Tiwari}}, 
+  ``{\em{Deductive Verification of Continuous Dynamical Systems}}'',  
+  Submitted for publication.
+
+\end{slide}
+\endignore}
+% -----------------------------------------------------------
+\begin{slide}
+\heading{Conclusion}
+
+\begin{itemize}
+\item
+ The {\cem{bounded verification}} approach
+ \begin{itemize}
+ \item reduces {\crm{verification}} to $\exists\forall$
+  {\crm{constraint solving}}
+ \end{itemize}
+
+\item
+ The {\cem{bounded synthesis}} approach
+ \begin{itemize}
+ \item reduces {\crm{synthesis}} to $\exists\forall\exists$
+  {\crm{constraint solving}}
+ \item reduces {\crm{synthesis of finite control}} to $\exists\forall$
+  {\crm{constraint solving}}
+ \end{itemize}
+
+\item
+ Two aspects are {\cem{crucial}}:
+ \begin{itemize}
+ \item  the {\cem{inference rule}}, or definition of {\cem{certificate}}
+  of ({\cem{controlled}}-)$P$
+ \item  how to {\cem{solve}} the $\exists\forall$ formula
+ \end{itemize}
+
+\end{itemize}
+
+\end{slide}
+% -----------------------------------------------------------
+\ignore{
+\begin{slide}
+\subheading{Conclusion}
+ 
+\begin{itemize}
+\item
+ Plan for future:
+ {\cem{modeling and verifying}} indirect and hybrid adaptive 
+ flight control systems
+ 
+\item 
+ This analysis effort will {\cem{indicate heuristics}} for developing
+ {\cem{tools targeted for}} analyzing {\cem{NN adaptive flight control}} systems
+\end{itemize}
+
+\end{slide}
+\endignore}
+% -----------------------------------------------------------
+\begin{slide}
+\heading{Special Case}
+
+Consider the template: 
+$$
+ \bigwedge_i  (l_i \leq x_i \leq u_i)
+$$
+where $l_i,u_i$'s are the unknown parameters
+
+\medskip
+\begin{eqnarray*}
+ \exists{\vec{l},\vec{u}}.\forall{\vec{x}}.
+   ((\vec{x}\in\mathit{boundary}(\Tmp)\Rightarrow \frac{dX}{dt}(\vec{x}) \mbox{ points inwards})
+    \; \wedge\;
+\\
+   (t(\vec{x},\vec{x'}) \Rightarrow \Tmp(\vec{x'}))
+    \; \wedge\; \ldots)
+\end{eqnarray*}
+
+\end{slide}
+% -------------------------------------------------------
+\begin{slide}
+\heading{Quasi Monotone Systems}
+
+{\red{Quasi monotonicity}} allows eliminating the $\forall$ variable
+
+$\forall{\vec{x}}$:  instead of checking for all $\vec{x}$,
+we need to check only at vertices of the box
+
+\begin{eqnarray*}
+ \exists{\vec{l},\vec{u}}.\bigwedge_{\mbox{vertices} \vec{x}}.
+   (\frac{dX}{dt}(\vec{x}) \mbox{ points inwards})
+\end{eqnarray*}
+
+
+\bigskip
+
+{\red{Uniform quasi-monotonicity}} allows reducing from $n2^n$ constraints
+to just $2n$ constraints
+
+\end{slide}
+% -------------------------------------------------------
+\begin{slide}
+\heading{Monotone Systems}
+
+Generalize {\blue{multiaffine}} systems
+
+If $f$ is a monotone function, then
+$f(\vec{x})$ is bounded by values $f(\vec{v})$ at the vertices $v$
+
+\bigskip
+
+Examples:
+
+$\dot{\vec{x}} = 1-x^2$ is not monotone, but it is quasi-monotone
+
+$\dot{\vec{x}} = x^3 + x$ is monotone, but not multiaffine
+
+$xy-yz$ is not uniformly monotone wrt $y$, whereas it is monotonic wrt $y$
+
+$xy-yz$ is uniformly monotone wrt $x$ in domain $\{y\geq 0\}$
+
+\medskip
+Uniformly quasi monotone $\subseteq$ Monotone $\subseteq$ Quasi monotone
+
+\end{slide}
+% -------------------------------------------------------
+\begin{slide}
+
+\begin{center}
+%\includegraphics[angle=0,scale=0.35]{../nasa-oct08/summary}
+\end{center}
+
+\end{slide}
+% -------------------------------------------------------
+\begin{slide}
+
+\heading{Summary}
+
+\begin{itemize}
+\item
+Monotonicity --- 
+ interesting property that can be utilized
+ for analysis
+\item
+ biological systems are monotone or nearly-monotone (Sontag)
+\item
+ generalizes ``multiaffine'' systems
+\end{itemize}
+
+\end{slide}
+% -------------------------------------------------------
+
+
+
+
+
+
+\end{document}
+
