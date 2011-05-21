@@ -34,7 +34,7 @@ BEGIN
    flag = working;
    x IN {z: REAL | 2 <= z AND z <= 3};
    y IN {z: REAL | 1 <= z AND z <= 2};
-   vx IN {vz: REAL | -3/10 <= vz AND vz <= 3/10};
+   vx IN {vz: REAL | -0.3 <= vz AND vz <= 3/10};
    vy IN {vz: REAL | -3/10 <= vz AND vz <= 0}
   TRANSITION
   [
