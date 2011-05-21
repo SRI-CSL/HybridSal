@@ -1,4 +1,4 @@
-Linear4: CONTEXT = 
+Linear5: CONTEXT = 
 BEGIN
 
 control: MODULE =
@@ -6,15 +6,15 @@ BEGIN
 LOCAL x,y:REAL
 LOCAL xdot,ydot:REAL
 INITIALIZATION
-  x = 0; y = 1
+  x = 1; y = 1
 TRANSITION
 [
-y >= 0 AND y' >= 0 --> 
-  xdot' = y ;
-  ydot' = -x
+TRUE --> 
+  xdot' = -x ;
+  ydot' = y
 ]
 END;
 
 correct : THEOREM
-control |- G(x <= 1);
+control |- G(x <= 1 AND x >= 0 AND y >= 1);
 END

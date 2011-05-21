@@ -490,10 +490,10 @@ def absGuardedCommandAux(varlist,A,b):
         #nodeL.append(guardAbs1)
     while i < num:
         vectors = eigen[i+1]
-        if vectors == None or len(vectors) == 0:
-            continue
         lambL = eigen[i]
         i += 2
+        if vectors == None or len(vectors) == 0:
+            continue
         if len(lambL) > 1:
             continue
         lamb = lambL[0]
@@ -654,7 +654,7 @@ def absGuardedCommand(gc):
     # guard = createNodeInfixApp('AND',guard,primeguard)
     guard = HSalXMLPP.getArg(guard,1)
     absgc = absGuardedCommandAux(varlist,A,b)
-    absguardnode = createNodeInfixApp('AND',guard,absgc)
+    absguardnode = createNodeInfixApp('AND',guard.cloneNode(True),absgc)
     absguard = createNodeTagChild('GUARD',absguardnode)
     # absassigns = assigns.cloneNode(True)
     absassigns = absAssignments(varlist)

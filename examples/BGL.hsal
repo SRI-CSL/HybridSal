@@ -1,0 +1,114 @@
+%%% ------------------------------------------------------------------
+%%% Blood Glucose Level in humans
+%%% ------------------------------------------------------------------
+BGL: CONTEXT = 
+BEGIN
+
+ %% ------------------------------------------------------------------
+ %% Glucose Model: Source Sorensen's thesis (MIT, 1985)
+ %% ------------------------------------------------------------------
+ glucose: MODULE =
+ BEGIN
+  %% Glucose concentrations (in mg)
+  LOCAL GBV, GBVdot: REAL	%% Brain, vascular blood water space
+  LOCAL GBI, GBIdot: REAL	%% Brain, interstitial fluid space
+  LOCAL GH, GHdot: REAL		%% Heart & Lungs
+  LOCAL GG, GGdot: REAL		%% Gut
+  LOCAL GL, GLdot: REAL		%% Liver
+  LOCAL GK, GKdot: REAL		%% Kidney
+  LOCAL GPV, GPVdot: REAL	%% Periphery, vascular blood water space
+  LOCAL GPI, GPIdot: REAL	%% Periphery, interstitial fluid space
+
+  INITIALIZATION
+    GBV = 100;
+    GBI = 100;
+    GH = 100;
+    GG = 100;
+    GL = 100;
+    GK = 100;
+    GPV = 100;
+    GPI = 100
+
+  TRANSITION
+	[ 
+        GK < 460 AND GK' <= 460 AND 
+	GL < 50 AND GL' <= 50 -->
+ 	  GBVdot' = 12/7*(GH - GBV) - 3/5*(GBV - GBI);
+	  GBIdot' = 1/2*(GBV - GBI) - 16;
+	  GHdot' =  5/12*GBV + 9/10*GL + 3/4*GK + 11/10*GPV - 19/6*GH - 3/4;
+	  GGdot' =  9/10*(GH - GG) - 9/5;
+	  GLdot' = 2/5*GG + 1/10*GH - 1/2*GL;
+	  GKdot' = 3/2*(GH - GK);
+	  GPVdot' = 3/2*(GH - GPV) + (6/5)*(GPI - GPV);
+	  GPIdot' = (1/5)*(GPV - GPI) - 5/100*GPI/9
+ 	[]
+        GK < 460 AND GK' <= 460 AND 
+	GL > 150 AND GL' >= 150 -->
+ 		GBVdot' = 12/7*(GH - GBV) - 3/5*(GBV - GBI);
+		GBIdot' = 1/2*(GBV - GBI) - 16;
+		GHdot' =  5/12*GBV + 9/10*GL + 3/4*GK + 11/10*GPV - 19/6*GH - 3/4;
+		GGdot' =  9/10*(GH - GG) - 9/5;
+		GLdot' = 2/5*GG + 1/10*GH - 1/2*GL + 310/5 - 40/5;
+		GKdot' = 3/2*(GH - GK);
+		GPVdot' = 3/2*(GH - GPV) + (6/5)*(GPI - GPV);
+		GPIdot' = (1/5)*(GPV - GPI) - 5/100*GPI/9
+ 	[]
+        GK < 460 AND GK' <= 460 AND 
+	GL >= 50 AND GL <= 150 AND GL' >= 50 AND GL' <= 150 -->
+ 		GBVdot' = 12/7*(GH - GBV) - 3/5*(GBV - GBI);
+		GBIdot' = 1/2*(GBV - GBI) - 16;
+		GHdot' =  5/12*GBV + 9/10*GL + 3/4*GK + 11/10*GPV - 19/6*GH - 3/4;
+		GGdot' =  9/10*(GH - GG) - 9/5;
+		GLdot' = 2/5*GG + 1/10*GH - 1/2*GL + 31/5 - 4/5;
+		GKdot' = 3/2*(GH - GK);
+		GPVdot' = 3/2*(GH - GPV) + (6/5)*(GPI - GPV);
+		GPIdot' = (1/5)*(GPV - GPI) - 5/100*GPI/9
+ 	[]
+        GK >= 460 AND GK' >= 460 AND 
+	GL < 50 AND GL' <= 50 -->
+ 		GBVdot' = 12/7*(GH - GBV) - 3/5*(GBV - GBI);
+		GBIdot' = 1/2*(GBV - GBI) - 16;
+		GHdot' =  5/12*GBV + 9/10*GL + 3/4*GK + 11/10*GPV - 19/6*GH - 3/4;
+		GGdot' =  9/10*(GH - GG) - 9/5;
+		GLdot' = 2/5*GG + 1/10*GH - 1/2*GL;
+		GKdot' = 3/2*(GH - GK) - (1/7*GK - 50);
+		GPVdot' = 3/2*(GH - GPV) + (6/5)*(GPI - GPV);
+		GPIdot' = (1/5)*(GPV - GPI) - 5/100*GPI/9
+ 	[]
+        GK >= 460 AND GK' >= 460 AND 
+	GL > 150 AND GL' >= 150 -->
+ 		GBVdot' = 12/7*(GH - GBV) - 3/5*(GBV - GBI);
+		GBIdot' = 1/2*(GBV - GBI) - 16;
+		GHdot' =  5/12*GBV + 9/10*GL + 3/4*GK + 11/10*GPV - 19/6*GH - 3/4;
+		GGdot' =  9/10*(GH - GG) - 9/5;
+		GLdot' = 2/5*GG + 1/10*GH - 1/2*GL + 310/5 - 40/5;
+		GKdot' = 3/2*(GH - GK) - (1/7*GK - 50);
+		GPVdot' = 3/2*(GH - GPV) + (6/5)*(GPI - GPV);
+		GPIdot' = (1/5)*(GPV - GPI) - 5/100*GPI/9
+ 	[]
+        GK >= 460 AND GK' >= 460 AND 
+	GL >= 50 AND GL <= 150 AND GL' >= 50 AND GL' <= 150 -->
+ 		GBVdot' = 12/7*(GH - GBV) - 3/5*(GBV - GBI);
+		GBIdot' = 1/2*(GBV - GBI) - 16;
+		GHdot' =  5/12*GBV + 9/10*GL + 3/4*GK + 11/10*GPV - 19/6*GH - 3/4;
+		GGdot' =  9/10*(GH - GG) - 9/5;
+		GLdot' = 2/5*GG + 1/10*GH - 1/2*GL + 31/5 - 4/5;
+		GKdot' = 3/2*(GH - GK) - (1/7*GK - 50);
+		GPVdot' = 3/2*(GH - GPV) + (6/5)*(GPI - GPV);
+		GPIdot' = (1/5)*(GPV - GPI) - 5/100*GPI/9
+	]
+ END;
+ %% ------------------------------------------------------------------
+
+END
+
+%% Original equations.
+%% GBVdot' = 12/7*(GH - GBV) - 30/49*(GBV - GBI);
+%% GBIdot' = 10/21*(GBV - GBI) - 140/9;
+%% GHdot'= 59/138*GBV+126/138*GL + 101/138*GK + 151/138*GPV - 437/138*GH - 100/138;
+%% GGdot' = 101/112*(GH - GG) - 200/112;
+%% GLdot' = 101/251*GG + 25/251*GH - 126/251*GL + HGP/25.1 - HGU/25.1;
+%% GKdot' = 101/66*(GH - GK) - KGEA*(9/10*GK - 330)*10/66;
+%% GPVdot' = 151/104*(GH - GPV) + (630/5*104)*(GPI - GPV);
+%% GPIdot' = (1/5)*(GPV - GPI) - 35*MGPGU*MIPGU/63;
+
