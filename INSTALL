@@ -31,6 +31,9 @@ Note: Auxiliary lemmas may be needed.
  Do a "diff <filename>.sal.proved <filename>.sal" to see
  what auxiliary lemmas were added.
 
+sal-inf-bmc and other SAL tools are publicly available
+from http://sal.csl.sri.com/
+
 ----------------------------------------------------
 Author: Ashish Tiwari (tiwari@csl.sri.com)
 ----------------------------------------------------
