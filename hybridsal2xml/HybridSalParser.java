@@ -4194,6 +4194,8 @@ public HybridSalParser(ParserSharedInputState state) {
 			LT(0).getColumn(),
 			LT(0).getLine(),
 			LT(0).getColumn()+numeral_AST.getText().length());
+			System.err.println("Numeral Parsed" + numeral_AST.getText());
+			
 		}
 		numeral_AST = (XmlAst)currentAST.root;
 		returnAST = numeral_AST;

@@ -1,2 +1,2 @@
-#! /bin/bash
-python  /home/tiwari/hs-constraints/ashish-tools/src/HSalXMLPP.py $1
+#! /bin/tcsh
+python  /amd/gr1/export/u14/homes/tiwari/sal/sal-devel/ashish-tools/src/HSalXMLPP.py $1

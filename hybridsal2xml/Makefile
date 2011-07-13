@@ -1,7 +1,7 @@
 # Make sure these three are set correctly before running Make
-ANTLRPATH=/home/tiwari/hs-constraints/ashish-tools/hybridsal2xml/antlr-2.7.1/
-JAVAC=javac
-RTJARPATH=/usr/lib/jvm/java-6-openjdk/jre/lib/rt.jar
+ANTLRPATH=/amd/gr1/export/u14/homes/tiwari/sal/sal-devel/ashish-tools/hybridsal2xml/antlr-2.7.1/
+JAVAC=/homes/tiwari/softwares/jikes-1.22/src/jikes
+RTJARPATH=/usr/lib/jvm/java-6-sun-1.6.0.24/jre/lib/rt.jar
 
 # Do not modify below.
 JAVAFLAGS =

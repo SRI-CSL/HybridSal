@@ -1415,7 +1415,9 @@ numeral :
                     LT(0).getLine(),
         LT(0).getColumn(),
         LT(0).getLine(),
-        LT(0).getColumn()+#numeral.getText().length());};
+        LT(0).getColumn()+#numeral.getText().length());
+    System.err.println("Numeral Parsed" + #numeral.getText());
+};
 
 class HybridSalLexer extends Lexer;
 
@@ -1456,7 +1458,7 @@ PERCENT: '%';
 HASH: '#';
 QMARK: '?';
 
-NUMERAL: ('0'..'9')+;
+NUMERAL: ('0'..'9')+ ('.'('0'..'9')+)?;
 protected ALPHANUM: (ALPHA|'0'..'9'|'?'|'_');
 
 // logical operators
