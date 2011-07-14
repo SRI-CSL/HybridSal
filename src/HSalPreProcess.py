@@ -53,15 +53,12 @@ import os.path
 import shutil
 import subprocess
 import HSalXMLPP
+import polyrep
 
-exprs2poly = polyrep.exprs2poly
 #createNodeAnd = polyrep2XML.createNodeAnd
 #createNodeInfixApp = polyrep2XML.createNodeInfixApp
 #createNodeTagChild = polyrep2XML.createNodeTagChild
 #createNodeTagChild2 = polyrep2XML.createNodeTagChild2
-#createNodeTime = polyrep2XML.createNodeTime
-#createNodePnew = polyrep2XML.createNodePnew
-#createNodePold = polyrep2XML.createNodePold
 #dictKey = polyrep2XML.dictKey
 
 # ********************************************************************
@@ -116,23 +113,48 @@ def createNodeTagChildn(tag, childNodes):
 
 def createNodeTag(tag, val):
     global dom
-    return createNodeTagChildn("NAMEEXPR", [ dom.createTextNode( val ) ])
+    return createNodeTagChildn(tag, [ dom.createTextNode( val ) ])
+
+def replaceNameexprsNumerals(ufu, xmlnode):
+    """Replace all nameexprs in xmlnode by their numeral value from ufu"""
+    if xmlnode.localName == 'NAMEEXPR':
+        nameexprs = [ xmlnode ]
+    else:
+        nameexprs = xmlnode.getElementsByTagName("NAMEEXPR")
+    for j in nameexprs:
+        v = HSalXMLPP.valueOf(j)
+        if v in ufu:
+            fv = ufu[v]
+            fvXML = createNodeTag("NUMERAL", fv)
+            # replace j by fvXML 
+	    jParent = j.parentNode
+            jParent.replaceChild(fvXML, j)
+            if j == xmlnode:
+                xmlnode = fvXML
+    return xmlnode
 
 def handleContext(ctxt):
     cdecls = ctxt.getElementsByTagName("CONSTANTDECLARATION")
     defs = dict();
     for i in cdecls:
-        varName = HSalXMLPP.getNameTag(i, "IDENTIFIER")
+        uStr = HSalXMLPP.getNameTag(i, "IDENTIFIER")
         # print HSalXMLPP.getNameTag(i, "TYPENAME")
-        varValueInXML = HSALXMLPP.getArg(i, 4)
-        # get all NAMEEXPR in varValueInXML; see if its textvalue == varName; replace by varExpr
-        nameexprs = varValueInXML.getElementsByTagName("NAMEEXPR")
-        for j in nameexprs:
-        varExpr = createNodeTag("NUMERAL", varValueStr)
-        varValueInXML.replace
+        fuXML = HSalXMLPP.getArg(i, 4)
+        # get all NAMEEXPR in fuXML; replace by f(nameexpr)
+        fuXML = replaceNameexprsNumerals(defs, fuXML)
+        # Now evaluate the expression and check if it is a constant.
         # print polyrep.expr2poly(varValueInXML)
-        defs[varName] = varValue
-        # get all NAMEEXPR in the document; see if their textvalue == above; replace
+        fuPolyrep =  polyrep.expr2poly(fuXML)
+        if polyrep.isConstant(fuPolyrep):
+            defs[uStr] = str(polyrep.getConstant(fuPolyrep))
+        else:
+            print fuXML.toxml()
+            print fuPolyrep
+            print "ERROR: Preprocessor can't eliminate constant decls"
+            return ctxt
+    print "All constant decls are indeed constants"
+    # get all NAMEEXPR in the document; see if their textvalue == above; replace
+    ctxt = replaceNameexprsNumerals(defs, ctxt)
     return ctxt
 # ********************************************************************
 
