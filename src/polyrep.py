@@ -16,7 +16,8 @@ def nameExpr2poly(node):
 
 def numeral2poly(node):
     numstr = valueOf(node)
-    num  = int(numstr)
+    # num  = int(numstr)
+    num  = float(numstr)
     if num == 0:
         return [ ]
     return [ [ num, dict() ] ]

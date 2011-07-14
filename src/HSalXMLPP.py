@@ -375,6 +375,18 @@ def HSalPPScalarType(node):
         str1 += valueOf(i)
     return str1+" }"
 
+def HSalPPSubrange(node):
+    """Print [1 .. 2] given 
+            <SUBRANGE PLACE="60 15 60 23">
+              <NUMERAL PLACE="60 16 60 17">1</NUMERAL>
+              <NUMERAL PLACE="60 21 60 22">2</NUMERAL>
+            </SUBRANGE>"""
+    lhs = getArg(node,1)
+    rhs = getArg(node,2)
+    str1 = HSalPPExpr(lhs)
+    str2 = HSalPPExpr(rhs)
+    return "["+str1+" .. "+str2+"]"
+    
 def HSalPPType(node,str1,str2):
     if not(node.nodeType == node.ELEMENT_NODE):
         return None
@@ -387,6 +399,8 @@ def HSalPPType(node,str1,str2):
         str0 = HSalPPStateType(node)
     elif node.localName == "SCALARTYPE":
         str0 = HSalPPScalarType(node)
+    elif node.localName == "SUBRANGE":
+        str0 = HSalPPSubrange(node)
     else:
         print node.toxml()
         print 'Node TYPE %s not handled. Missing code' % node.localName
