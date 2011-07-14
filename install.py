@@ -65,7 +65,7 @@ def main():
     subprocess.call([ './install.sh', antlrpath, rtjar, jikespath ])
     subprocess.call([ 'rm', '-f', 'examples/SimpleThermo4.xml'])
     subprocess.call([ 'hybridsal2xml', '-o', 'examples/SimpleThermo4.xml', 'examples/SimpleThermo4.sal' ])
-    if os.path.isfile('examples/SimpleThermo3.xml'):
+    if os.path.isfile('examples/SimpleThermo4.xml'):
         print 'hybridsal2xml successfully installed'
     else:
         print 'Error: hybridsal2xml test failed'

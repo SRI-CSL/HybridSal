@@ -1416,7 +1416,7 @@ numeral :
         LT(0).getColumn(),
         LT(0).getLine(),
         LT(0).getColumn()+#numeral.getText().length());
-    System.err.println("Numeral Parsed" + #numeral.getText());
+    // System.err.println("Numeral Parsed" + #numeral.getText());
 };
 
 class HybridSalLexer extends Lexer;

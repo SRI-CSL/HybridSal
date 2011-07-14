@@ -46,3 +46,14 @@ hxml2hsal:  src/HSalXMLPP.py
 sal2xml: $(HXMLS)
 	hybridsal2xml/hybridsal2xml -o ${exhsal}/${example1}.hxml ${exhsal}/${example1}.hsal
 	if [ -s ${exhsal}/${example1}.hxml ] ; then echo "hybridsal2xml installation successfully tested" ; fi
+
+powertrain:  ${exhsal}/powertrain.hsal
+	hybridsal2xml/hybridsal2xml -o ${exhsal}/powertrain.hxml $<
+	python src/HSalPreProcess.py ${exhsal}/powertrain.hxml
+	bin/hsal2hasal ${exhsal}/powertrain.hxml
+
+clean: 
+	rm -f ${HXMLS} $(EXPLS:.hsal=.hasal) $(EXPLS:.hsal=.haxml) $(EXPLS:.hsal=.xml)
+
+cleanall:
+	rm -f ${HXMLS} $(EXPLS:.hsal=.hasal) $(EXPLS:.hsal=.haxml) $(EXPLS:.hsal=.xml) $(EXPLS:.hsal=.sal)
