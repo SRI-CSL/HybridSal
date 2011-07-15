@@ -50,6 +50,7 @@ import HSalXMLPP
 import os.path
 import shutil
 import subprocess
+import HSalPreProcess
 #import polyrep2XML
 
 equal = linearAlgebra.equal
@@ -720,7 +721,8 @@ def main():
         print "Unknown file extension; Expecting .hsal or .hxml; Quitting"
         return 1
     dom = xml.dom.minidom.parse(xmlfilename)
-    newctxt = handleContext(dom)
+    ctxt = HSalPreProcess.handleContext(dom)
+    newctxt = handleContext(ctxt)
     absfilename = basename + ".haxml"
     moveIfExists(absfilename)
     with open(absfilename, "w") as fp:
