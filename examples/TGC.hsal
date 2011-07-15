@@ -20,7 +20,9 @@ BEGIN
  ((c = s2 AND z <= 1 AND z' <= 1) OR
   (c = s3 AND lower = FALSE) OR 
   (c = s4 AND z <= 1 AND z' <= 1) OR
-  (c = s1 AND raise = FALSE))
+  (c = s1 AND raise = FALSE)) AND
+ (x' >= x + 1/2) AND
+ (x >= 0 AND y >= 0 AND z >= 0 AND x' >= 0 AND y' >= 0 AND z' >= 0)
  --> xdot' = 1; ydot' = 1; zdot' = 1
  ]
 END;
@@ -86,6 +88,7 @@ END;
 system: MODULE = 
  ((train [] gate [] controller [] timeElapse) || observer);
 
+% sal-inf-bmc -i -ice -d 10  TGC correct
 correct: THEOREM
   system |- G( (s = s2 AND x >= 2) => g = s2 ) ;
 END
