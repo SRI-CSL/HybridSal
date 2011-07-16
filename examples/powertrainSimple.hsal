@@ -1,4 +1,4 @@
-powertrain: CONTEXT =
+powertrainSimple: CONTEXT =
 BEGIN
 
 % Model parameters
@@ -78,26 +78,6 @@ BEGIN
   gradedot' = 0;
   tpsdot' = 0
  []
- dynamic_mode = TORQUE12 AND pc2_target = 0 --> 
-  Tsdot' = Ks * (Rd*wcr - veh_speed/Hf - 0.001 * Ts);
-  veh_speeddot' = (Ts/Hf - M*9.81*grade) / (M + 2*Iwf/(Hf*Hf)) ;
-  pc2_filterdot' = -pc2_filter ;
-  wtdot' = 1/It1 * (1.7*tps + 30 - R1*Rd*Ts);
-  wcrdot' = R1/It1 * (1.7*tps + 30 - R1*Rd*Ts);
-  gradedot' = 0;
-  tpsdot' = 0
- []
- dynamic_mode = INERTIA12 AND pc2_target = 0 --> 
-  Tsdot' = Ks * (Rd*wcr - veh_speed/Hf - 0.001 * Ts);
-  veh_speeddot' = (Ts/Hf - M*9.81*grade) / (M + 2*Iwf/(Hf*Hf)) ;
-  pc2_filterdot' = -pc2_filter ;
-  % wtdot' = 1/It * (1.7*tps + 30 - Tc2);
-  wtdot' = 1/It * (1.7*tps + 30); 
-  %wcr_dot' = 1/Icr12 * (Tc2/R2 - Rd*Ts);
-  wcrdot' = -Rd/Icr12 * Ts; 
-  gradedot' = 0;
-  tpsdot' = 0
- []
  dynamic_mode = SECOND AND pc2_target = 0  --> 
   Tsdot' = Ks * (Rd*wcr - veh_speed/Hf - 0.001 * Ts);
   veh_speeddot' = (Ts/Hf - M*9.81*grade) / (M + 2*Iwf/(Hf*Hf)) ;
@@ -169,30 +149,6 @@ BEGIN
   pc2_filterdot' = -pc2_filter + 0.6 * 400;
   wtdot' = 1/It2 * (1.7*tps + 30 - R2*Rd*Ts);
   wcrdot' = R2/It2 * (1.7*tps + 30 - R2*Rd*Ts);
-  gradedot' = 0;
-  tpsdot' = 0
- []
- dynamic_mode = INERTIA21 AND pc2_target = 400 --> 
-  Tsdot' = Ks * (Rd*wcr - veh_speed/Hf - 0.001 * Ts);
-  veh_speeddot' = (Ts/Hf - M*9.81*grade) / (M + 2*Iwf/(Hf*Hf)) ;
-  pc2_filterdot' = -pc2_filter + 0.6 * 400;
-  % wtdot' = 1/It * (1.7*tps + 30 - Tc2);
-  % Tc2 = (c2_mu2*(wt-wci)+c2_mu1)*AR2*(pc2_filter+pc2_torque_phase*pc2_target) 
-  wtdot' = 1/It * (1.7*tps + 30 - (c2_mu2*(wt-wcr/R2)+c2_mu1)*AR2*400); 
-  % wcrdot' = 1/Icr12 * (Tc2/R2 - Rd*Ts);
-  wcrdot' = 1/Icr12 * ((c2_mu2*(wt-wcr/R2)+c2_mu1)*AR2*400/R2 - Rd*Ts); 
-  gradedot' = 0;
-  tpsdot' = 0
- []
- dynamic_mode = TORQUE21 AND pc2_target = 400 --> 
-  Tsdot' = Ks * (Rd*wcr - veh_speed/Hf - 0.001 * Ts);
-  veh_speeddot' = (Ts/Hf - M*9.81*grade) / (M + 2*Iwf/(Hf*Hf)) ;
-  pc2_filterdot' = -pc2_filter + 0.6 * 400;
-  % Tc2 = (c2_mu2*(wt-wci)+c2_mu1)*AR2*(pc2_filter+pc2_torque_phase*pc2_target) 
-  % wtdot' = 1/It1 * (1.7*tps + 30 - R1*Rd*Ts - (1 - R1/R2)*Tc2);
-  wtdot' = 1/It1 * (1.7*tps + 30 - R1*Rd*Ts - (1 - R1/R2)*(c2_mu2*wt*(1-R1/R2)+c2_mu1)*AR2*400);
-  % wcrdot' = R1/It1 * (1.7*tps + 30 - R1*Rd*Ts - (1 - R1/R2)*Tc2);
-  wcrdot' = R1/It1 * (1.7*tps + 30 - R1*Rd*Ts - (1 - R1/R2)*(c2_mu2*wt*(1-R1/R2)+c2_mu1)*AR2*400);
   gradedot' = 0;
   tpsdot' = 0
  []  % next are the discrete transitions
