@@ -26,4 +26,23 @@ hybridsal2xml/ : This directory contains code that parses a HybridSAL
  (or Augmented HybridSAL file) and creates an XML for it.
  
 
+How to run the tool?
+---------------------
+After installing (see file INSTALL), you can use the tool by
+(1) Build a .hsal model  (see examples in examples/<filename>.hsal)
+  Suppose you create examples/mytest.hsal
+(2) From this directory, run the command:
+  make examples/mytest.sal
+  This should create the file examples/mytest.sal -- which is a
+  relational abstraction of the file examples/mytest.hsal
+(3) Analyze examples/mytest.sal using SAL model checkers.
+  For Step~(3), you need to download and install SAL tools
+  (http://sal.csl.sri.com).  Once installed, you can verify
+  examples/mytest.sal using the command 
+  (given from inside the subdirectory examples/):
+   sal-inf-bmc -d 5 mytest <property>
+  where <property> is the name of the property inside the file
+  mytest.hsal
+
+Contact: Ashish Tiwari
 
