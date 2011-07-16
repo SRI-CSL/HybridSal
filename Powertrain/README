@@ -1,0 +1,22 @@
+
+This directory contains a MATLAB simulation model of a powertrain
+and some plots generated from simulating the model in MATLAB.
+
+Files in this directory:
+------------------------
+powertrain.m:  
+  Matlab file containing the model
+
+runpowertrain.m:  
+ Matlab file that simulates the model in file powertrain.m
+ Use command runpowertrain on a Matlab prompt to simulate the powertrain.
+
+Subdirectory figures/:
+---------------------
+ The subdirectory figures/ contains sample plots generated from the
+ simulations.  See file plots.pdf to see all the plots.
+
+
+Contact: Ashish Tiwari (SRI International)
+------------------------------------------
+
