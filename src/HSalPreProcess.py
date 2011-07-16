@@ -121,8 +121,8 @@ def replaceNameexprsNumerals(ufu, xmlnode):
         nameexprs = [ xmlnode ]
     else:
         nameexprs = xmlnode.getElementsByTagName("NAMEEXPR")
-    print "Found so many NAMEEXPRSs to possibly replace"
-    print len(nameexprs)
+    # print "Found so many NAMEEXPRSs to possibly replace"
+    # print len(nameexprs)
     for j in nameexprs:
         v = HSalXMLPP.valueOf(j)
         if v in ufu:
