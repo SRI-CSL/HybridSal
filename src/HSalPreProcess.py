@@ -136,6 +136,8 @@ def replaceNameexprsNumerals(ufu, xmlnode):
     return xmlnode
 
 def handleContext(ctxt):
+    global dom
+    dom = ctxt
     cdecls = ctxt.getElementsByTagName("CONSTANTDECLARATION")
     defs = dict();
     for i in cdecls:
@@ -148,7 +150,8 @@ def handleContext(ctxt):
         # print polyrep.expr2poly(varValueInXML)
         fuPolyrep =  polyrep.expr2poly(fuXML)
         if polyrep.isConstant(fuPolyrep):
-            defs[uStr] = str(polyrep.getConstant(fuPolyrep))
+            value = polyrep.getConstant(fuPolyrep)
+            defs[uStr] = format(value,'.1g')  # ASHISH: CHECK LATER
         else:
             print fuXML.toxml()
             print fuPolyrep
