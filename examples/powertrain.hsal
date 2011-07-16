@@ -57,12 +57,12 @@ BEGIN
  OUTPUT veh_speed, veh_speeddot: REAL
  LOCAL pc2_filter, pc2_filterdot: REAL
  LOCAL wt, wtdot, wcr, wcrdot: REAL
- OUTPUT gear: [1 .. 2]
+ OUTPUT gear: [0 .. 2]
  LOCAL dynamic_mode: TRANSMODE
  
  INITIALIZATION
   tps IN {z: REAL | 0 <= z AND z <= 1};
-  grade IN {z: REAL | 0 <= z AND z <= 0.1};
+  grade IN {z: REAL | 0 <= z AND z <= 0.2};
   dynamic_mode = FIRST; gear = 1; wt = 0; wcr = 0; pc2_filter = 0; veh_speed = 0; Ts = 0
  TRANSITION
  [
@@ -200,7 +200,7 @@ BEGIN
  dynamic_mode = FIRST AND pc2_target = 400 AND (c2_mu2*wt*(1-R1/R2)+c2_mu1)*AR2*400 > 1 --> 
     dynamic_mode' = TORQUE12;
     wcr' = R1*wt;
-    gear' = 1.5
+    gear' = 0
  []
   % RTsp1 = Isi12 * wsi_dot  + R1*Rd*Ts - R1/R2 * Tc2;
  dynamic_mode = TORQUE12 AND  %  (RTsp1 <= 0) 
@@ -210,7 +210,7 @@ BEGIN
    (pc2_target = 400 AND Isi12/It1*(1.7*tps+30) + (1-Isi12/It1)*R1*Rd*Ts - 
     (Isi12/It1*(1-R1/R2) + R1/R2) * (c2_mu2*wt*(1-R1/R2)+c2_mu1)*AR2*400 <= 0)) -->
     dynamic_mode' = INERTIA12;
-    gear' = 1.5
+    gear' = 0
  []
  dynamic_mode = INERTIA12 AND wt - wcr/R2 <= 0.5 AND pc2_filter > 239 -->
     dynamic_mode' = SECOND;
@@ -222,7 +222,7 @@ BEGIN
      c2_mu1*AR2*(pc2_filter+pc2_torque_phase*pc2_target) <= (1-It/It2)*(1.7*tps + 30) + It*R2*Rd*Ts/It2) 
   -->
     dynamic_mode' = INERTIA21;
-    gear' = 1.5
+    gear' = 0
  []
   % RTsp1 = Isi12 * wsi_dot  + R1*Rd*Ts - R1/R2 * Tc2;
  dynamic_mode = INERTIA21 AND % (c1slip >= 0 AND RTsp1 >= 0)
@@ -234,7 +234,7 @@ BEGIN
     (c2_mu2*(wt-wcr/R2)+c2_mu1)*AR2*400 >= 0)) -->
     dynamic_mode' = TORQUE21;
     wcr' = R1*wt;
-    gear' = 1.5
+    gear' = 0
  []
  % dynamic_mode = TORQUE21 AND Tc2 <= 1 AND (Tc1 > 1.7*tps+30) 
  dynamic_mode = TORQUE21 AND 
@@ -250,7 +250,7 @@ END;
 controller: MODULE =
 BEGIN
  INPUT tps: REAL
- INPUT gear: [1 .. 2]
+ INPUT gear: [0 .. 2]
  INPUT veh_speed: REAL
  LOCAL gear_schedule: GEAR_TYPE
  OUTPUT pc2_target: REAL
