@@ -32,16 +32,16 @@
 
 clear
 
-%tps = 70;
-%grade = 0.1745;
-tps = 80;
-grade = 0.2;
+tps = 70;
+grade = 0.1745;
+%tps = 80;
+%grade = 0.2;
 
 N = 6;
 
-Tfinal = 60;
+Tfinal = 30;
 T0 = 0;
-step = 0.0005;
+step = 0.001;
 
 t = [T0: step: Tfinal]';
 x0 = zeros(N,1);
