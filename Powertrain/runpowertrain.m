@@ -33,15 +33,17 @@
 clear
 
 tps = 70;
-grade = 0.1745;
+% grade = 0.1745;
+grade = 0.1;
 %tps = 80;
 %grade = 0.2;
 
 N = 6;
 
-Tfinal = 30;
+Tfinal = 60;
 T0 = 0;
-step = 0.001;
+step = 0.0015;
+% step = 0.001;
 
 t = [T0: step: Tfinal]';
 x0 = zeros(N,1);
@@ -64,5 +66,18 @@ for i = T0+step: step: Tfinal
 end
 plot(t,x(:,1))  % plot Ts
 % plot(t,x(:,2))  % plot vehicle_speed
-% plot(t,u(:,2))  % plot gear of vehicle
+for i=1:1 + (Tfinal-T0)/step
+    if u(i,2) == 2 | u(i,2) == 3
+        gear(i) = 1.5;
+    else if u(i,2) == 5 | u(i,2) == 6
+        gear(i) = 1.5;
+    else if u(i,2) == 4 
+        gear(i) = 2;
+    else 
+        gear(i) = 1;
+    end 
+    end 
+    end
+end 
+plot(t,gear')  % plot gear of vehicle
 

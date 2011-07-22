@@ -83,15 +83,15 @@ def main():
         print 'ERROR: Environment variable SHELL not set!'
         return 1
     print >> fp, '#!', shell
-    print >> fp, 'python ', pwd + '/src/HSalXMLPP.py $1'
+    print >> fp, 'python ', pwd + '/src/HSalXMLPP.py $*'
     fp.close()
     fp = open(bindir + "/hsal2hasal", 'w')
     print >> fp, '#!', shell
-    print >> fp, 'python ', pwd + '/src/HSalRelAbsCons.py $1'
+    print >> fp, 'python ', pwd + '/src/HSalRelAbsCons.py $*'
     fp.close()
     fp = open(bindir + "/hasal2sal", 'w')
     print >> fp, '#!', shell
-    print >> fp, 'python ', pwd + '/src/HSalExtractRelAbs.py $1'
+    print >> fp, 'python ', pwd + '/src/HSalExtractRelAbs.py $*'
     fp.close()
     subprocess.call(['chmod', '+x', pwd+'/bin/hasal2sal'])
     subprocess.call(['chmod', '+x', pwd+'/bin/hsal2hasal'])

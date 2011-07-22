@@ -504,4 +504,106 @@ Example:
 
 \end{slide}
 % -------------------------------------------------------
+\begin{slide}
+\heading{Computing Relational Abstractions}
+
+Suppose dynamics are $\frac{d\vec{x}}{dt} = A\vec{x}$
+
+\begin{itemize}
+\item Compute left eigenvector $\vec{c}^T$ of $A$
+$$  \vec{c}^T A  = \lambda \vec{c}^T $$
+\item
+ Note that 
+$$
+ \frac{d(\vec{c}^T \vec{x})}{dt} =
+ \vec{c}^T\frac{d\vec{x}}{dt} =
+ \vec{c}^T A\vec{x} = \lambda \vec{c}^T\vec{x}
+$$
+\item
+ Thus, we can relate the initial value of $c^T\vec{x}$ 
+ and its future value $c^T\vec{x}'$ as follows:
+$$
+ 0 < \vec{c}^T\vec{x}' \leq \vec{c}^T\vec{x}  \;\vee\;
+ 0 > \vec{c}^T\vec{x}' \geq \vec{c}^T\vec{x} 
+$$
+if $\lambda < 0$.  And if $\lambda > 0$, then $\vec{x},\vec{x}'$ swap places.
+\end{itemize}
+
+This idea generalizes to $\frac{d\vec{x}}{dt} = A\vec{x} + \vec{b}$
+
+\end{slide}
+% -------------------------------------------------------
+\begin{slide}
+\heading{Computing Relational Abstractions 2}
+
+Suppose dynamics are $\frac{d\vec{x}}{dt} = A\vec{x}$
+
+Suppose we have generated relations for all real eigenvalues
+
+Now suppose there is a complex eigenvalue $a + b\iota$
+
+\begin{itemize}
+\item Find two vectors $\vec{c}^T$ and $\vec{d}^T$ such that
+\begin{eqnarray*}
+ \left(\begin{array}{c}
+ \frac{d\vec{c}^T\vec{x}}{dt} \\
+ \frac{d\vec{d}^T\vec{x}}{dt} 
+ \end{array}\right)
+ & = & 
+  \left(\begin{array}{cc}
+   a & -b \\ b & a
+  \end{array}\right)
+ \left(\begin{array}{c}
+ \frac{d\vec{c}^T\vec{x}}{dt} \\
+ \frac{d\vec{d}^T\vec{x}}{dt} 
+ \end{array}\right)
+\end{eqnarray*}
+
+\item
+ Thus,
+ the values of $\vec{c}^T\vec{x}$ and $\vec{d}^T\vec{x}$ 
+ spiral in (or spiral out) if $a < 0$ (respectively if $a > 0$) 
+
+\item
+ Hence, we can relate their initial values to their future values
+$$
+ (\vec{c}^T \vec{x})^2 + 
+ (\vec{d}^T \vec{x})^2 
+ \geq
+ ({\vec{c}}^{T} \vec{x}')^2 + 
+ ({\vec{d}}^{T} \vec{x}')^2 
+$$
+if $a < 0$, and the inequalities are reversed if $a > 0$
+ 
+\end{itemize}
+
+\end{slide}
+% -------------------------------------------------------
+\begin{slide}
+\heading{Qualitative vs Relational Abstraction}
+
+Consider $\dot{x} = -x$
+
+Qualitative abstraction:
+\\
+if $qx = pos$ then $qx' \in \{pos,zero\}$
+\\
+if $qx = neg$ then $qx' \in \{neg,zero\}$
+\\
+if $qx = zero$ then $qx' = zero$
+
+\bigskip
+Relational abstraction:
+\\
+$0 \leq x' \leq x \;\vee\; 0 \geq x' \geq x$
+
+\bigskip
+If initially $x = 5$, then qualitative abstraction
+can prove $x$ is never $neg$
+
+\bigskip
+If initially $x = 5$, then relational abstraction
+can prove $x$ remains between $0$ and $5$
+\end{slide}
+% -------------------------------------------------------
 \end{document}

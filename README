@@ -44,5 +44,88 @@ After installing (see file INSTALL), you can use the tool by
   where <property> is the name of the property inside the file
   mytest.hsal
 
+How to run the demo?
+--------------------
+Powertrain
+-----------
+To analyze the powertrain model, run the following commands
+   bin/hsal2hasal -o examples/powertrain.hsal
+This will create the file examples/powertrain.sal
+Now model check using the following commands
+   cd examples
+   sal-inf-bmc -d 12 powertrain nochatter
+This verifies the 'nochatter' property of powertrain.
+Now change the initial condition: increase 
+grade to 0.15 (15% grade).   Now, re-verify.
+   sal-inf-bmc -d 12 powertrain nochatter
+You will get a trace that shows violation of the property.
+Note that we can analyze the property for a range of 
+initial conditions using just ONE run.
+
+Blood Glucose (incomplete)
+-------------
+Relationally abstract a 8-dimensional blood glucose system:
+   bin/hsal2hasal examples/BGL.hsal
+The model is incomplete and lacking dynamics of 
+Insulin, insulin-injection controller, and a verification 
+property.
+
+Navigation Examples:
+-------------------
+The navigation examples are present in files nav*.hsal
+nav01b models the different squares in the grid as
+different components.  HybridSAL supports compositional
+modeling -- different components can be modeled as different 
+MODULEs in HybridSAL.
+   bin/hsal2hasal examples/nav01b.hsal
+   cd examples
+   sal-inf-bmc -d 6 nav01b canreach
+   sal-inf-bmc -i -d 6 nav01b correct
+The first command creates nav01b.sal, the last two runs of
+sal-inf-bmc check two different properties: one is false
+and the other is true (and proved by sal-inf-bmc).
+
+The same can be done on nav01.hsal file -- which is the
+same as nav01b.hsal, but models the entire system
+as a SINGLE MODULE, rather than as a composition of 
+different MODULES (as done in nav01b.hsal)
+Irrespective of the modeling style, the analysis time
+and results are the same.
+   bin/hsal2hasal examples/nav01.hsal
+   cd examples
+   sal-inf-bmc -d 6 nav01 canreach
+   sal-inf-bmc -i -d 6 nav01 correct
+
+Train-Gate-Controller:
+----------------------
+The file tgc.hsal contains a model of a train-gate-controller.
+Note that the discrete behavior of train, gate, and controller 
+are modeled as different MODULES;  the continuous behavior
+(time elapse) is modeled as a separate MODULE; and finally 
+there is one MODULE that enforces the interaction correctly.
+Thus, tgc.hsal has five modules and the system is a COMPOSITION
+of these five MODULEs.
+We can create the relational abstraction, and then verify, using
+the following commands:
+   bin/hsal2hasal examples/TGC.hsal
+   cd examples
+   sal-inf-bmc -i -d 10 TGC correct
+   sal-inf-bmc -d 10 TGC canreach
+   sal-inf-bmc -d 10 TGC canreach1
+
+RLC Circuit:
+------------
+A simple model of the RLC circuit using three differential equations
+is presented in RLC.hsal
+   bin/hsal2hasal examples/RLC.hsal
+   cd examples
+   sal-inf-bmc -i -d 5 RLC correct
+   sal-inf-bmc -d 5 RLC canreach
+ 
+Other simple examples:
+-----------------
+Simple Thermostat: SimpleThermo4.hsal
+Other linear continuous dynamical systems: Linear*.hsal
+
 Contact: Ashish Tiwari
 

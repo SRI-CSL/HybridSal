@@ -89,6 +89,17 @@ system: MODULE =
  ((train [] gate [] controller [] timeElapse) || observer);
 
 % sal-inf-bmc -i -ice -d 10  TGC correct
+% The gate is down (g = s2) when the train is on the intersection (s = s2)
 correct: THEOREM
   system |- G( (s = s2 AND x >= 2) => g = s2 ) ;
+
+% The gate is always closed: This is false
+canreach: THEOREM
+  system |- G( g = s2 ) ;
+
+% The gate is always open: This is false
+canreach1: THEOREM
+  system |- G( g = s1 OR g = s3) ;
+
+
 END

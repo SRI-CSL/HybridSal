@@ -140,9 +140,12 @@ def handleContext(ctxt):
     dom = ctxt
     cdecls = ctxt.getElementsByTagName("CONSTANTDECLARATION")
     defs = dict();
+    j = 0
     for i in cdecls:
         uStr = HSalXMLPP.getNameTag(i, "IDENTIFIER")
-        # print HSalXMLPP.getNameTag(i, "TYPENAME")
+        uTypeXML = HSalXMLPP.getArg(i, 3)
+        if (uTypeXML.localName != 'TYPENAME') | (HSalXMLPP.valueOf(uTypeXML) != 'REAL'):
+            continue
         fuXML = HSalXMLPP.getArg(i, 4)
         # get all NAMEEXPR in fuXML; replace by f(nameexpr)
         fuXML = replaceNameexprsNumerals(defs, fuXML)
@@ -151,13 +154,15 @@ def handleContext(ctxt):
         fuPolyrep =  polyrep.expr2poly(fuXML)
         if polyrep.isConstant(fuPolyrep):
             value = polyrep.getConstant(fuPolyrep)
-            defs[uStr] = format(value,'.1g')  # ASHISH: CHECK LATER
+            defs[uStr] = format(value,'.4f')  # ASHISH: CHECK LATER
+            print uStr+' = '+format(value,'.4f')  # ASHISH: CHECK LATER
         else:
-            print fuXML.toxml()
-            print fuPolyrep
-            print "ERROR: Preprocessor can't eliminate constant decls"
-            return ctxt
-    print "All constant decls are indeed constants"
+            j = j + 1
+            # print fuXML.toxml()
+            # print fuPolyrep
+            # print "ERROR: Preprocessor can't eliminate constant decls"
+            # return ctxt
+    print "Found " + str(j) + "constant decls that are not constants"
     # get all NAMEEXPR in the document; see if their textvalue == above; replace
     ctxt = replaceNameexprsNumerals(defs, ctxt)
     return ctxt

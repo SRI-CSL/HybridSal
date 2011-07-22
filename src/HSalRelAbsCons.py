@@ -140,7 +140,7 @@ def createNodeCXOne(c, x, flag):
     if equal(c, 1):
         node1 = None
     else:
-        node1 = createNodeTag("NUMERAL", format(c,'.2f'))
+        node1 = createNodeTag("NUMERAL", format(c,'.4f'))
     node2 = createNodeTag("NAMEEXPR", x)
     if flag:
         node2 = createNodeTagChild("NEXTOPERATOR", node2)
@@ -176,7 +176,7 @@ def createNodePaux(c,x,d,y,e,flag):
     if equal(e,0):
         node3 = None
     else:
-        node3 = createNodeTag("NUMERAL", format(e,'.2f'))
+        node3 = createNodeTag("NUMERAL", format(e,'.4f'))
     nodeL = [ node1, node2, node3 ]
     while None in nodeL:
         nodeL.remove(None)
@@ -457,10 +457,35 @@ def createNodeQuadInv():
     ans = createNodeTagChild4("CONSTANTDECLARATION", fname, fparams, ftype, fval)
     return ans
 
+def createNodeQuadInvOpt():
+    """ if a < 0: |xnew|,|ynew| <= |xold| + |yold|
+        |xnew| <= |xold| or |ynew| <= |yold|
+        |xnew| <= |yold| or |ynew| <= |xold| """
+    fname = createNodeTag("IDENTIFIER", "quadInvOpt")
+    vd1 = createNodeVarType("xold", "REAL")
+    vd2 = createNodeVarType("yold", "REAL")
+    vd3 = createNodeVarType("xnew", "REAL")
+    vd4 = createNodeVarType("ynew", "REAL")
+    fparams = createNodeTagChild4("VARDECLS", vd1, vd2, vd3, vd4)
+    ftype = createNodeTag("TYPENAME", "BOOLEAN")
+    rcst = createNodeTag("NUMERAL", "1/10")
+    lcst = createNodeTag("NUMERAL", "-1/10")
+    fact1 = createNodeApp("<=", [ lcst, "xnew" ])
+    fact2 = createNodeApp("<=", [ "xnew", rcst ])
+    fact3 = createNodeApp("<=", [ lcst.cloneNode(True), "ynew" ])
+    fact4 = createNodeApp("<=", [ "ynew", rcst.cloneNode(True) ])
+    fval = createNodeAnd([fact1, fact2, fact3, fact4])
+    ans = createNodeTagChild4("CONSTANTDECLARATION", fname, fparams, ftype, fval)
+    return ans
+
 def createQuadInv(nodePnew,nodePold,nodeQnew,nodeQold,a,b):
     """ if a < 0: |xnew|,|ynew| <= |xold| + |yold|
         |xnew| <= |xold| or |ynew| <= |yold|
         |xnew| <= |yold| or |ynew| <= |xold| """
+    global opt
+    if (opt == True) & (a < 0):
+        ans=createNodeApp("quadInvOpt", [ nodePold, nodeQold, nodePnew, nodeQnew])
+        return ans
     if a <= 0:
         ans=createNodeApp("quadInv", [ nodePold, nodeQold, nodePnew, nodeQnew])
     else:
@@ -662,6 +687,7 @@ def absGuardedCommand(gc):
     return createNodeTagChild2('GUARDEDCOMMAND', absguard, absassigns)
 
 def handleContext(ctxt):
+    global opt
     cbody = ctxt.getElementsByTagName("GUARDEDCOMMAND")
     for i in cbody:
         if isCont(i):
@@ -682,6 +708,8 @@ def handleContext(ctxt):
                 print "Unknown parent node type"
     cbody = ctxt.getElementsByTagName("CONTEXTBODY")
     assert len(cbody) == 1
+    if opt == True:
+        cbody[0].insertBefore(newChild=createNodeQuadInvOpt(),refChild=cbody[0].firstChild)
     cbody[0].insertBefore(newChild=createNodeQuadInv(),refChild=cbody[0].firstChild)
     cbody[0].insertBefore(newChild=createNodeEigenInv(),refChild=cbody[0].firstChild)
     cbody[0].insertBefore(newChild=createNodeMultirateInv(),refChild=cbody[0].firstChild)
@@ -702,9 +730,23 @@ def moveIfExists(filename):
         print "Renaming old file to %s." % filename+"~"
         shutil.move(filename, filename + "~")
 
+def printUsage():
+    print "Usage: hsal2hasal [-o|--opt] filename.hsal"
+
 def main():
     global dom
-    filename = sys.argv[1]
+    global opt
+    opt = False
+    for i in sys.argv[1:]:
+        if (i == '-o') | (i == '--opt') :
+            opt = True
+            continue
+        if (len(i) > 0) & (i[0] == '-'):
+            print "Unknown option" + i
+            printUsage()
+            return 1
+        filename = i
+    # filename = sys.argv[1]
     if not(os.path.isfile(filename)):
         print "File does not exist. Quitting."
         return 1

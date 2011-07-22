@@ -43,4 +43,7 @@ BEGIN
   ibounded: THEOREM 
     seriesRLC |- G( -10 <= i AND i <= 10 );
 
+  canreach: THEOREM 
+    seriesRLC |- G( -1/10 <= i AND i <= 1/10 );
+
 END
