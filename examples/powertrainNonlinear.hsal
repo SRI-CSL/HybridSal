@@ -1,0 +1,310 @@
+Powertrain: CONTEXT =
+BEGIN
+
+% Model parameters
+% M: REAL = 1644.0 + 125.0;	% vehicle mass (kg)
+M: REAL = 1769;		% vehicle mass (kg)
+Hf: REAL = 0.310;		% static ground-to-axle height of front wheel (m)
+Iwf: REAL = 2.8;		% front wheel inertia (both sides) (kg-m^2)
+Ks: REAL = 6742.0;		% driveshaft spring constant (Nm/rad)
+
+Rsi: REAL = 0.2955; 		% input sun gear ratio
+Rci: REAL = 0.6379;		% input carrier gear ratio
+Rcr: REAL = 0.7045;		% Reaction carrier gear ratio
+Rd:  REAL = 0.3521;		% final drive gear ratio
+
+R1: REAL = Rci*Rsi/(1-Rci*Rcr);	% 1st gear ratio
+R2: REAL = Rci;			% 2nd gear ratio
+
+AR2: REAL = 4.125;
+c2_mu1: REAL = 0.1316;
+c2_mu2: REAL = 0.0001748;
+
+It: REAL = 0.05623;		% turbine inertia (kg-m^2)
+Isi: REAL = 0.001020;		% input sun gear inertia  (kg-m^2)
+Ici: REAL = 0.009020;		% input carrier gear inertia (kg-m^2)
+Icr: REAL = 0.005806;		% reaction carrier gear inertia (kg-m^2)
+
+It1: REAL = It + Isi + R1*R1*Icr + R1*R1*Ici/(R2*R2);
+It2: REAL = It + Ici + R2*R2*Icr + R2*R2*Isi/(R1*R1);
+
+Isi12: REAL = It1 - It;
+Ici12: REAL = It2 - It;
+
+Icr12: REAL = Icr + Isi/(R1*R1) + Ici/(R2*R2);
+
+pc2_torque_phase: REAL = 0.4;
+
+% Model inputs: tps , grade
+% continuous states: Ts , veh_speed , pc2_filter , wt , wcr
+% discrete inputs: gear_schedule (controller mode), dynamic_mode (transmission mode)
+
+% gear schedule state enumeration
+GEAR_TYPE: TYPE = {FIRST_GEAR, TRANSITION12_SHIFTING, SECOND_GEAR, TRANSITION21_SHIFTING};
+
+% dynamic mode enumeration
+TRANSMODE: TYPE = {FIRST, TORQUE12, SECOND, INERTIA12, INERTIA21, TORQUE21};
+
+c1mu1: REAL = 0.1316;		% static coeff of friction (dimensionless)
+c1mu2: REAL = 0.0001748;	% dynamic coeff of friction (rad^-)
+AR1: REAL = 2.912;		% clutch gain (m^3)
+
+plant: MODULE =
+BEGIN
+ INPUT tps, grade: REAL
+ INPUT pc2_target: REAL
+ LOCAL Ts, Tsdot: REAL
+ OUTPUT veh_speed, veh_speeddot: REAL
+ LOCAL pc2_filter, pc2_filterdot: REAL
+ LOCAL wt, wtdot, wcr, wcrdot: REAL
+ OUTPUT gear: [1 .. 2]
+ LOCAL dynamic_mode: TRANSMODE
+ 
+ INITIALIZATION
+  dynamic_mode = FIRST; gear = 1; wt = 0; wcr = 0; pc2_filter = 0; veh_speed = 0; Ts = 0
+ TRANSITION
+ [
+ dynamic_mode = FIRST AND pc2_target = 0 --> 
+  Tsdot' = Ks * (Rd*wcr - veh_speed/Hf - 0.001 * Ts);
+  % veh_speeddot = (Ts/Hf - M*9.81*sin(grade)) / (M + 2*Iwf/(Hf*Hf)) ;
+  %pc2_filterdot = -pc2_filter + (1 - pc2_torque_phase)*pc2_target;
+  veh_speeddot' = (Ts/Hf - M*9.81*grade) / (M + 2*Iwf/(Hf*Hf)) ;
+  pc2_filterdot' = -pc2_filter ;
+  wtdot' = 1/It1 * (1.7*tps + 30 - R1*Rd*Ts);
+  wcrdot' = R1/It1 * (1.7*tps + 30 - R1*Rd*Ts);
+  % wcr_dot = R1 * wt_dot;
+  gradedot' = 0;
+  tpsdot' = 0
+ []
+ dynamic_mode = TORQUE12 AND pc2_target = 0 --> 
+  Tsdot' = Ks * (Rd*wcr - veh_speed/Hf - 0.001 * Ts);
+  veh_speeddot' = (Ts/Hf - M*9.81*grade) / (M + 2*Iwf/(Hf*Hf)) ;
+  pc2_filterdot' = -pc2_filter ;
+  wtdot' = 1/It1 * (1.7*tps + 30 - R1*Rd*Ts - (1 - R1/R2)*(c2_mu2*wt*(1-R1/R2)+c2_mu1)*AR2*pc2_filter);
+  wcrdot' = R1/It1 * (1.7*tps + 30 - R1*Rd*Ts - (1 - R1/R2)*(c2_mu2*wt*(1-R1/R2)+c2_mu1)*AR2*pc2_filter);
+  gradedot' = 0;
+  tpsdot' = 0
+ []
+ dynamic_mode = INERTIA12 AND pc2_target = 0 --> 
+  Tsdot' = Ks * (Rd*wcr - veh_speed/Hf - 0.001 * Ts);
+  veh_speeddot' = (Ts/Hf - M*9.81*grade) / (M + 2*Iwf/(Hf*Hf)) ;
+  pc2_filterdot' = -pc2_filter ;
+  % wtdot' = 1/It * (1.7*tps + 30 - Tc2);
+  wtdot' = 1/It * (1.7*tps + 30 - (c2_mu2*(wt-wcr/R2)+c2_mu1)*AR2*pc2_filter); 
+  %wcr_dot' = 1/Icr12 * (Tc2/R2 - Rd*Ts);
+  wcrdot' = 1/Icr12 * ((c2_mu2*(wt-wcr/R2)+c2_mu1)*AR2*pc2_filter/R2 - Rd*Ts); 
+  gradedot' = 0;
+  tpsdot' = 0
+ []
+ dynamic_mode = SECOND AND pc2_target = 0  --> 
+  Tsdot' = Ks * (Rd*wcr - veh_speed/Hf - 0.001 * Ts);
+  veh_speeddot' = (Ts/Hf - M*9.81*grade) / (M + 2*Iwf/(Hf*Hf)) ;
+  pc2_filterdot' = -pc2_filter ;
+  wtdot' = 1/It2 * (1.7*tps + 30 - R2*Rd*Ts);
+  wcrdot' = R2/It2 * (1.7*tps + 30 - R2*Rd*Ts);
+  gradedot' = 0;
+  tpsdot' = 0
+ []
+ dynamic_mode = INERTIA21 AND pc2_target = 0 --> 
+  Tsdot' = Ks * (Rd*wcr - veh_speed/Hf - 0.001 * Ts);
+  veh_speeddot' = (Ts/Hf - M*9.81*grade) / (M + 2*Iwf/(Hf*Hf)) ;
+  pc2_filterdot' = -pc2_filter;
+  % wtdot' = 1/It * (1.7*tps + 30 - Tc2);
+  % Tc2 = (c2_mu2*(wt-wci)+c2_mu1)*AR2*(pc2_filter+pc2_torque_phase*pc2_target) 
+  wtdot' = 1/It * (1.7*tps + 30 - (c2_mu2*(wt-wcr/R2)+c2_mu1)*AR2*pc2_filter); 
+  % wcrdot' = 1/Icr12 * (Tc2/R2 - Rd*Ts);
+  wcrdot' = 1/Icr12 * ((c2_mu2*(wt-wcr/R2)+c2_mu1)*AR2*pc2_filter/R2 - Rd*Ts); 
+  gradedot' = 0;
+  tpsdot' = 0
+ []
+ dynamic_mode = TORQUE21 AND pc2_target = 0 --> 
+  Tsdot' = Ks * (Rd*wcr - veh_speed/Hf - 0.001 * Ts);
+  veh_speeddot' = (Ts/Hf - M*9.81*grade) / (M + 2*Iwf/(Hf*Hf)) ;
+  pc2_filterdot' = -pc2_filter;
+  % Tc2 = (c2_mu2*(wt-wci)+c2_mu1)*AR2*(pc2_filter+pc2_torque_phase*pc2_target) 
+  % wtdot' = 1/It1 * (1.7*tps + 30 - R1*Rd*Ts - (1 - R1/R2)*Tc2);
+  wtdot' = 1/It1 * (1.7*tps + 30 - R1*Rd*Ts - (1 - R1/R2)*(c2_mu2*wt*(1-R1/R2)+c2_mu1)*AR2*pc2_filter);
+  % wcrdot' = R1/It1 * (1.7*tps + 30 - R1*Rd*Ts - (1 - R1/R2)*Tc2);
+  wcrdot' = R1/It1 * (1.7*tps + 30 - R1*Rd*Ts - (1 - R1/R2)*(c2_mu2*wt*(1-R1/R2)+c2_mu1)*AR2*pc2_filter);
+  gradedot' = 0;
+  tpsdot' = 0
+ []
+ dynamic_mode = FIRST AND pc2_target = 400 --> 
+  Tsdot' = Ks * (Rd*wcr - veh_speed/Hf - 0.001 * Ts);
+  % veh_speeddot' = (Ts/Hf - M*9.81*sin(grade)) / (M + 2*Iwf/(Hf*Hf)) ;
+  %pc2_filterdot' = -pc2_filter + (1 - pc2_torque_phase)*400;
+  veh_speeddot' = (Ts/Hf - M*9.81*grade) / (M + 2*Iwf/(Hf*Hf)) ;
+  pc2_filterdot' = -pc2_filter + 0.6 * 400;
+  wtdot' = 1/It1 * (1.7*tps + 30 - R1*Rd*Ts);
+  wcrdot' = R1/It1 * (1.7*tps + 30 - R1*Rd*Ts);
+  % wcr_dot' = R1 * wt_dot;
+  gradedot' = 0;
+  tpsdot' = 0
+ []
+ dynamic_mode = TORQUE12 AND pc2_target = 400 --> 
+  Tsdot' = Ks * (Rd*wcr - veh_speed/Hf - 0.001 * Ts);
+  veh_speeddot' = (Ts/Hf - M*9.81*grade) / (M + 2*Iwf/(Hf*Hf)) ;
+  pc2_filterdot' = -pc2_filter + 0.6 * 400;
+  wtdot' = 1/It1 * (1.7*tps + 30 - R1*Rd*Ts - (1 - R1/R2)*(c2_mu2*wt*(1-R1/R2)+c2_mu1)*AR2*(pc2_filter+pc2_torque_phase*400));
+  wcrdot' = R1/It1 * (1.7*tps + 30 - R1*Rd*Ts - (1 - R1/R2)*(c2_mu2*wt*(1-R1/R2)+c2_mu1)*AR2*(pc2_filter+pc2_torque_phase*400));
+  gradedot' = 0;
+  tpsdot' = 0
+ []
+ dynamic_mode = INERTIA12 AND pc2_target = 400 --> 
+  Tsdot' = Ks * (Rd*wcr - veh_speed/Hf - 0.001 * Ts);
+  veh_speeddot' = (Ts/Hf - M*9.81*grade) / (M + 2*Iwf/(Hf*Hf)) ;
+  pc2_filterdot' = -pc2_filter + 0.6 * 400;
+  % wtdot' = 1/It * (1.7*tps + 30 - Tc2);
+  wtdot' = 1/It * (1.7*tps + 30 - (c2_mu2*(wt-wcr/R2)+c2_mu1)*AR2*(pc2_filter+pc2_torque_phase*400)); 
+  %wcr_dot' = 1/Icr12 * (Tc2/R2 - Rd*Ts);
+  wcrdot' = 1/Icr12 * ((c2_mu2*(wt-wcr/R2)+c2_mu1)*AR2*(pc2_filter+pc2_torque_phase*400)/R2 - Rd*Ts); 
+  gradedot' = 0;
+  tpsdot' = 0
+ []
+ dynamic_mode = SECOND AND pc2_target = 400 --> 
+  Tsdot' = Ks * (Rd*wcr - veh_speed/Hf - 0.001 * Ts);
+  veh_speeddot' = (Ts/Hf - M*9.81*grade) / (M + 2*Iwf/(Hf*Hf)) ;
+  pc2_filterdot' = -pc2_filter + 0.6 * 400;
+  wtdot' = 1/It2 * (1.7*tps + 30 - R2*Rd*Ts);
+  wcrdot' = R2/It2 * (1.7*tps + 30 - R2*Rd*Ts);
+  gradedot' = 0;
+  tpsdot' = 0
+ []
+ dynamic_mode = INERTIA21 AND pc2_target = 400 --> 
+  Tsdot' = Ks * (Rd*wcr - veh_speed/Hf - 0.001 * Ts);
+  veh_speeddot' = (Ts/Hf - M*9.81*grade) / (M + 2*Iwf/(Hf*Hf)) ;
+  pc2_filterdot' = -pc2_filter + 0.6 * 400;
+  % wtdot' = 1/It * (1.7*tps + 30 - Tc2);
+  % Tc2 = (c2_mu2*(wt-wci)+c2_mu1)*AR2*(pc2_filter+pc2_torque_phase*pc2_target) 
+  wtdot' = 1/It * (1.7*tps + 30 - (c2_mu2*(wt-wcr/R2)+c2_mu1)*AR2*(pc2_filter+pc2_torque_phase*400)); 
+  % wcrdot' = 1/Icr12 * (Tc2/R2 - Rd*Ts);
+  wcrdot' = 1/Icr12 * ((c2_mu2*(wt-wcr/R2)+c2_mu1)*AR2*(pc2_filter+pc2_torque_phase*400)/R2 - Rd*Ts); 
+  gradedot' = 0;
+  tpsdot' = 0
+ []
+ dynamic_mode = TORQUE21 AND pc2_target = 400 --> 
+  Tsdot' = Ks * (Rd*wcr - veh_speed/Hf - 0.001 * Ts);
+  veh_speeddot' = (Ts/Hf - M*9.81*grade) / (M + 2*Iwf/(Hf*Hf)) ;
+  pc2_filterdot' = -pc2_filter + 0.6 * 400;
+  % Tc2 = (c2_mu2*(wt-wci)+c2_mu1)*AR2*(pc2_filter+pc2_torque_phase*pc2_target) 
+  % wtdot' = 1/It1 * (1.7*tps + 30 - R1*Rd*Ts - (1 - R1/R2)*Tc2);
+  wtdot' = 1/It1 * (1.7*tps + 30 - R1*Rd*Ts - (1 - R1/R2)*(c2_mu2*wt*(1-R1/R2)+c2_mu1)*AR2*(pc2_filter+pc2_torque_phase*400));
+  % wcrdot' = R1/It1 * (1.7*tps + 30 - R1*Rd*Ts - (1 - R1/R2)*Tc2);
+  wcrdot' = R1/It1 * (1.7*tps + 30 - R1*Rd*Ts - (1 - R1/R2)*(c2_mu2*wt*(1-R1/R2)+c2_mu1)*AR2*(pc2_filter+pc2_torque_phase*400));
+  gradedot' = 0;
+  tpsdot' = 0
+ []  % next are the discrete transitions
+ % dynamic_mode = FIRST AND (Tc2 > 1) -->
+ dynamic_mode = FIRST AND (c2_mu2*wt*(1-R1/R2)+c2_mu1)*AR2*(pc2_filter+pc2_torque_phase*pc2_target) > 1 --> 
+    dynamic_mode' = TORQUE12;
+    wcr' = R1*wt;
+    gear' = 1.5
+ []
+  % RTsp1 = Isi12 * wsi_dot  + R1*Rd*Ts - R1/R2 * Tc2;
+ dynamic_mode = TORQUE12 AND  %  (RTsp1 <= 0) 
+  % Isi12/It1*(1.7*tps+30-R1*Rd*Ts-(1-R1/R2)*Tc2) + R1*Rd*Ts - R1/R2 * Tc2 <= 0 
+  % Isi12/It1*(1.7*tps+30) + (1-Isi12/It1)*R1*Rd*Ts - (Isi12/It1*(1-R1/R2) + R1/R2) * Tc2 
+  Isi12/It1*(1.7*tps+30) + (1-Isi12/It1)*R1*Rd*Ts - (Isi12/It1*(1-R1/R2) + R1/R2) *
+  (c2_mu2*wt*(1-R1/R2)+c2_mu1)*AR2*(pc2_filter+pc2_torque_phase*pc2_target) <= 0 -->
+    dynamic_mode' = INERTIA12;
+    gear' = 1.5
+ []
+ dynamic_mode = INERTIA12 AND (c2slip <= 0) AND pc2_filter > 239 -->
+    dynamic_mode' = SECOND;
+    wcr' = R2*wt;
+    gear' = 2
+ []
+ dynamic_mode = SECOND AND 
+    ((-1+It/It2)*(1.7*tps+30) - It*R2*Rd*Ts/It2 >= c2_mu1*AR2*(pc2_filter+pc2_torque_phase*pc2_target) OR
+     c2_mu1*AR2*(pc2_filter+pc2_torque_phase*pc2_target) <= (1-It/It2)*(1.7*tps + 30) + It*R2*Rd*Ts/It2) 
+  -->
+    dynamic_mode' = INERTIA21;
+    gear' = 1.5
+ []
+  % RTsp1 = Isi12 * wsi_dot  + R1*Rd*Ts - R1/R2 * Tc2;
+ dynamic_mode = INERTIA21 AND % (c1slip >= 0 AND RTsp1 >= 0)
+  c1slip >= 0 AND
+  % Isi12/(R1*Icr12) * (Tc2/R2 - Rd*Ts) + R1*Rd*Ts - R1/R2 * Tc2 >= 0 
+  % (Isi12/(R1*Icr12*R2) - R1/R2) * Tc2 + (R1 - Isi12/(R1*Icr12))*Rd*Ts >= 0 -->
+  (R1 - Isi12/(R1*Icr12))*Rd*Ts + (Isi12/(R1*Icr12*R2) - R1/R2) *
+  (c2_mu2*(wt-wcr/R2)+c2_mu1)*AR2*(pc2_filter+pc2_torque_phase*pc2_target) >= 0 -->
+    dynamic_mode' = TORQUE21;
+    wcr' = R1*wt;
+    gear' = 1.5
+ []
+ % dynamic_mode = TORQUE21 AND Tc2 <= 1 AND (Tc1 > 1.7*tps+30) 
+ dynamic_mode = TORQUE21 AND 
+  c1mu1*AR1*1000 > 1.7*tps+30 AND
+  (c2_mu2*wt*(1-R1/R2)+c2_mu1)*AR2*(pc2_filter+pc2_torque_phase*pc2_target) <= 1 -->
+    dynamic_mode' = FIRST;
+    wcr' = R1*wt;
+    gear' = 1
+ ]
+END;
+
+controller: MODULE =
+BEGIN
+ INPUT tps: REAL
+ INPUT gear: [1 .. 2]
+ INPUT veh_speed: REAL
+ LOCAL gear_schedule: GEAR_TYPE
+ OUTPUT pc2_target: REAL
+ INITIALIZATION
+  pc2_target = 0; gear_schedule = FIRST_GEAR
+ TRANSITION
+ [
+  (gear_schedule = FIRST_GEAR) AND 
+  ((tps <= 30 AND 3.6*veh_speed > 20) OR 
+   (30 < tps AND tps < 80 AND 3.6*veh_speed > 0.7*(tps-30)+20) OR
+   (80 <= tps AND 3.6*veh_speed > 55)) -->
+    gear_schedule' = TRANSITION12_SHIFTING;
+    pc2_target' = 400
+ []
+  (gear_schedule = TRANSITION12_SHIFTING) AND 
+  ((tps <= 80 AND 3.6*veh_speed <= 14) OR
+   (tps > 80 AND tps < 80.1 AND 3.6*veh_speed <= 364*(tps-80)+14) OR
+   (tps >= 80.1 AND 3.6*veh_speed <= 50.4)) -->
+    gear_schedule' = FIRST_GEAR;
+    pc2_target' = 0
+ []
+  (gear_schedule = TRANSITION12_SHIFTING) AND (gear = 2) -->
+    gear_schedule' = SECOND_GEAR;
+    pc2_target' = 400
+ []
+  (gear_schedule = SECOND_GEAR) AND 
+  ((tps <= 80 AND 3.6*veh_speed <= 14) OR
+   (tps > 80 AND tps < 80.1 AND 3.6*veh_speed <= 364*(tps-80)+14) OR
+   (tps >= 80.1 AND 3.6*veh_speed <= 50.4)) -->
+    gear_schedule' = TRANSITION21_SHIFTING;
+    pc2_target' = 0
+ []
+  (gear_schedule = TRANSITION21_SHIFTING) AND 
+  ((tps <= 30 AND 3.6*veh_speed > 20) OR 
+   (30 < tps AND tps < 80 AND 3.6*veh_speed > 0.7*(tps-30)+20) OR
+   (80 <= tps AND 3.6*veh_speed > 55)) -->
+    gear_schedule' = SECOND_GEAR;
+    pc2_target' = 400
+ []
+  (gear_schedule = TRANSITION21_SHIFTING) AND (gear = 1) -->
+    gear_schedule' = FIRST_GEAR;
+    pc2_target' = 0
+ ]
+END;
+
+% English description of the powertrain model:
+% Engine produces torque Tt; given throttle position tps (approx linear map)
+% The torque Tt eventually changes the velocity of the car via the powertrain
+% Tt influences wt_dot, where wt = turbine rotational velocity
+% wt influence wcr, where wcr = reaction carrier gear rotational velocity
+% wcr influence Ts_dot, where Ts = transimission output shaft torque
+% Ts influences veh_speed_dot
+% these mappings are functions of dynamic_mode (transmission mode)
+% Engine: tps ---> Tt
+% Clutches: pc1,pc2 clutch pressure ---> Tc1, Tc2 clutch torques
+% Controller: modulate the clutch pressure: veh_speed, gear ---> to_gear ---> pc1,pc2
+%   shift_speed depends on tps...
+% Transmission:  Tc1,Tc2,(Ts,wt_dt,Tt,wcr_dot) ---> gear,wt,wcr,wsi,wci
+% Vehicle: Ts ---> veh_speed
+% drive shaft: wcr,veh_speed,Ts ---> Ts 
+
+END
