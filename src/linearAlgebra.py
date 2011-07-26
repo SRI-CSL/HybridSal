@@ -23,6 +23,7 @@
 
 import math
 sqrt = math.sqrt
+epsilon = 1e-4
 
 def dotproduct(u,v):
     "dot product of two vectors"
@@ -115,11 +116,11 @@ def Avbyv(A,v):
     del Av
     return(modAv/modulus(v))
 
-def equal(c,d):
-    return(abs(c-d) < epsilon)
+def equal(c,d,tolerance=epsilon):
+    return(abs(c-d) < tolerance)
 
-def noteq(c,d):
-    return(not(equal(c, d)))
+def noteq(c,d,tolerance=epsilon):
+    return(not(equal(c, d, tolerance=epsilon)))
 
 def eigenvalueLargest(A):
     "return largest eigenvalue of A, iterated method"
@@ -128,15 +129,15 @@ def eigenvalueLargest(A):
     v = [0 for i in range(len(A))]
     v[0] = 1
     lamb = Avbyv(A,v)
-    while noteq(lamb, lambold) and i < 100:
+    while noteq(lamb, lambold, tolerance=epsilon**2) and i < 200:
         v = nnormalize(v)
         v = nmultiplyAv(A,v)
         lambold = lamb
         lamb = Avbyv(A,v)
         i += 1
     print "Number of iterations %d" % i
-    #print "lamb %f" % lamb
-    #print "lambold %f" % lambold
+    print "lamb %f" % lamb
+    print "lambold %f" % lambold
     return([lamb, nnormalize(v)])
 
 def zeros(v):
@@ -146,7 +147,7 @@ def zeros(v):
 def solve1(A,b,j,ind):
     "A[j][ind] != 0; eliminate nonzero A[j][*] entries; Destructively update A,b"
     for i in range(len(b)):
-        if not(i == j) and noteq(A[i][ind],0):
+        if not(i == j): # and noteq(A[i][ind],0):
             tmp = A[i][ind]
             for k in range(len(A[0])):
                 A[i][k] = A[i][k] - A[j][k] * tmp
@@ -163,7 +164,8 @@ def dependentIndependent(A):
     for i in range(n):
         firstone = 1
         for j in range(m):
-            if not(equal(A[i][j], 0)):
+            #if not(equal(A[i][j], 0)):
+            if equal(A[i][j], 1):
                 if (firstone == 1):
                     dep.append([j,i])
                     ind.remove(j)
@@ -172,13 +174,13 @@ def dependentIndependent(A):
 
 def extractSoln(A,b):
     """A is permuted Identity nxn matrix; b is n-vector"""
-    print "Extracting solution from Ax=b where A,b are"
-    print A
-    print b
+    #print "Extracting solution from Ax=b where A,b are"
+    #print A
+    #print b
     [dep,ind] = dependentIndependent(A)
-    print "dep, independent vars from A are"
-    print dep
-    print ind
+    #print "dep, independent vars from A are"
+    #print dep
+    #print ind
     m = len(A[0])
     assert m == len(dep) + len(ind)
     allans = list()
@@ -197,6 +199,38 @@ def extractSoln(A,b):
     del ind
     return allans
 
+def checkAxEqb(A,x,b):
+    """Check if Ax==b.  Divide by |b| before checking equality"""
+    Ax = multiplyAv(A,x)
+    Ax = nminusUV(Ax,b)
+    #print "checking if zero: ",
+    #print Ax
+    mods = [0 for i in range(len(A[0]))]
+    for i in range(len(A[0])):
+        for j in range(len(A)):
+            mods[i] += A[j][i]*A[j][i]
+        #mods[i] = pow(mods[i],0.5)
+    mods.append(modulus(b)**2)
+    for i in range(len(Ax)):
+        Ax[i] /= max(mods)
+    #print "checking if zero: ",
+    #print Ax
+    ans = isZero(Ax)
+    del Ax
+    return ans
+
+def indexOfMaxModifNZ(v):
+    """Return i s.t. |v[i]| is max AND v[i] != 0"""
+    ind1 = max(v)
+    ind2 = min(v)
+    if (-ind2 > ind1):
+        ind1 = ind2
+    if noteq(ind1, 0):
+        ind1 = v.index(ind1)
+    else:
+        ind1 = -1
+    return ind1
+
 def solve(A,b):
     "Solve Ax = b; Destructive"
     #print "Solving ",
@@ -208,13 +242,15 @@ def solve(A,b):
         return list()
     m = len(A[0])
     for j in range(n):
+        #ind1 = indexOfMaxModifNZ(A[j])
         ind1 = -1
         for i in range(m):
             if noteq(A[j][i], 0):
                 ind1 = i
                 break
         if (ind1 == -1 and noteq(b[j], 0)):
-            return list()
+            #return list()
+            continue
         elif ind1 == -1:
             continue
         else:
@@ -230,6 +266,17 @@ def solve(A,b):
         #print A,
         #print b 
     ans = extractSoln(A,b)
+    print "Solving returned ",
+    print ans
+    j = 0
+    n = len(ans)
+    for i in range(n):
+        if not(checkAxEqb(A,ans[j],b)):
+            print "Deleting solution...",
+            print ans[j]
+            del ans[j]
+        else:
+            j = j + 1
     delA(A)
     del b
     return ans
@@ -283,10 +330,15 @@ def expressAnUsingAis(A, vec, n):
     Btrans = transpose(B)
     delA(B)
     ans = solve(Btrans,b)
+    print "solve returned",
+    print ans
     del b
     assert len(ans) > 0
-    for i in range(len(ans)-1):
+    tmp = range(len(ans)-1)
+    tmp.reverse()
+    for i in tmp:
         del ans[i+1]
+    del tmp
     return ans[0]
 
 def nproject(v, w):
@@ -318,8 +370,8 @@ def inSubspace(v, subspace):
 
 def orbit(A, v):
     "Return orthonormal BASIS of subspace(v,Av,A^2v,...)"
-    print "Computing ORBIT of"
-    print v
+    print "Computing ORBIT ...",
+    #print v
     subspace = list()
     v = nnormalize(v)
     v = inSubspace(v, subspace)
@@ -484,8 +536,6 @@ def eigen(A):
     eigens = neigenvalues(yy)
     eigenvectors = allEigenvectors(A, eigens)
     return eigenvectors
-
-epsilon = 1e-4
 
 def test1():
     xx = [ [1,2,3], [0,2,6], [0,0,3] ]

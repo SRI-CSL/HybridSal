@@ -1,6 +1,6 @@
 # Make sure these three are set correctly before running Make
 ANTLRPATH=/amd/gr1/export/u14/homes/tiwari/sal/sal-devel/ashish-tools/hybridsal2xml/antlr-2.7.1/
-JAVAC=/amd/gr1/export/u14/homes/tiwari/softwares/jikes-1.22/src/jikes
+JAVAC=javac
 RTJARPATH=/usr/lib/jvm/java-6-sun-1.6.0.24/jre/lib/rt.jar
 
 # Do not modify below.
