@@ -26,7 +26,7 @@ sqrt = math.sqrt
 epsilon = 1e-4
 
 def dotproduct(u,v):
-    "dot product of two vectors"
+    """dot product of two vectors"""
     sum = 0
     n = min(len(u), len(v))
     for i in range(n):
@@ -34,7 +34,7 @@ def dotproduct(u,v):
     return sum
 
 def nmultiplyAv(A,v):
-    "Destructive version of multiplyAv"
+    """Destructive version of multiplyAv"""
     res = []
     for i in A:
         res.append(dotproduct(i,v))
@@ -100,8 +100,7 @@ def nnormalize(v):
     modv = modulus(v)
     if equal(modv, 0):
         return v
-    for i in range(len(v)):
-        v[i] = v[i]/modv
+    v = nscale(v,1.0/modv)
     return(v)
 
 def normalize(v):
@@ -137,7 +136,7 @@ def eigenvalueLargest(A):
         i += 1
     print "Number of iterations %d" % i
     print "lamb %f" % lamb
-    print "lambold %f" % lambold
+    print v
     return([lamb, nnormalize(v)])
 
 def zeros(v):
@@ -145,7 +144,9 @@ def zeros(v):
     return x
 
 def solve1(A,b,j,ind):
-    "A[j][ind] != 0; eliminate nonzero A[j][*] entries; Destructively update A,b"
+    """row reduction: A[i][*] -= A[j][*] * A[i][ind]
+       Assumes A[j][ind] == 1; Destructively updates A,b"""
+    assert equal(A[j][ind], 1)
     for i in range(len(b)):
         if not(i == j): # and noteq(A[i][ind],0):
             tmp = A[i][ind]
@@ -154,22 +155,32 @@ def solve1(A,b,j,ind):
             b[i] = b[i] - b[j] * tmp
     return([A,b])
 
+def unitColumn(A,i,n):
+    """Check if A[*][i] is a unit vector, and if so, return index j s.t. A[j][i]==1
+       Else return -1. Assuming A has n rows."""
+    ans = -1
+    for j in range(n):
+        if equal(A[j][i], 1):
+            ans = j
+        elif noteq(A[j][i], 0):
+            ans = -1
+            break
+    return ans
+
 def dependentIndependent(A):
-    "Partition indices [0..n-1] into dependent, independent vars"
+    """A is nxm matrix; m variables [0..m-1] are partitioned into
+       dependent, independent vars. Return value [ [[0,2],[1,0]], [2] ]
+       indicating var 0,1 are defined by Equation 2,0 resply, and var 2 is independent"""
     n = len(A)
     assert n > 0
     m = len(A[0])
     dep = list()
     ind = range(m)
-    for i in range(n):
-        firstone = 1
-        for j in range(m):
-            #if not(equal(A[i][j], 0)):
-            if equal(A[i][j], 1):
-                if (firstone == 1):
-                    dep.append([j,i])
-                    ind.remove(j)
-                    firstone = 0
+    for i in range(m):
+        j = unitColumn(A,i,n)
+        if j != -1:
+            dep.append([i,j])
+            ind.remove(i)
     return [dep,ind]
 
 def extractSoln(A,b):
@@ -205,31 +216,38 @@ def checkAxEqb(A,x,b):
     Ax = nminusUV(Ax,b)
     #print "checking if zero: ",
     #print Ax
-    mods = [0 for i in range(len(A[0]))]
-    for i in range(len(A[0])):
-        for j in range(len(A)):
-            mods[i] += A[j][i]*A[j][i]
-        #mods[i] = pow(mods[i],0.5)
-    mods.append(modulus(b)**2)
-    for i in range(len(Ax)):
-        Ax[i] /= max(mods)
+    modb = modulus(b)
+    if modb > 1:
+        for i in range(len(Ax)):
+            Ax[i] /= modb
     #print "checking if zero: ",
     #print Ax
     ans = isZero(Ax)
     del Ax
     return ans
 
-def indexOfMaxModifNZ(v):
-    """Return i s.t. |v[i]| is max AND v[i] != 0"""
-    ind1 = max(v)
-    ind2 = min(v)
-    if (-ind2 > ind1):
-        ind1 = ind2
-    if noteq(ind1, 0):
-        ind1 = v.index(ind1)
-    else:
-        ind1 = -1
-    return ind1
+def checkAxbSolns(A,b,ans):
+    """Check Ax==b for all x in ans. If not, delete x from ans"""
+    j = 0
+    n = len(ans)
+    for i in range(n):
+        if not(checkAxEqb(A,ans[j],b)):
+            print "Deleting solution index ",
+            print j
+            del ans[j]
+        else:
+            j = j + 1
+    return ans
+
+def maxColumn(A,i,n,forbidden):
+    """Return j notin forbidden s.t. |A[j][i]| is max in |A[*][i]| AND A[j][i] != 0"""
+    ans = 0
+    ind = -1
+    for j in range(n):
+        if not(j in forbidden) and (abs(A[j][i]) > ans) and noteq(A[j][i], 0):
+            ans = abs(A[j][i])
+            ind = j
+    return ind
 
 def solve(A,b):
     "Solve Ax = b; Destructive"
@@ -241,42 +259,25 @@ def solve(A,b):
     if n == 0:
         return list()
     m = len(A[0])
-    for j in range(n):
-        #ind1 = indexOfMaxModifNZ(A[j])
-        ind1 = -1
-        for i in range(m):
-            if noteq(A[j][i], 0):
-                ind1 = i
-                break
-        if (ind1 == -1 and noteq(b[j], 0)):
-            #return list()
-            continue
-        elif ind1 == -1:
+    forbidden = list()
+    for i in range(m):
+        ind = maxColumn(A,i,n,forbidden)
+        if ind == -1:
             continue
         else:
-            tmp = A[j][ind1]
-            for i in range(m):
-                A[j][i] /= tmp
-            b[j] /= tmp
-            #print "Solving ",
-            #print A,
-            #print b 
-            [A,b] = solve1(A,b,j,ind1)
+            forbidden.append(ind)
+            tmp = 1.0/A[ind][i]
+            A[ind] = nscale(A[ind], tmp)
+            b[ind] *= tmp
+            [A,b] = solve1(A,b,ind,i)
         #print "Solving ",
         #print A,
         #print b 
+    del forbidden
     ans = extractSoln(A,b)
-    print "Solving returned ",
+    print "Solving returned the following...checking now...",
     print ans
-    j = 0
-    n = len(ans)
-    for i in range(n):
-        if not(checkAxEqb(A,ans[j],b)):
-            print "Deleting solution...",
-            print ans[j]
-            del ans[j]
-        else:
-            j = j + 1
+    ans = checkAxbSolns(A,b,ans)
     delA(A)
     del b
     return ans
@@ -294,10 +295,10 @@ def AminuslambI(A,lamb):
         B[i][i] = A[i][i] - lamb
     return(B)
 
-def isZero(vec):
+def isZero(vec, tolerance=epsilon):
     """Is vec a zero vector"""
     for i in vec:
-        if not(equal(i,0)):
+        if noteq(i,0,tolerance):
             return False
     return True
 
@@ -334,11 +335,7 @@ def expressAnUsingAis(A, vec, n):
     print ans
     del b
     assert len(ans) > 0
-    tmp = range(len(ans)-1)
-    tmp.reverse()
-    for i in tmp:
-        del ans[i+1]
-    del tmp
+    del ans[1:]
     return ans[0]
 
 def nproject(v, w):
@@ -361,7 +358,7 @@ def inSubspace(v, subspace):
        Return NONE if v is in Subspace spanned by subspace
        Assuming that v,subspace vectors are all normalized"""
     v = projectOut(v, subspace)
-    if isZero(v):
+    if isZero(v,epsilon/100):	# reducing tolerance becoz of nnormalize
         del v
         ans = None
     else:
@@ -398,12 +395,8 @@ def nremoveRowColumn(A, i, n):
     return A
 
 def newUnitVector(v, i):
-    ans = list(v)
-    for j in range(len(v)):
-        if (j == i):
-            ans[j] = 1
-        else:
-            ans[j] = 0
+    ans = zeros(v)
+    ans[i] = 1
     return ans
 
 def extendToFull(basis, n):
@@ -429,40 +422,62 @@ def dictUpdate(dictionary, key, value):
     dictionary[key] = value
     return dictionary
 
-def neigenvalues(A):
-    "Return MODULUS of all eigenvalues of nxn matrix A; DESTROYS A"
+def zeroEigenvalue(A, eigens):
+    """Find if A has 0 as an eigenvalue; remove them all.
+       Return newA, neweigens"""
     n = len(A)
-    if n == 0:
-        return list()
-    if n == 1:
-        ans = list()
-        ans.append( (A[0][0], 1, [A[0][0]]) )
-        return ans
-    for i in range(n):
-        if isUnitColumn(A,i,n):
-            eigenvalue = A[i][i]
-            newA = nremoveRowColumn(A,i,n)
-            print "NewA after removing rowcolumn %d" % i
-            print newA
-            eigens = neigenvalues(newA)
-            print "eigens for newA are"
-            print eigens
-            eigens.append( (eigenvalue, 1, [eigenvalue]) )
-            return eigens
-    [lamb, vec] = eigenvalueLargest(A)
-    subspace = orbit(A, vec)
+    zeros = [0 for i in range(n)]
+    ans = solve(A,zeros)
+    if len(ans) == 0:
+        print "0 is not an eigenvalue of A"
+        return (A, eigens)
+    lamb = 0.0
+    vec = ans[0]
+    subspace = list()
+    subspace.append( nnormalize(vec) )
     done = len(subspace)
-    coeffs = expressAnUsingAis(A, vec, done)
     newbasis = extendToFull(subspace, n)
     newA = changeOfBasis(A, newbasis)
     delA(A)
     delA(newbasis)
     for i in range(done):
         newA = nremoveRowColumn(newA,0,n-i)
-    eigens = neigenvalues(newA)
-    eigens.append( (lamb, done, coeffs) )
+    eigens.append( (lamb, done, [0.0]) )
+    return zeroEigenvalue(newA, eigens)
+
+def neigenvalues(A, ans=list()):
+    """Return MODULUS of all eigenvalues of nxn matrix A; DESTROYS A/
+       return value list of (eigenvalue, orbit-dimension, characteristic-pol)"""
+    n = len(A)
+    if n == 0:
+        return ans
+    if n == 1:
+        ans.append( (A[0][0], 1, [A[0][0]]) )
+        return ans
+    print "****Computing eigenvalues of matrix A with dimension %d" % n
+    print A
+    (A, ans) = zeroEigenvalue(A, ans)
+    for i in range(n):
+        if isUnitColumn(A,i,n):
+            eigenvalue = A[i][i]
+            newA = nremoveRowColumn(A,i,n)
+            print "NewA after removing rowcolumn %d" % i
+            print newA
+            return neigenvalues(newA, ans.append((eigenvalue, 1, [eigenvalue]))
+    [lamb, vec] = eigenvalueLargest(A)
+    subspace = orbit(A, vec)
+    done = len(subspace)
+    coeffs = expressAnUsingAis(A, vec, done)
+    print "Subspace found...", 
+    print subspace
+    newbasis = extendToFull(subspace, n)
+    newA = changeOfBasis(A, newbasis)
+    delA(A)
+    delA(newbasis)
+    for i in range(done):
+        newA = nremoveRowColumn(newA,0,n-i)
     # eigens = dictUpdate(eigens, lamb, done)
-    return eigens
+    return neigenvalues(newA, ans.append((lamb, done, coeffs)))
 
 def allEigenvectorsAux(A, lamb, ans):
     eigenvectors = eigenvector(A, lamb)
@@ -501,8 +516,8 @@ def allEigenvectorsAux2(A, coeffs, ans):
     uv = solve(AA, zerovec)  # CHECK here
     uv = removeIfZero(uv)
     print "Found %d solutions to the quadratic equation" % len(uv)
-    print (a/2, (-a*a-4*b)/2 )
-    ans.append( [a/2, sqrt(-a*a-4*b)/2] )
+    print (a/2.0, sqrt(-a*a-4*b)/2.0 )
+    ans.append( [a/2.0, sqrt(-a*a-4*b)/2.0] )
     ans.append(uv)
     return ans
 
@@ -597,6 +612,19 @@ def test6():
     print "The above list should be []"
     print "*************************************"
 
+def test7():
+    n = 4
+    xx = [ [0 for i in range(n)] for j in range(n) ]
+    xx[0][1] = -5
+    xx[1][0] = 5
+    xx[2][2] = 3
+    xx[2][3] = -4
+    xx[3][2] = 4
+    xx[3][3] = 3
+    eigenvectors = eigen(xx)
+    print eigenvectors
+    print "*************************************"
+
 if __name__ == "__main__":
     test1()
     test2()
@@ -604,3 +632,4 @@ if __name__ == "__main__":
     test4()
     test5()
     test6()
+    test7()
