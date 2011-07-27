@@ -427,7 +427,9 @@ def zeroEigenvalue(A, eigens):
        Return newA, neweigens"""
     n = len(A)
     zeros = [0 for i in range(n)]
-    ans = solve(A,zeros)
+    tmpA = copyA(A)
+    ans = solve(tmpA,zeros)
+    ans = removeIfZero(ans)
     if len(ans) == 0:
         print "0 is not an eigenvalue of A"
         return (A, eigens)
@@ -457,13 +459,17 @@ def neigenvalues(A, ans=list()):
     print "****Computing eigenvalues of matrix A with dimension %d" % n
     print A
     (A, ans) = zeroEigenvalue(A, ans)
+    n = len(A)
+    print "****Computing eigenvalues of matrix A with dimension %d" % n
+    print A
     for i in range(n):
         if isUnitColumn(A,i,n):
             eigenvalue = A[i][i]
             newA = nremoveRowColumn(A,i,n)
             print "NewA after removing rowcolumn %d" % i
             print newA
-            return neigenvalues(newA, ans.append((eigenvalue, 1, [eigenvalue]))
+            ans.append((eigenvalue, 1, [eigenvalue]))
+            return neigenvalues(newA, ans)
     [lamb, vec] = eigenvalueLargest(A)
     subspace = orbit(A, vec)
     done = len(subspace)
@@ -477,7 +483,8 @@ def neigenvalues(A, ans=list()):
     for i in range(done):
         newA = nremoveRowColumn(newA,0,n-i)
     # eigens = dictUpdate(eigens, lamb, done)
-    return neigenvalues(newA, ans.append((lamb, done, coeffs)))
+    ans.append((lamb, done, coeffs))
+    return neigenvalues(newA, ans)
 
 def allEigenvectorsAux(A, lamb, ans):
     eigenvectors = eigenvector(A, lamb)
