@@ -22,6 +22,7 @@
 # becomes an issue
 
 import math
+import sys  # for sys.exit()
 sqrt = math.sqrt
 epsilon = 1e-4
 
@@ -123,19 +124,22 @@ def noteq(c,d,tolerance=epsilon):
 
 def eigenvalueLargest(A):
     "return largest eigenvalue of A, iterated method"
-    i = 0
-    lambold = 0;
     v = [0 for i in range(len(A))]
     v[0] = 1
+    lambold = 1;
     lamb = Avbyv(A,v)
-    while noteq(lamb, lambold, tolerance=epsilon**2) and i < 200:
+    i = 1
+    #while noteq(lamb, lambold, tolerance=epsilon) and i < 300:
+    while noteq((lamb-lambold)/lamb, 0, tolerance=epsilon) and i < 300:
         v = nnormalize(v)
         v = nmultiplyAv(A,v)
         lambold = lamb
-        lamb = Avbyv(A,v)
+        lamb = pow(lambold,float(i)/(i+1))*pow(Avbyv(A,v),1.0/(i+1))
         i += 1
+        print "lamb %f" % lamb
     print "Number of iterations %d" % i
     print "lamb %f" % lamb
+    print "lambold %f" % lambold
     print v
     return([lamb, nnormalize(v)])
 
@@ -424,14 +428,15 @@ def dictUpdate(dictionary, key, value):
 
 def zeroEigenvalue(A, eigens):
     """Find if A has 0 as an eigenvalue; remove them all.
-       Return newA, neweigens"""
+       Return newA, neweigens.  Input eigens=nil in FIRST call.
+       If 0 is an eigenvalue, then neweigens=( (0,1,[0]) )
+       In the first call, len(eigens)==0; in recursive calls, len==1"""
     n = len(A)
     zeros = [0 for i in range(n)]
     tmpA = copyA(A)
     ans = solve(tmpA,zeros)
     ans = removeIfZero(ans)
     if len(ans) == 0:
-        print "0 is not an eigenvalue of A"
         return (A, eigens)
     lamb = 0.0
     vec = ans[0]
@@ -444,12 +449,17 @@ def zeroEigenvalue(A, eigens):
     delA(newbasis)
     for i in range(done):
         newA = nremoveRowColumn(newA,0,n-i)
-    eigens.append( (lamb, done, [0.0]) )
+    if len(eigens) == 0:
+        eigens.append( (lamb, done, [0.0]) )
+    # do not enter 0 twice...
     return zeroEigenvalue(newA, eigens)
 
-def neigenvalues(A, ans=list()):
+def neigenvalues(A, ans=None):
     """Return MODULUS of all eigenvalues of nxn matrix A; DESTROYS A/
-       return value list of (eigenvalue, orbit-dimension, characteristic-pol)"""
+       return value list of (lamb, m, [a0, a1, ..., a_{m-1}]) s.t.
+       \exists{v} satisfies A^m v = a0 v + a1 A v + ... + a_{m-1} A^{m-1}v"""
+    if ans == None:
+        ans = list()
     n = len(A)
     if n == 0:
         return ans
@@ -458,10 +468,15 @@ def neigenvalues(A, ans=list()):
         return ans
     print "****Computing eigenvalues of matrix A with dimension %d" % n
     print A
-    (A, ans) = zeroEigenvalue(A, ans)
-    n = len(A)
-    print "****Computing eigenvalues of matrix A with dimension %d" % n
-    print A
+    if len(ans) == 0:
+        (A, ans) = zeroEigenvalue(A, ans)
+        if len(ans) > 0:
+            print "0 is an eigenvalue of A"
+            n = len(A)
+            print "****Computing eigenvalues of matrix A with dimension %d" % n
+            print A
+        else:
+            print "0 is NOT an eigenvalue of A"
     for i in range(n):
         if isUnitColumn(A,i,n):
             eigenvalue = A[i][i]
@@ -486,7 +501,7 @@ def neigenvalues(A, ans=list()):
     ans.append((lamb, done, coeffs))
     return neigenvalues(newA, ans)
 
-def allEigenvectorsAux(A, lamb, ans):
+def allEigenvectorsReal(A, lamb, ans):
     eigenvectors = eigenvector(A, lamb)
     n = len(eigenvectors)
     if n > 0:
@@ -494,7 +509,7 @@ def allEigenvectorsAux(A, lamb, ans):
         ans.append(eigenvectors)
     return ans
 
-def allEigenvectorsAux2(A, coeffs, ans):
+def allEigenvectorsComplex(A, coeffs, ans):
     """Append u,v to ans s.t. Au = a/2*u + d*v, Av = -d*u + a/2*v,
       where a = coeff[1] and b = coeff[0] and d = sqrt(-a^2-4b)/2"""
     assert len(coeffs) == 2
@@ -528,35 +543,134 @@ def allEigenvectorsAux2(A, coeffs, ans):
     ans.append(uv)
     return ans
 
-def allEigenvectors(A, eigens):
-    "find all eigenvectors corresponding to eigenvalues eigens"
+def findNZdiagonalEntry(tmpA, indices):
+    """Return index j in indices s.t. tmpA[j][j] != 0.  tmpA is nxn"""
+    for i in indices:
+        if noteq(tmpA[i][i], 0):
+            return i
+    print "ERROR: No nonzero diagonal entry found"
+    return -1
+
+def inverse(A):
+    """Return inverse of A.  Do not destroy A."""
+    n = len(A)
+    invA = [ [0.0 for i in range(n)] for i in range(n) ]
+    for i in range(n):
+        invA[i][i] = 1.0
+    tmpA = copyA(A)
+    indices = range(n)
+    for i in range(n):
+        j = findNZdiagonalEntry(tmpA, indices)
+        assert (j != -1)
+        print "processing index %d" % j
+        indices.remove(j)
+        factor = tmpA[j][j]
+        for k in range(n):
+            tmpA[j][k] /= float(factor)
+            invA[j][k] /= float(factor)
+        for l in range(n):
+            if l == j:
+                continue
+            factor = tmpA[l][j]
+            for k in range(n):
+                tmpA[l][k] -= (float(factor) * tmpA[j][k])
+                invA[l][k] -= (float(factor) * invA[j][k])
+        #print tmpA
+        #print invA
+    delA(tmpA)
+    return invA
+
+def complexEigenAux(A, lamb, ans):
+    """Check if there is an eigenvector corr. to complex eigenvalue
+       a+ib s.t. a^2+b^2=lamb^2"""
+    assert lamb > 0
+    # A u = a u + b v ; A v = -b u + a v ;
+    # (A-aI)^2 u = -b^2 u  -->  (A^2 + (a^2+b^2)I) u = 2a A u
+    # 2a is a eigenvalue and u an eigenvector of A^{-1}(A^2 + lamb.I)
+    invA = inverse(A)
+    Atrans = transpose(A)
+    n = len(A)
+    AA = [[0 for i in range(n)] for j in range(n)]
+    AA = multiplyABTranspose(AA, A, Atrans)
+    for i in range(n):
+        AA[i][i] += lamb
+    delA(Atrans)
+    tmp = transpose(AA)
+    AA = multiplyABTranspose(AA, invA, tmp)
+    # AA is A^{-1} * (A^2 + lamb.I)
+    delA(invA)
+    delA(tmp)
+    yy = copyA(A)
+    eigens = neigenvalues(yy)
+    realEigens = realEigen(eigens)
+    for i in realEigens:
+        ans.append( [-lamb,i] )
+    del yy
+    del eigens
+    del realEigens
+    return ans
+
+def allEigenvectors(A, reals, complexes):
+    """find all eigenvectors corresponding to eigenvalues reals and complexes"""
     ans = list()
-    for lamb,multiplicity,coeffs in eigens:
+    for i in reals:
+        ans = allEigenvectorsReal(A, i, ans)
+    for coeffs in complexes:
+        ans = allEigenvectorsComplex(A, coeffs, ans)
+    return ans
+
+def realEigen(eigens):
+    """Return all real eigenvalues of A. eigens is a list of
+       (l,m,[a0,...,a_{m-1}]) s.t. ex(v):A^mv = \sum ai A^i v"""
+    ans = list()
+    for newlamb,multiplicity,coeffs in eigens:
         if multiplicity == 1:
-            ans = allEigenvectorsAux(A, coeffs[0], ans)
+            ans.append(coeffs[0])
         elif multiplicity == 2:
             assert len(coeffs) == 2
             b = coeffs[0]	# coeff of I
             a = coeffs[1]	# coeff of A
             DD = a*a+4*b
             if equal(DD, 0):
-                ans = allEigenvectorsAux(A, a/2, ans)
+                ans.append(a/2)
             elif DD > 0:
-                ans = allEigenvectorsAux(A, a/2 + sqrt(DD)/2, ans)
-                ans = allEigenvectorsAux(A, a/2 - sqrt(DD)/2, ans)
-            else:
-                print "COMPLEX eigenvectors EXIST"
-                ans = allEigenvectorsAux2(A, coeffs, ans)
+                ans.append(a/2 + sqrt(float(DD))/2.0)
         else:
-            ans = allEigenvectorsAux(A, lamb, ans)
-            ans = allEigenvectorsAux(A, -lamb, ans)
-            print "Degree >= 3 case is incomplete. Fill in code here."
+            if isRealEigen(AA, newlamb):
+                ans.append(newlamb)
+            elif isRealEigen(AA, -newlamb):
+                ans.append(-newlamb)
+    return ans
+
+def complexEigen(A, eigens):
+    """Return all complex eigenvalues of A. eigens is a list of
+       (l,m,[a0,...,a_{m-1}]) s.t. ex(v):A^mv = \sum ai A^i v
+       and return value is list of (a0,a1) with same meaning."""
+    ans = list()
+    for newlamb,multiplicity,coeffs in eigens:
+        if multiplicity == 1:
+            continue
+        elif multiplicity == 2:
+            assert len(coeffs) == 2
+            b = coeffs[0]	# coeff of I
+            a = coeffs[1]	# coeff of A
+            DD = a*a+4*b
+            if DD < 0:
+                ans.append( coeffs )
+        else:
+            ans = complexEigenAux(A, newlamb, ans)
     return ans
 
 def eigen(A):
     yy = copyA(A)
     eigens = neigenvalues(yy)
-    eigenvectors = allEigenvectors(A, eigens)
+    reals = realEigen(eigens)
+    complexes = complexEigen(A, eigens)
+    eigenvectors = allEigenvectors(A, reals, complexes)
+    del yy
+    del eigens
+    del reals
+    del complexes
     return eigenvectors
 
 def test1():
@@ -609,14 +723,11 @@ def test5():
 
 def test6():
     xx = [ [0,1], [-1,0] ]
-    yy = copyA(xx)
-    eigens = neigenvalues(yy)
-    eigenvectors = allEigenvectors(xx, eigens)
+    print "Computing all eigenvectors for [[0,1],[-1,0]]"
+    eigenvectors = eigen(xx)
     delA(xx)
-    print eigens
-    print "The above list should be [ (1, 2, [-1,0]) ]"
+    print "Computed eigenvectors:",
     print eigenvectors
-    print "The above list should be []"
     print "*************************************"
 
 def test7():
@@ -632,6 +743,39 @@ def test7():
     print eigenvectors
     print "*************************************"
 
+def test8():
+    xx = [ [1,2,3], [2,4,6], [0,0,3] ]
+    sqrt2 = pow(2,0.5)
+    a = sqrt2 / 2
+    basis = [ [ a, a, 0], [a, -a, 0], [0, 0, 1] ]
+    xx = changeOfBasis(xx, basis)
+    print "Test of ALL eigevalue computation of:"
+    print xx
+    eigens = neigenvalues(xx) 
+    print eigens
+    print "The above dict should be [(3,1,[3]), (0,1,[0]), (5,1,[5])]"
+    print "*************************************"
+
+def test9():
+    xx = [ [1,1], [0,1] ]
+    print "Testing inverse: Inverse of:"
+    print xx
+    xxinv = inverse(xx)
+    print "is computed to be: :"
+    print xxinv
+    xx = [ [1,2,3], [-1,2,6], [-2,1,-3] ]
+    print "Testing inverse: Inverse of:"
+    print xx
+    xxinv = inverse(xx)
+    print "is computed to be: :"
+    print xxinv
+    xx = transpose(xx)
+    I = copyA(xx)
+    I = multiplyABTranspose(I, xxinv, xx)
+    print "Product of A and its inverse is:"
+    print I
+    print "*************************************"
+
 if __name__ == "__main__":
     test1()
     test2()
@@ -640,3 +784,5 @@ if __name__ == "__main__":
     test5()
     test6()
     test7()
+    test8()
+    test9()

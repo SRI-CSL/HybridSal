@@ -497,6 +497,7 @@ def absGuardedCommandAux(varlist,A,b):
     A,b are the A,b matrix defined wrt these indices
     Return an abstract GC"""
     [x,y,A1,A2,b1,b2] = partition(varlist,A,b)
+    # [x,y,A1,A2,b1,b2] s.t. (x;y) = (A1 A2; 0 0) (x;y) + (b1;b2)"
     n = len(x)
     m = len(y)
     if n == 0:
