@@ -3,6 +3,10 @@ Installation instructions for HybridSAL Relational Abstractor:
 ---------------------------------------------------------------
 
 (1) Make sure your system has python 2.6
+ We also use the scipy package of python. So make sure
+ it is installed. On Ubuntu, it can be installed using:
+   sudo aptitude install python-numpy  
+   sudo aptitude install python-scipy  
 
 (2) Run 
   make install
