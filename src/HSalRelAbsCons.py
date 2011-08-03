@@ -492,6 +492,27 @@ def createQuadInv(nodePnew,nodePold,nodeQnew,nodeQold,a,b):
         ans=createNodeApp("quadInv", [ nodePnew, nodeQnew, nodePold, nodeQold])
     return ans
 
+def ifGoodCreateNodes(soln, vectors, lamb, m, l):
+    """soln is (m+l+1) vector, vectors has l (nx1) vectors, lamb is a scalar"""
+    assert l == len(vectors)
+    nzCount = 0
+    for i in range(l):
+        if not(equal(soln[m+i],0)):
+            nzCount += 1
+            if nzCount > 1:
+                break
+    if nzCount <= 1:
+        return (None, None)
+    wec = [0 for i in range(m)]
+    for i in range(m):
+        wec[i] = soln[i]
+    n = len(vectors[0])
+    vec = [0 for i in range(n)]
+    for i in range(n):
+        for j in range(l):
+            vec[i] += soln[m+j]*vectors[j][i]
+    return (vec,wec)
+
 def absGuardedCommandAux(varlist,A,b):
     """varlist is a dict from var to indices
     A,b are the A,b matrix defined wrt these indices
@@ -554,6 +575,38 @@ def absGuardedCommandAux(varlist,A,b):
                     nodeL.append(createEigenInv(nodePnew,nodePold,lamb))
             # Pick d' s.t. l d' = c' A2 or, d l = A2' c
             # Let p := (c'x+d'y+ (c'b1+d'b2)/l) THEN dp/dt = l p
+        if len(vectors) > 1:
+            # Test if vec0'x + c1* vec1'x + ci*veci'x + w'y+c is an eigenInv
+            # (vec0'+ci*veci')(A1x+A2y+b1) + w'b2 = lamb*((ci*veci')x+w'y+c)
+            # iff (vec0'+ci*veci')(A2y+b1) + w'b2 = lamb*(w'y+c)
+            # iff (vec0'+ci*veci')A2=lamb*w' and (vec0'+ci*veci')*b1+w'b2=lamb*c
+            # iff lamb*w=(A2'vec0+ci*A2'*veci) &&(vec0'+ci*veci')*b1+w'b2=lamb*c
+            l = len(vectors)
+            # m+l+1 variables, |w|=m, |veci|=l, const c 
+            row = [ 0 for j in range(m+l+1) ]
+            for j in range(m):
+                row[j] = b2[j]
+            for j in range(l):
+                row[m+j] = linearAlgebra.dotproduct(vectors[j],b1)
+            row[m+l] = -lamb
+            AA = []
+            bb = []
+            AA.append(row)
+            bb.append( 0 )
+            for j in range(m):
+                row = [ 0 for k in range(m+l+1) ]
+                row[j] = lamb
+                for k in range(l):
+                    row[m+k] = linearAlgebra.dotproduct(A2trans[j], vectors[k])
+                AA.append(row)
+                bb.append( 0 )
+            soln = linearAlgebra.solve(AA,bb)
+            for j in range(len(soln)):
+                (vec,wec) = ifGoodCreateNodes(soln[j],vectors,lamb,m,l)
+                if vec != None:
+                    nodePnew = createNodePnew(vec,x,wec,y,soln[j][m+l])
+                    nodePold = createNodePold(vec,x,wec,y,soln[j][m+l])
+                    nodeL.append(createEigenInv(nodePnew,nodePold,lamb))
     multirateGuard = multirateAbs(multirateL)
     if not(multirateGuard == None):
         nodeL.append(multirateGuard)
@@ -568,58 +621,53 @@ def absGuardedCommandAux(varlist,A,b):
             continue
         a = lamb[0]
         d = lamb[1]
+        assert len(vectors) == 2
+        u = vectors[0]
+        v = vectors[1]
+        # We know that A1'u=au-dv AND A1'v=bu+av
         # add something to nodeL
-        # for each vec in vectors, let u = vec
-        # we want d/dt(u'x+w1'y+c1)= a*(u'x+w1'y+c1)+d*(v'x+w2'y+c2)
-        # we want d/dt(v'x+w2'y+c2)= -d*(u'x+w1'y+c1)+a*(v'x+w2'y+c2)
-        # first set v: v' = (u'A1 - a*u')/d
-        # next find w1,w2,c1,c2 s.t.
-        # u'*(A1*x+A2*y+b1)+w1'*b2 = a*(u'x+w1'y+c1)+d*(v'x+w2'y+c2)
-        # i.e., u'*(A2*y+b1)+w1'*b2 = a*(w1'y+c1)+d*(w2'y+c2)
-        # i.e., u' A2 = a*w1'+d*w2' and u'*b1+w1'*b2 = a*c1+d*c2
-        # v'*(A1*x+A2*y+b1)+w2'*b2 = -d*(u'x+w1'y+c1)+a*(v'x+w2'y+c2)
-        # i.e., v'*(A2*y+b1)+w2'*b2 = -d*(w1'y+c1)+a*(w2'y+c2)
-        # i.e., v' A2 = -d w1' + a w2' and v'*b1+w2'*b2 = -d*c1+a*c2
-        # find w1,w2 such that v' A2 = -d w1' + a w2' and u' A2 = a*w1'+d*w2' 
-        # then find c1,c2 s.t v'*b1+w2'*b2 = -d*c1+a*c2 and u'*b1+w1'*b2 = a*c1+d*c2
-        # w1,w2 satisfy v' A2 = -d w1' + a w2' and u' A2 = a*w1'+d*w2' 
-        # w1,w2 satisfy (a*v'+d*u')*A2 = (a*a+d*d)*w2' 
-        # w1,w2 satisfy (d*v'-a*u')*A2 = (-a*a-d*d)*w1' 
-        # c1,c2 satisfy v'*b1+w2'*b2 = -d*c1+a*c2 and u'*b1+w1'*b2 = a*c1+d*c2
-        # c1,c2 satisfy a*(v'*b1+w2'*b2)+d*(u'*b1+w1'*b2)=(a*a+d*d)*c2
-        # c1,c2 satisfy d*(v'*b1+w2'*b2)-a*(u'*b1+w1'*b2)=(-a*a-d*d)*c1
-        for vec in vectors:
-            if isZero(vec):
-                continue
-            u = vec
-            tmp = linearAlgebra.multiplyAv(A1trans, u)
-            v = [ (tmp[j] - a*u[j])/d for j in range(n) ] # v=(u'A1 - a*u')/d
-            # w2 satisfy (a*v'+d*u')*A2 = (a*a+d*d)*w2' 
-            del tmp
-            DD = a*a + d*d
-            tmp = [ (a*v[j]+d*u[j])/DD for j in range(n) ]
-            w2 = linearAlgebra.nmultiplyAv(A2trans, tmp)
-            # w1 satisfy (d*v'-a*u')*A2 = (-a*a-d*d)*w1' 
-            tmp = [ (-d*v[j]+a*u[j])/DD for j in range(n) ]
-            w1 = linearAlgebra.nmultiplyAv(A2trans, tmp)
-            # c2 satisfy a*(v'*b1+w2'*b2)+d*(u'*b1+w1'*b2)=(a*a+d*d)*c2
-            # c1,c2 satisfy d*(v'*b1+w2'*b2)-a*(u'*b1+w1'*b2)=(-a*a-d*d)*c1
-            tmp1 = linearAlgebra.dotproduct(v,b1)
-            tmp1 += linearAlgebra.dotproduct(w2,b2)
-            tmp2 = linearAlgebra.dotproduct(u,b1)
-            tmp2 += linearAlgebra.dotproduct(w1,b2)
-            c2 = (a*tmp1 + d*tmp2)/DD 
-            c1 = (-d*tmp1 + a*tmp2)/DD
-            #ux+w1y+c1 and vx+w2y+c2 are position,velocity pair.
-            # 2 invariants: if a < 0: |xnew|,|ynew| <= |xold| + |yold|
-            # 2 invariants: if a < 0: |xnew| <= |xold| or |ynew| <= |yold|
-            # 2 invariants: if a < 0: |xnew| <= |yold| or |ynew| <= |xold|
-            nodePnew = createNodePnew(u,x,w1,y,c1)
-            nodePold = createNodePold(u,x,w1,y,c1)
-            nodeQnew = createNodePnew(v,x,w2,y,c2)
-            nodeQold = createNodePold(v,x,w2,y,c2)
-            # vec could be 0 vector and hence nodePnew could be None
-            nodeL.append(createQuadInv(nodePnew,nodePold,nodeQnew,nodeQold,a,b))
+        # we want d/dt(u'x+w1'y+c1)= a*(u'x+w1'y+c1)-d*(v'x+w2'y+c2)
+        # we want d/dt(v'x+w2'y+c2)= d*(u'x+w1'y+c1)+a*(v'x+w2'y+c2)
+        # find w1,w2,c1,c2 s.t.
+        # u'*(A1*x+A2*y+b1)+w1'*b2 = a*(u'x+w1'y+c1)-d*(v'x+w2'y+c2)
+        # i.e., u'*(A2*y+b1)+w1'*b2 = a*(w1'y+c1)-d*(w2'y+c2)
+        # i.e., u' A2 = a*w1'-d*w2' and u'*b1+w1'*b2 = a*c1-d*c2
+        # v'*(A1*x+A2*y+b1)+w2'*b2 = d*(u'x+w1'y+c1)+a*(v'x+w2'y+c2)
+        # i.e., v'*(A2*y+b1)+w2'*b2 = d*(w1'y+c1)+a*(w2'y+c2)
+        # i.e., v' A2 = d w1' + a w2' and v'*b1+w2'*b2 = d*c1+a*c2
+        # find w1,w2 such that v' A2 = d w1' + a w2' and u' A2 = a*w1'-d*w2' 
+        # then find c1,c2 s.t v'*b1+w2'*b2 = d*c1+a*c2 and u'*b1+w1'*b2 = a*c1-d*c2
+        # w1,w2 satisfy v' A2 = d w1' + a w2' and u' A2 = a*w1'-d*w2' 
+        # w1,w2 satisfy (a*v'-d*u')*A2 = (a*a+d*d)*w2' 
+        # w1,w2 satisfy (d*v'+a*u')*A2 = (a*a+d*d)*w1' 
+        # c1,c2 satisfy v'*b1+w2'*b2 = d*c1+a*c2 and u'*b1+w1'*b2 = a*c1-d*c2
+        # c1,c2 satisfy a*(v'*b1+w2'*b2)-d*(u'*b1+w1'*b2)=(a*a+d*d)*c2
+        # c1,c2 satisfy d*(v'*b1+w2'*b2)+a*(u'*b1+w1'*b2)=(a*a+d*d)*c1
+        if isZero(u):
+            continue
+        # w1,w2 satisfy (d*v'+a*u')*A2 = (a*a+d*d)*w1' 
+        DD = a*a + d*d
+        tmp = [ (a*v[j]-d*u[j])/DD for j in range(n) ]
+        w2 = linearAlgebra.nmultiplyAv(A2trans, tmp)
+        # w1 satisfies (d*v'+a*u')*A2 = (a*a+d*d)*w1' 
+        tmp = [ (d*v[j]+a*u[j])/DD for j in range(n) ]
+        w1 = linearAlgebra.nmultiplyAv(A2trans, tmp)
+        # c2 satisfies a*(v'*b1+w2'*b2)-d*(u'*b1+w1'*b2)=(a*a+d*d)*c2
+        tmp1 = linearAlgebra.dotproduct(v,b1)
+        tmp1 += linearAlgebra.dotproduct(w2,b2)
+        tmp2 = linearAlgebra.dotproduct(u,b1)
+        tmp2 += linearAlgebra.dotproduct(w1,b2)
+        c2 = (a*tmp1 - d*tmp2)/DD 
+        # c1 satisfies d*(v'*b1+w2'*b2)+a*(u'*b1+w1'*b2)=(a*a+d*d)*c1
+        c1 = (d*tmp1 + a*tmp2)/DD
+        #ux+w1y+c1 and vx+w2y+c2 are position,velocity pair.
+        # related by quadInv(_,_)
+        nodePnew = createNodePnew(u,x,w1,y,c1)
+        nodePold = createNodePold(u,x,w1,y,c1)
+        nodeQnew = createNodePnew(v,x,w2,y,c2)
+        nodeQold = createNodePold(v,x,w2,y,c2)
+        # vec could be 0 vector and hence nodePnew could be None
+        nodeL.append(createQuadInv(nodePnew,nodePold,nodeQnew,nodeQold,a,b))
     return createNodeAnd(nodeL)
 
 # collect all x s.t. dx/dt = constant

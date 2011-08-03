@@ -23,8 +23,60 @@
 
 import math
 import sys  # for sys.exit()
+from scipy import mat
+from scipy import linalg
 sqrt = math.sqrt
 epsilon = 1e-4
+
+def isConjugate(a,b,ans):
+    """If a+-ib occurs in ans, return True"""
+    i = 0
+    while i < len(ans):
+        if len(ans[i]) == 2:
+            r = ans[i][0]
+            c = ans[i][1]
+            if equal(a,r) and equal(b+c,0):
+                return True
+        i += 2
+    return False
+
+def insertInAns(a, vec, ans):
+    """Insert [a],[vec] into ans. If a is already in ans, append there."""
+    i = 0
+    while i < len(ans):
+        if len(ans[i]) == 1:
+            lamb = ans[i][0]
+            if equal(lamb, a):
+                ans[i+1].append(vec)
+                return ans
+        i += 2
+    ans.append([a])
+    ans.append([ vec ])
+    return ans
+
+def eigen(A):
+    """Compute eigenvalues, eigenvector of A.
+       Return value la,v = list of eigenvalues,matrix of eigenvectors"""
+    if len(A) == 0:
+        return list()
+    matA = mat(A, float)
+    la,v = linalg.eig(matA)
+    assert len(v.shape) == 2	# v is a 2d array
+    ans = list()
+    for i in range(len(la)):
+        a = la[i].real
+        b = la[i].imag
+        if isConjugate(a,b,ans):
+            continue
+        if equal(b, 0):
+            vec = [ v[j][i].real for j in range(v.shape[0]) ]
+            ans = insertInAns(a, vec, ans)
+        else:
+            ans.append([a,b])
+            vec1 = [ v[j][i].real for j in range(v.shape[0]) ]
+            vec2 = [ v[j][i].imag for j in range(v.shape[0]) ]
+            ans.append([ vec1, vec2 ])
+    return ans
 
 def dotproduct(u,v):
     """dot product of two vectors"""
@@ -661,7 +713,8 @@ def complexEigen(A, eigens):
             ans = complexEigenAux(A, newlamb, ans)
     return ans
 
-def eigen(A):
+def eigenOld(A):
+    """Replaced by new eigen function; see above"""
     yy = copyA(A)
     eigens = neigenvalues(yy)
     reals = realEigen(eigens)

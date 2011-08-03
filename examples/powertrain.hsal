@@ -82,7 +82,7 @@ BEGIN
   dynamic_mode = FIRST; gear = 1; wt = 0; wcr = 0; pc2_filter = 0; veh_speed = 0; Ts = 0
  TRANSITION
  [
- wcr = R1 * wt AND wcr' = R1 * wt' AND
+ % wcr = R1 * wt AND wcr' = R1 * wt' AND
  Inv(Ts,Ts',veh_speed,veh_speed',wt,wt',wcr,wcr',pc2_target,pc2_target') AND
  dynamic_mode = FIRST AND pc2_target = 0 --> 
   Tsdot' = Ks * (Rd*wcr - veh_speed/Hf - 0.001 * Ts);
@@ -96,7 +96,7 @@ BEGIN
   gradedot' = 0;
   tpsdot' = 0
  []
- wcr = R2 * wt AND wcr' = R2 * wt' AND
+ % wcr = R2 * wt AND wcr' = R2 * wt' AND
  Inv(Ts,Ts',veh_speed,veh_speed',wt,wt',wcr,wcr',pc2_target,pc2_target') AND
  dynamic_mode = SECOND AND pc2_target = 0 --> 
   Tsdot' = Ks * (Rd*wcr - veh_speed/Hf - 0.001 * Ts);
@@ -122,7 +122,7 @@ BEGIN
   gradedot' = 0;
   tpsdot' = 0
  []
- wcr = R1 * wt AND wcr' = R1 * wt' AND
+ % wcr = R1 * wt AND wcr' = R1 * wt' AND
  Inv(Ts,Ts',veh_speed,veh_speed',wt,wt',wcr,wcr',pc2_target,pc2_target') AND
  dynamic_mode = FIRST AND pc2_target = 400 --> 
   Tsdot' = Ks * (Rd*wcr - veh_speed/Hf - 0.001 * Ts);
@@ -136,7 +136,7 @@ BEGIN
   gradedot' = 0;
   tpsdot' = 0
  []
- wcr = R1 * wt AND wcr' = R1 * wt' AND
+ % wcr = R1 * wt AND wcr' = R1 * wt' AND
  1.7 * tps + 10*Ts/9 - wt - 1210  >= 0 AND 
  1.7 * tps' + 10*Ts'/9 - wt' - 1210  <= 0 AND 
  Inv(Ts,Ts',veh_speed,veh_speed',wt,wt',wcr,wcr',pc2_target,pc2_target') AND
@@ -165,7 +165,8 @@ BEGIN
   gradedot' = 0;
   tpsdot' = 0
  []
- wcr = R2 * wt AND wcr' = R2 * wt' AND wt' >= wt/2 AND  
+ % wcr = R2 * wt AND wcr' = R2 * wt' AND 
+ wt' >= wt/2 AND  
  Inv(Ts,Ts',veh_speed,veh_speed',wt,wt',wcr,wcr',pc2_target,pc2_target') AND
  (Ts/Hf < M*9.81*grade OR veh_speed' >= veh_speed) AND
  dynamic_mode = SECOND AND pc2_target = 400 --> 

@@ -15,6 +15,11 @@ y >= 0 AND y' >= 0 -->
 ]
 END;
 
+% proved using sal-inf-bmc -i -d 2 Linear1 helper
+helper: LEMMA
+control |- G(0.9239 * x >= 0.3827 * y);
+
+% proved using sal-inf-bmc -i -d 2 -l helper Linear1 correct
 correct : THEOREM
 control |- G(x >= 0);
 END

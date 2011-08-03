@@ -29,7 +29,7 @@ install: install.py
 	bin/hsal2hasal $<
 
 %.hxml: %.hsal hybridsal2xml/hybridsal2xml hybridsal2xml/HybridSal2Xml.class 
-	hybridsal2xml/hybridsal2xml -o $@ $<
+	hybridsal2xml/hybridsal2xml -o ${exhsal}/$@ $<
 
 linearalgebra: src/linearAlgebra.py
 	python src/linearAlgebra.py
