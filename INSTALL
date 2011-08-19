@@ -2,33 +2,55 @@
 Installation instructions for HybridSAL Relational Abstractor:
 ---------------------------------------------------------------
 
-(1) Make sure your system has python 2.6
- We also use the scipy package of python. So make sure
- it is installed. On Ubuntu, it can be installed using:
-   sudo aptitude install python-numpy  
-   sudo aptitude install python-scipy  
+(1) Make sure your system has python 2.6 (or newer)
+ 
+    We also use the scipy package of python. So make sure
+    it is installed. On Ubuntu, it can be installed using:
+
+      sudo aptitude install python-numpy  
+      sudo aptitude install python-scipy  
+
+
+    NOTE: This will not work on Ubuntu 8.04 (Hardy Heron)
+    or older since these Ubuntu distributions do not have 
+    python 2.6. It is possible to install a more recent 
+    version of python (e.g., pyhton 2.7.2) from the source 
+    on such systems. Then installing numpy and scipy from 
+    the source is also possible (but it may not be that easy).
+
 
 (2) Run 
-  make install
+
+    make install
+
 
 (3) Run 
- make sal2xml
- This will test if the hybridsal2xml is installed properly
- Nothing works if hybridsal2xml is not installed properly
 
- make 
- This will test if the relational abstraction is installed properly.
- Running make will automatically create abstractions of the
- files in examples/*.hsal
+    make sal2xml
+
+    This will test if the hybridsal2xml is installed properly
+    Nothing works if hybridsal2xml is not installed properly
+
+
+(4) Run 
+
+    make 
+
+    This will test if the relational abstraction is installed properly.
+    Running make will automatically create abstractions of the
+    files in examples/*.hsal
 
 
 How to use the relational abstractions?
 ---------------------------------------
+
 The relational abstraction are written in SAL files, hence
 SAL tools can be applied to it.
+
 For example, sal-inf-bmc can be used to perform infinite 
 bounded model checking on the SAL files to verify safety
 properties or obtain counter examples.
+
 Note: Auxiliary lemmas may be needed.
  In some cases, <filename>.sal.proved contains such
  auxiliary lemmas and the sal command to prove properties.
@@ -37,6 +59,7 @@ Note: Auxiliary lemmas may be needed.
 
 sal-inf-bmc and other SAL tools are publicly available
 from http://sal.csl.sri.com/
+
 
 ----------------------------------------------------
 Author: Ashish Tiwari (tiwari@csl.sri.com)

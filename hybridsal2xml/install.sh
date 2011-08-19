@@ -49,10 +49,11 @@ fi
 echo "Installing hybridsal2xml. Copyright (c) SRI International 2003."
 echo "-------------------------------------------------------------------"
 echo "Installing hybridsal2xml at : $salenv_dir"
-touch *.class
+
+# ?? touch *.class
 sed -e "s|__ANTLR_PATH__|$antlrpath|g;s|__JIKES_PATH__|$jikespath|g;s|__RTJAR_PATH__|$rtjarpath|g" Makefile.in > Makefile
 make 
-echo "hybridsal2xml installation complete."
+echo "hybridsal2xml installation complete.\n"
 
 echo "Testing hybridsal2xml installation"
 make test

@@ -1,3 +1,5 @@
+SHELL=/bin/sh
+
 # Make sure these three are set correctly before running Make
 ANTLRPATH=__ANTLR_PATH__
 JAVAC=__JIKES_PATH__
@@ -13,6 +15,7 @@ JAVACLASSPATH = .:${ANTLRPATH}:${ANTLRPATH}/antlr.jar:${RTJARPATH}::
 
 install: all
 	sed -e "s|__HYBRIDSAL_PATH__|${PWD}|g;s|__ANTLRPATH__|${ANTLRPATH}|g" hybridsal2xml.template > hybridsal2xml
+	chmod +x hybridsal2xml
 
 all : HybridSalTokenTypes.class \
       HybridSalLexer.class \
@@ -23,10 +26,10 @@ all : HybridSalTokenTypes.class \
 HybridSalParser.java HybridSalLexer.java HybridSalTokenTypes.java : HybridSalParser.g
 	(export CLASSPATH=${JAVACLASSPATH}; java antlr.Tool $(ANTLRFLAGS) HybridSalParser.g)
 
-test: hybridsal2xml examples/SimpleThermo3.sal all HybridSal2Xml.class
+test: ./hybridsal2xml examples/SimpleThermo3.sal all HybridSal2Xml.class
 	rm -Rf examples/SimpleThermo3.xml
-	hybridsal2xml examples/SimpleThermo3.sal > examples/SimpleThermo3.xml
-	if [ -s examples/SimpleThermo3.xml ] ; then echo "hybridsal2xml installation successfully tested" ; fi
+	./hybridsal2xml examples/SimpleThermo3.sal > examples/SimpleThermo3.xml
+	if [ -s examples/SimpleThermo3.xml ] ; then echo "hybridsal2xml installation successfully tested\n" ; fi
 
 cleanall:
 	rm -f *.class HybridSalParser.java HybridSalLexer.java \

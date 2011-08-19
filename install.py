@@ -4,6 +4,10 @@ import os.path
 import subprocess
 
 def main():
+    #
+    # Search for java and JAVA_HOME
+    #
+    print '\nSearching for java'
     proc = subprocess.Popen(['which', 'java'], stdout=subprocess.PIPE)
     output = proc.stdout.read()
     if output == '' or output == '\n':
@@ -26,6 +30,11 @@ def main():
         print 'Error: Failed to find rt.jar in JAVA_HOME/lib/rt.jar'
         return 1
 
+    #
+    # Search for jikes? 
+    # NOTE: BD I don't have jikes but it still compile fine??
+    #
+    print '\nSearching for jikes'
     proc = subprocess.Popen(['which', 'jikes'], stdout=subprocess.PIPE)
     output = proc.stdout.read()
     if output == '' or output == '\n':
@@ -36,7 +45,10 @@ def main():
         jikespath = ''
     else:
         jikespath = os.path.realpath(output[0:-1])
-    
+
+    #
+    # Check that we're in the right directory
+    #
     proc = subprocess.Popen(['pwd'], stdout=subprocess.PIPE)
     output = proc.stdout.read()
     if output == '' or output == '\n':
@@ -53,6 +65,11 @@ def main():
         print 'Error: RUN THIS SCRIPT FROM THE HSAL ROOT DIRECTORY'
         print ' The HSAL root directory is the directory created by tar -xz'
         return 1
+    print '-------------------------'
+
+    #
+    # Run the install.sh script in hybridsal2xml
+    #
     print 'Installing hybridsal2xml'
     os.chdir(hybridsal2xml)
     # run ./install.sh antlrpath rtjar jikespath
@@ -63,14 +80,21 @@ def main():
         print 'Error: Failed to find antlr-2.7.1/'
         return 1
     subprocess.call([ './install.sh', antlrpath, rtjar, jikespath ])
+
+    #
+    # Run a test
+    #
     subprocess.call([ 'rm', '-f', 'examples/SimpleThermo4.xml'])
-    subprocess.call([ 'hybridsal2xml', '-o', 'examples/SimpleThermo4.xml', 'examples/SimpleThermo4.sal' ])
+    subprocess.call([ './hybridsal2xml', '-o', 'examples/SimpleThermo4.xml', 'examples/SimpleThermo4.sal' ])
     if os.path.isfile('examples/SimpleThermo4.xml'):
         print 'hybridsal2xml successfully installed'
     else:
         print 'Error: hybridsal2xml test failed'
         return 1
+
+    #
     # create bin/ files
+    #
     bindir = pwd + "/bin"
     if not(os.path.isdir(bindir)):
         print 'Error: Directory %s does not exist' % bindir
@@ -96,6 +120,7 @@ def main():
     subprocess.call(['chmod', '+x', pwd+'/bin/hasal2sal'])
     subprocess.call(['chmod', '+x', pwd+'/bin/hsal2hasal'])
     subprocess.call(['chmod', '+x', pwd+'/bin/hxml2hsal'])
+    subprocess.call(['ln', '-s', '../hybridsal2xml/hybridsal2xml', pwd+'/bin/hsal2hxml'])
     return 0
 
 if __name__ == '__main__':
