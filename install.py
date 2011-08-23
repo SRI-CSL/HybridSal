@@ -117,6 +117,10 @@ def main():
     print >> fp, '#!', shell
     print >> fp, 'python ', pwd + '/src/HSalExtractRelAbs.py $*'
     fp.close()
+    fp = open(bindir + "/hsal2Tsal", 'w')
+    print >> fp, '#!', shell
+    print >> fp, 'python ', pwd + '/src/HSalTimedRelAbsCons.py $*'
+    fp.close()
     subprocess.call(['chmod', '+x', pwd+'/bin/hasal2sal'])
     subprocess.call(['chmod', '+x', pwd+'/bin/hsal2hasal'])
     subprocess.call(['chmod', '+x', pwd+'/bin/hxml2hsal'])

@@ -197,7 +197,7 @@ def HSalPPGuard(guard):
 
 def HSalPPSimpleDefn(node):
     global fp
-    str0 = HSalPPExpr(getArg(node,1))
+    str0 = '\t'+HSalPPExpr(getArg(node,1))
     rhsexpr = node.getElementsByTagName("RHSEXPRESSION")
     rhssel  = node.getElementsByTagName("RHSSELECTION")
     if not(rhsexpr.length == 0):
@@ -214,7 +214,7 @@ def HSalPPAssgns(assgns):
     flag = False
     for i in defs:
         if flag:
-            print >> fp, ";",
+            print >> fp, ";\n",
         HSalPPSimpleDefn(i)
         flag = True
     print >> fp, "\n",
