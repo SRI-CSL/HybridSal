@@ -1,0 +1,553 @@
+\documentclass{article}
+
+\usepackage{amssymb}
+\usepackage{url}
+\newtheorem{definition}{Definition}
+
+\begin{document}
+
+\title{HybridSAL Relational Abstractor: A New Abstractor for Hybrid Systems}
+\author{Ashish Tiwari}
+
+\maketitle
+
+\section{Detailed Example and the HybridSal Relational Abstractor Tool}
+
+Consider a simple 2-dimensional continuous system defined by
+\begin{eqnarray*}
+\frac{dx}{dt} & = & -y + x
+\\
+\frac{dy}{dt} & = & -y - x
+\end{eqnarray*}
+Assume we are given the initial condition $x = 1, y = 2$
+and the invariant that $y$ is always non-negative.
+We wish to prove that $x$ always remains non-negative.
+
+\begin{figure}[t]
+\begin{tt}
+\begin{verbatim}
+Linear1: CONTEXT = 
+BEGIN
+
+control: MODULE =
+BEGIN
+ LOCAL x,y:REAL
+ LOCAL xdot,ydot:REAL
+ INITIALIZATION
+  x = 1; y = 2
+ TRANSITION
+ [
+ y >= 0 AND y' >= 0 --> 
+  xdot' = -y + x ;
+  ydot' = -y - x
+ ]
+END;
+
+% proved using sal-inf-bmc -i -d 2 Linear1 helper
+helper: LEMMA
+ control |- G(0.9239 * x >= 0.3827 * y);
+
+% proved using sal-inf-bmc -i -d 2 -l helper Linear1 correct
+correct : THEOREM
+ control |- G(x >= 0);
+END
+\end{verbatim}
+\end{tt}
+\caption{HybridSAL file describing a simple two-dimensional
+continuous dynamical system, along with two safety
+properties of that system.}\label{fig:hsal-ex}
+\end{figure}
+
+This example can be encoded in HybridSAL as shown in
+Figure~\ref{fig:hsal-ex}.  The HybridSAL syntax is 
+almost identical to the syntax of SAL~\cite{sal}, but for a few
+modifications that enable encoding of continuous dynamical
+systems. The key changes in HybridSAL are:
+\begin{itemize}
+\item
+Variables whose name ends in {\em{dot}} denote the derivative.
+In Figure~\ref{fig:hsal-ex}, there are two state variables
+$x,y$, and their derivatives are denoted by variables named
+$xdot,ydot$ respectively.  These special dot variables can only
+be used as left-hand sides of simple definitions (equations)
+that appear in guarded commands.  Thus, the equation
+$xdot' = -y+x$ denotes the differential equation
+$dx/dt = -y+x$.
+\item
+The guard of the guarded command that encodes the system of
+differential equation denotes the state invariant; that is,
+the system is forced to remain inside the invariant set while
+evolving as per the differential equations.
+This meaning is consistent with the usual semantics of guards
+in SAL. 
+In Figure~\ref{fig:hsal-ex}, the guard $y \geq 0\wedge y'\geq 0$
+says that $y\geq 0$ is the mode invariant for the only
+mode in the system.
+\end{itemize}
+The definition of contexts, modules, and properties (theorems)
+are exactly as in the SAL language~\cite{sal}.
+
+The user creates a HybridSAL model, similar to the one shown 
+in Figure~\ref{fig:hsal-ex}, using a text editor.
+Following the SAL convention for naming files, the HybridSAL file containing
+the model in Figure~\ref{fig:hsal-ex} is stored as file
+{\tt{Linear1.hsal}}.
+Thereafter, to prove the two properties contained in 
+{\tt{Linear1.hsal}}, the user executes the
+following commands.
+\begin{description}
+\item[{\tt{bin/hsal2hasal examples/Linear1.hsal}}].
+This command is run from
+the root directory of the HybridSAL relational abstraction tool.
+It will create a set of files in the subdirectory {\tt{examples/}},
+including the file {\tt{Linear1.sal}} that contains the
+relational abstraction of the original model.
+The process of going from {\tt{Linear1.hsal}} to 
+{\tt{Linear1.sal}} involves the following stages
+(that are all performed in a single run of the above command):
+\[
+\begin{array}{rclclclcl}
+{\tt{Linear1.hsal}} \longrightarrow
+{\tt{Linear1.hxml}} \longrightarrow
+{\tt{Linear1.haxml}} \longrightarrow 
+{\tt{Linear1.xml}} \longrightarrow
+{\tt{Linear1.sal}}
+\end{array}
+\]
+The hsal2hxml converter is in the subdirectory 
+{\tt{hybridsal2xml}}.  It is simply the HybridSAL
+parser that parses a files and outputs it in {\tt{.hxml}} 
+format.  The program {\tt{bin/hsal2hasal}} can take as input
+either a {\tt{.hsal}} file or a {\tt{.hxml}} file.
+It creates {\tt{.hasal}} and {\tt{.haxml}} -- which is 
+a file in {\em{extended HybridSAL}} syntax -- that contains
+the original model as well as its relational abstraction.
+It is an intermediate file that is useful only for debugging
+purposes at the moment.
+In the last stage, the final {\tt{.xml}} and {\tt{.sal}} files 
+are easily extracted
+from the {\tt{.haxml}} files.
+\item[{\tt{sal-inf-bmc -i -d 2 Linear1 correct}}].
+Once the relational abstraction has been created, it can be 
+model checked.  Note that the relational abstraction (in
+file {\tt{Linear1.sal}}) is an {\em{infinite}} state system.
+Hence, we can not use finite state model checkers. 
+We can, however, use the SAL infinite bounded model checker
+({\tt{sal-inf-bmc}}) and 
+the k-induction prover
+({\tt{sal-inf-bmc -i}}).
+The k-induction prover can sometimes fail to prove a correct
+assertion because the assertion is not inductive. In such a
+case, auxiliary lemmas may be needed to complete a proof.
+In the running example, we need a helper lemma.
+Using the lemma {\tt{helper}}, the property {\tt{correct}}
+can be proved using the command:
+\\
+ {\tt{sal-inf-bmc -i -d 2 -l helper Linear1 correct}}
+\\
+The lemma {\tt{helper}} can itself be proved using $k$-induction
+as:
+\\
+ {\tt{sal-inf-bmc -i -d 2 Linear1 helper}}
+\end{description}
+
+This completes the discussion of the application of  the
+HybridSAL relational abstraction tool on the running example.
+For more complex examples, including examples of hybrid systems,
+the reader is referred to the {\tt{examples/}} subdirectory in 
+the tool.
+We note a few points here.
+\begin{description}
+\item[Initialization]
+The initial state of the system need not be a single point.
+It can be a region of the state space.  For example,
+in Figure~\ref{fig:hsal-ex}, 
+the initialization section can be replaced by
+the initialization 
+\begin{tt}
+ \begin{verbatim}
+ INITIALIZATION 
+  x IN {z:REAL|0 <= z AND z <= 1};
+  y IN {z:REAL|2 <= z AND z <= 3};
+ \end{verbatim}
+\end{tt}
+The new model can again be verified using the same set of commands
+given above.
+\item[Composition]
+The model need not be a single module, and it can be a composition of 
+modules.  Modules can be purely discrete -- they need not all have
+dynamics given by differential equations.  For example, the example
+in the File {\tt{TGC.hsal}} describes a model of the train-gate-controller
+in HybridSAL that is a composition of five modules.  Only one of the
+five has continuous differential equations in the dynamics.
+\end{description}
+
+\section{Theoretical Contribution}
+
+Hybrid dynamical systems are formal models of complex systems 
+that have both discrete and continuous behavior.  
+It is well-known that the problem of verifying hybrid systems for
+properties such as safety and stability is quite
+hard, both in theory and in practice.  There are no automated,
+scalable and compositional tools and techniques for formal 
+verification of hybrid systems.
+
+HybridSAL is a framework for modeling and analyzing hybrid systems.
+HybridSAL is built as an extension of SAL (Symbolic Analysis Laboratory).
+SAL consists of a language and a suite of tools for modeling and 
+analyzing discrete state transition systems.  HybridSAL extends SAL 
+by allowing specification of continuous dynamics in the form of 
+differential equations.
+Thus, HybridSAL can be used to model hybrid systems.
+These models can be abstracted into discrete  finite state transition
+systems using the HybridSAL abstractor.  The abstracted system
+is output in the SAL language, and hence SAL (symbolic) model 
+checkers can be used to model check the abstraction.
+While HybridSAL can be used to verify intricate hybrid system models,
+it is based on constructing qualitative abstractions -- which can
+be very coarse at times.  Furthermore, the HybridSAL abstractor is
+not compositional, and can not abstract modules independently
+separately without being very coarse.
+
+To alleviate the shortcomings of the HybridSAL abstractor,
+we developed the concept of relational abstractions of hybrid
+systems.  A relational abstraction transforms a given hybrid system into
+a purely discrete transition system by summarizing the effect
+of the continuous evolution using relations.   The state space
+of system and its discrete transitions are left unchanged. 
+However, the differential equations describing the
+continuous dynamics (in each mode) are replaced by a 
+relation between the initial values of the variables and 
+final values of the variables.
+The abstract discrete system is an infinite-state system that can be
+analyzed using standard techniques for verifying systems such
+as $k$-induction and bounded model checking.
+
+Relational abstractions can be constructed compositionally by 
+abstracting each mode separately.  Abstraction and compositionality
+are crucial for achieving scalability of verification.
+We have also developed techniques for constructing good quality 
+relational abstractions.  The details are technical and can be 
+found in papers~\cite{ST11:CAV,Tiwari03:HSCC}.  The HybridSAL verification framework has 
+been extended by an implementation of relational abstraction.
+
+
+\section{Qualitative versus Relational Abstraction}
+
+Qualitative and predicate abstraction are techniques for abstracting
+a system that work by simplifying the state space of the system.
+Specifically they reduce the state space of the system to a finite
+set of (qualitative) states defined by certain (qualitative) predicates.
+In contrast, relational abstraction does not simplify the state space
+but only simplifies the presentation of the dynamics by replacing
+hard-to-analyze differential equations by discrete transitions.
+In principle, predicate and qualitative abstraction can be used on
+a relational abstraction of a system to further approximate the
+system, if needed.  The original HybridSAL tool implements qualitative
+abstraction.  The new HybridSAL Relational Abstractor implements
+relational abstraction. 
+
+
+\section{Tool: The HybridSAL Relational Abstractor}
+
+We extended the HybridSAL tool by implementing a 
+relational abstractor for HybridSAL models.
+The input to the tool is a specification of a hybrid system 
+in the HybridSAL language.  
+
+The verification workflow for using the HybridSAL relatioal
+abstractor is as follows:
+(1) Create a model of a hybrid system in HybridSAL:
+ The user creates such a model in a file, say in 
+ file filename.hsal, using any text editor.
+(2) Construct a relational abstraction:
+ The user runs the HybridSAL relational abstractor to create a discrete,
+ but infinite-state relational abstraction of the original model.
+ The relational abstraction is output in the SAL language as
+ filename.sal.
+(3) Analyze the SAL model:
+ The user runs the SAL infinite bounded model checker or k-induction prover
+ to analyze the SAL model in filename.sal
+
+We now discuss the implementation of the HybridSAL relational abstractor.
+We first define relational abstraction of a continuous dynamical
+system. 
+
+\begin{definition}[Relational Abstraction Without Time]\label{def-ra}
+Consider a continuous dynamical system 
+$\frac{d\vec{x}}{dt} = f(\vec{x})$, where $\vec{x}$ is a $n\times 1$
+vector of real-valued variables.
+The relation $R \subseteq \mathbb{R}^{2n}$ is a relational abstraction 
+of this continuous system if  for all time
+trajectories $\tau: [0,T) \mapsto \mathbb{R}^n$ of this system,
+it is the case that
+$ (\forall\ t \in [0,T))\ (\tau(0),\tau(t)) \in R$.
+\end{definition}
+Thus, a relational abstraction $R$
+captures all pairs of states $(\vec{x}_0,\vec{x})$ such that it is possible to
+reach $\vec{x}$ from $\vec{x}_)$ in a finite amount of time by evolving
+according to the continuous dynamics.
+A relational abstraction of a hybrid system is constructed by 
+replacing each constituent continuous system by its relational 
+abstraction and keeping the discrete transitions unchanged.
+
+We briefly describe the techniques implemented in the
+HybridSAL relational abstractor.
+Currently, HybridSAL relational abstractor can only construct
+relational abstractions of hybrid systems in which all
+continuous dynamics are given by linear ordinary differential
+equations.
+For linear systems, such as
+$d\vec{x}/dt = A\vec{x}$, whenever $A$ has real eigenvalues, useful
+relational abstractions can be generated using the eigenvectors of
+${A'}$ corresponding to those real
+eigenvalues~\cite{Tiwari03:HSCC}.  Here, ${A'}$ denotes the
+transpose of matrix $A$.  Specifically, if $\vec{c}$ is such that
+${A'}\vec{c} = \lambda \vec{c}$, then by simple algebraic
+manipulation, we obtain $ \frac{d}{dt} (c_1 x_1 + \ldots + c_n x_n) =
+\lambda (c_1 x_1 + \ldots + c_n x_n)$ where $\vec{c} :=
+[c_1;\ldots;c_n]$ and $\vec{x} := [x_1;\ldots;x_n]$.  Let $p$ denote
+the linear expression $c_1 x_1 + \ldots + c_n x_n$ and let $p_0$
+denote the linear expression $c_1 x_{10} + \ldots + c_n x_{n0}$.  Here,
+$x_{i0}$ denotes the old value of $x_i$.  If $\lambda < 0$, then we
+know that the value of $p$ approaches zero monotonically.  Consequently, we
+get the relational abstraction 
+$ (p_0 \leq p < 0) \vee
+  (p_0 \geq p > 0) \vee (p = p_0 = 0) $. Similarly, we can
+write the relational invariants for the case when $\lambda > 0$ and
+$\lambda = 0$.
+This key idea also generalizes to the case when 
+$\frac{d\vec{x}}{dt} = A\vec{x}+\vec{b}$.
+We call such relational abstractions eigen-invariants.
+
+When $A$ has complex eigenvalues, we get other kinds of
+relational abstractions; for details, the reader is
+referred to~\cite{Tiwari03:HSCC}.  
+
+\begin{table}[t]
+{\small \begin{center}
+\begin{tabular}{|c||c|c|c||c|c|c||c|c|c|}
+\hline
+Benchmark & 
+\multicolumn{3}{c||}{Affine Invs} & 
+\multicolumn{3}{c||}{Affine+Eigen Invs} & 
+\multicolumn{3}{c|}{Affine+Eigen+Box Invs}
+\\ \hline
+ & depth & status & time(s)
+ & depth & status & time(s)
+ & depth & status & time(s)
+\\ \hline\hline
+nav01  
+& 4 & F & 0.63
+& 4 & F & 0.88
+& 4 & F & 1.91
+\\ 
+nav01  
+& 5 & P & 0.75
+& 5 & P & 0.91
+& 5 & P & 1.36
+\\ \hline
+nav02
+& 4 & F & 0.64
+& 4 & F & 0.87
+& 4 & F & 1.8
+\\ 
+nav02
+& 5 & P & 0.68
+& 5 & P & 1.04
+& 5 & P & 3.33
+\\ \hline
+nav03
+& 4 & F & 0.60
+& 4 & F & 0.91
+& 4 & F & 1.72
+\\ 
+nav03
+& 5 & P & 0.67
+& 5 & P & 1.05
+& 5 & P & 2.7
+\\ \hline
+nav04
+& 3 & CE & 0.49
+& 8 & F & 3.21
+& 8 & F & 34.883
+\\ 
+nav04
+& & &  
+& 4 & P & 0.75+0.99
+& 4 & P & 0.98+2.21
+\\ \hline
+nav05
+& 2 & CE & 0.47
+& 8 & F & 3.85
+%& 5 & F & 8.45
+& 8 & F & 37.31
+\\ 
+nav05
+& & &
+& 8 & P & 2.15+2.50
+& 8 & P & 5.38+11.05
+\\ \hline
+nav06
+& 4 & CE & 0.61
+& 8 & F & 18.01
+& 8 & F & 494.5
+\\ 
+nav06*
+& 4 & CE & 1.03
+& 8 & P & 21.80+7.42  
+& 8 & P & 40.22+35.08  
+\\ \hline
+nav07
+& 5 & CE & 0.66
+& - & - & - 
+& 5 & F & 69.9 
+\\ 
+nav07
+& & &
+& - & - &- 
+& 6 & P & 6.25 
+\\ \hline
+nav08
+& 4 & CE & 0.52
+& - & - &- 
+& 6 & CE & 0.95
+\\ \hline
+nav09
+& 4 & CE & 0.57
+& 4 & CE & 1.45
+& 4 & CE & 19.87
+\\ \hline
+nav10
+& 3 & CE & 0.44
+& 3 & CE & 0.99
+& 3 & CE & 0.95
+\\ \hline
+\end{tabular}
+\end{center}
+}
+\caption{Comparison of various abstractions over the NAV
+  benchmarks. All experiments were performed on an Intel Xeon E5630 2.53GHz
+  single-core processor (x86\_64 arch) with 4GB RAM running Ubuntu
+  Linux 2.6.32-26.  Legend --- \textbf{depth:}
+  $k$-induction depth, \textbf{time:} time taken by verifier,
+  \textbf{status:}  \textbf{P}: Proved
+  Property, \textbf{CE:} $k$-induction base case fails and
+  counterexample is produced, \textbf{F}: inductive step fails, no
+  proofs or counterexample.  \textbf{Note:} Relational
+  eigeninvariants are inapplicable for nav07, nav08 (indicated by -).  
+$k$-induction timings  reported as $t_1+t_2$ indicate that an auxiliary lemma was used. $t_1$ is the time to prove the
+  property, and $t_2$  to discharge the
+ lemma.
+}\label{table-exp}
+%\vspace*{-1cm}
+\end{table}
+
+We evaluate the HybridSAL relational abstractor over  the navigation
+benchmarks~\cite{benchmarks}.
+The navigation benchmarks model a vehicle moving in a
+2-dimensional rectangular space $[0,m-1]\times [0,n-1]$.
+This space is partitioned in $m\times n$ cells.  Let
+$x,y$ denote the position of the vehicle and $v_x,v_y$ denote
+its velocity.  Then the dynamics of the vehicle in any particular
+cell are given by the ODEs:
+\[
+\begin{array}{rcl@{\quad}rcl}
+ \frac{dx}{dt} &  = & v_x
+ &
+ \frac{dv_x}{dt} &  = & a_{11} (v_x - b) + a_{12} (v_y - c)
+\\
+ \frac{dy}{dt} &  = & v_y
+ &
+ \frac{dv_y}{dt} &  = & a_{21} (v_x - b) + a_{22} (v_y - c)
+\end{array}
+\]
+where the matrix $A := [a_{11},a_{12};a_{21},a_{22}]$ and the
+direction $(b,c)$ are parameters that can potentially vary 
+(for each of the cells)%
+\footnote{The matrix $A$ is Hurwitz:
+the dynamics for $(v_x,v_y)$ asymptotically converge to
+$(b,c)$.}.
+
+Every benchmark in the suite is
+specified by fixing the matrix $A$, the number of cells $m \times n$,
+the direction $(b,c)$ in each cell, and initial intervals for each of
+the four state variables $x,y,v_x,v_y$.   Our experiments
+focus on proving the unreachability of a distinct cell marked $B$ for each benchmark instance~\cite{benchmarks}.
+
+In our experiments, we verify the safety property for the navigation
+benchmarks using $k$-induction over the relational abstraction.  We
+use the SAL infinite bounded model checker, with the $k$-induction
+flag turned on ({\tt{sal-inf-bmc -i}}), which uses the SMT solver
+Yices in the back end.  Table~\ref{table-exp} reports the results. For
+each benchmark, we report the depth used for performing $k$-induction
+(under ``depth''), the output of $k$-induction (under ``status''), and
+the time it took (under ``time'').  There are three possible outputs:
+(a) the base case of $k$-induction fails and a counterexample is
+found (denoted by ``CE''), (b) the base case is proved, but the
+induction step fails; i.e., no counterexample is found, but no proof
+is found either (denoted by ``F''), (c) the base case and the induction
+step are successfully proved (denoted by ``P''). Since we perform
+$k$-induction on an abstraction, the counterexamples may be spurious,
+but the proofs are not.  As Table~\ref{table-exp} indicates,
+relational abstractions are sufficient to establish safety of the
+benchmarks nav01--nav05, nav06*, and nav07.  The system nav06* is the
+same as nav06 but with a slightly smaller set of initial states.
+However, the proof fails on nav06 and nav08--nav10.  There are two
+reasons for failure: (a) poor quality of abstraction, which is
+reflected in entries ``CE'' in Table~\ref{table-exp},  and (b) inability
+to find suitable k-inductive lemmas. This happens in the case of
+nav06, where the proof fails without yielding a counterexample.  
+We employed three kinds of relational abstractions for each mode:
+affine, eigen, and box.  Table~\ref{table-exp} also shows
+performance of each of these techniques.
+ 
+For further details on relational abstraction, and for downloading
+the HybridSAL relational abstractor and documentation, the reader
+is referred to the website
+{{\url{http://www.csl.sri.com/~tiwari/relational-abstraction/}}}.
+
+
+\section{Conclusion}
+
+Compositional verification of complex systems is a
+challenging problem.  We developed a new approach
+that enables compositional analysis of continuous and
+hybrid dynamical systems.  It is based on computing 
+relational abstractions of continuous dynamics of
+a complex system.
+
+Relational abstraction replaces the differential equations 
+in the system description by sound abstract discrete 
+transitions, thus enabling application of discrete verification 
+tools. The HybridSAL relational abstractor automatically 
+computes such abstractions for linear hybrid systems. 
+The extension to nonlinear dynamics is left for future
+work.
+
+\bibliography{hsal-ra-report}
+\bibliographystyle{plain}
+
+%\begin{verbatim}
+%[1] Sriram Sankaranarayanan and Ashish Tiwari, 
+   %"Relational Abstractions for Continuous and Hybrid Systems", In CAV 2011: 686-702. 
+%
+%[2] Ashish Tiwari, "Approximate Reachability for Linear Systems", In the 
+ %Proceedings of Hybrid Systems: Computation and Control, HSCC 2003. 
+%
+%[3] http://www.csl.sri.com/users/tiwari/existsforall/
+%
+%[4] Ashish Tiwari, "Compositionally analyzing a PI controller family", 
+  %In CDC 2011. To appear. 
+%
+%[5] Thomas Sturm and Ashish Tiwari, 
+  %"Verification and synthesis using real quantifier elimination". In ISSAC 2011. 
+%[Tiwari/03/Approximate] Ashish Tiwari,
+ %"Approximate reachability for linear systems".
+ %In HSCC 2003, pp. 514--525.
+%
+%[Fehnker+Ivancic/2004/Benchmarks] Ansgar Fehnker and Franjo Ivancic,
+ %"Benchmarks for Hybrid Systems Verification". In HSCC 2004, pp. 326-341.
+%\end{verbatim}
+
+\end{document}

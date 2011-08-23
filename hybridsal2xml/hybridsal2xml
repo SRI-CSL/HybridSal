@@ -1,2 +1,2 @@
 #!/bin/sh
-(export CLASSPATH=/export/u1/homes/bruno/projects/VVFCS/hybrid-sal/hybridsal2xml:/export/u1/homes/bruno/projects/VVFCS/hybrid-sal/hybridsal2xml/antlr-2.7.1/:${CLASSPATH}; java HybridSal2Xml $*)
+(export CLASSPATH=/home/tiwari/hs-constraints/ashish-tools/hybridsal2xml:/home/tiwari/hs-constraints/ashish-tools/hybridsal2xml/antlr-2.7.1/:${CLASSPATH}; java HybridSal2Xml $*)
