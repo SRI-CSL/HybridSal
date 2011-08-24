@@ -318,6 +318,25 @@ def createNodeAbsVar(varName):
     """ |varName| """
     return createNodeApp("abs", [ varName ])
 
+def createNodeQuadInvNonlinear():
+    """ xnew^2+ynew^2 <= xold^2 + yold^2 """
+    fname = createNodeTag("IDENTIFIER", "quadInv")
+    vd1 = createNodeVarType("xold", "REAL")
+    vd2 = createNodeVarType("yold", "REAL")
+    vd3 = createNodeVarType("xnew", "REAL")
+    vd4 = createNodeVarType("ynew", "REAL")
+    fparams = createNodeTagChild4("VARDECLS", vd1, vd2, vd3, vd4)
+    ftype = createNodeTag("TYPENAME", "BOOLEAN")
+    xoldSq = createNodeApp("*", ["xold", "xold"])
+    yoldSq = createNodeApp("*", ["yold", "yold"])
+    xnewSq = createNodeApp("*", ["xnew", "xnew"])
+    ynewSq = createNodeApp("*", ["ynew", "ynew"])
+    xoldPlusyold = createNodeApp("+", [xoldSq, yoldSq])
+    xnewPlusynew = createNodeApp("+", [xnewSq, ynewSq])
+    fact1 = createNodeApp("<=", [xnewPlusynew, xoldPlusyold])
+    ans = createNodeTagChild4("CONSTANTDECLARATION", fname, fparams, ftype, fact1)
+    return ans
+
 def createNodeQuadInv():
     """ if a < 0: |xnew|,|ynew| <= |xold| + |yold|
         |xnew| <= |xold| or |ynew| <= |yold|
@@ -372,13 +391,17 @@ def createQuadInv(nodePnew,nodePold,nodeQnew,nodeQold,a,b):
         |xnew| <= |xold| or |ynew| <= |yold|
         |xnew| <= |yold| or |ynew| <= |xold| """
     global opt
-    if (opt == True) & (a < 0):
+    if (opt == 1) & (a < 0):
         ans=createNodeApp("quadInvOpt", [ nodePold, nodeQold, nodePnew, nodeQnew])
         return ans
-    if a <= 0:
+    if a < 0:
         ans=createNodeApp("quadInv", [ nodePold, nodeQold, nodePnew, nodeQnew])
-    else:
+    elif a > 0:
         ans=createNodeApp("quadInv", [ nodePnew, nodeQnew, nodePold, nodeQold])
+    else:
+        ans1=createNodeApp("quadInv", [ nodePold, nodeQold, nodePnew, nodeQnew])
+        ans2=createNodeApp("quadInv", [ nodePnew.cloneNode(True), nodeQnew.cloneNode(True), nodePold.cloneNode(True), nodeQold.cloneNode(True)])
+        ans = createNodeAnd([ ans1, ans2 ])
     return ans
 
 def ifGoodCreateNodes(soln, vectors, lamb, m, l):
@@ -646,9 +669,12 @@ def handleContext(ctxt):
                 print "Unknown parent node type"
     cbody = ctxt.getElementsByTagName("CONTEXTBODY")
     assert len(cbody) == 1
-    if opt == True:
+    if opt == 1:
         cbody[0].insertBefore(newChild=createNodeQuadInvOpt(),refChild=cbody[0].firstChild)
-    cbody[0].insertBefore(newChild=createNodeQuadInv(),refChild=cbody[0].firstChild)
+    elif opt == 2:
+        cbody[0].insertBefore(newChild=createNodeQuadInvNonlinear(),refChild=cbody[0].firstChild)
+    if opt != 2:
+        cbody[0].insertBefore(newChild=createNodeQuadInv(),refChild=cbody[0].firstChild)
     cbody[0].insertBefore(newChild=createNodeEigenInv(),refChild=cbody[0].firstChild)
     cbody[0].insertBefore(newChild=createNodeMultirateInv(),refChild=cbody[0].firstChild)
     cbody[0].insertBefore(newChild=createModNode(),refChild=cbody[0].firstChild)
@@ -669,15 +695,18 @@ def moveIfExists(filename):
         shutil.move(filename, filename + "~")
 
 def printUsage():
-    print "Usage: hsal2hasal [-o|--opt] filename.hsal"
+    print "Usage: hsal2hasal [-o|--opt|-n|--nonlinear] filename.hsal"
 
 def main():
     global dom
     global opt
-    opt = False
+    opt = 0
     for i in sys.argv[1:]:
         if (i == '-o') | (i == '--opt') :
-            opt = True
+            opt = 1
+            continue
+        if (i == '-n') | (i == '--nonlinear') :
+            opt = 2
             continue
         if (len(i) > 0) & (i[0] == '-'):
             print "Unknown option" + i
