@@ -74,7 +74,7 @@ class HybridSal2Xml {
       File file = new File(f);
       s = new FileInputStream(file);
     }
-    Method pmethod = HybridSalParser.class.getMethod(rule, null);
+    Method pmethod = HybridSalParser.class.getMethod(rule);
     //    try {
       HybridSalLexer lexer = new HybridSalLexer(s);
       //lexer.setTokenObjectClass("HybridSalToken");
@@ -88,7 +88,7 @@ class HybridSal2Xml {
       
       // Here is where we actually parse
       try {
-	pmethod.invoke(parser,null);
+	pmethod.invoke(parser);
       }
       catch(IllegalAccessException e) {
 	System.err.println("Illegal Access Exception: "+e);
