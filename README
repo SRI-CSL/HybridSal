@@ -43,6 +43,8 @@ After installing (see file INSTALL), you can use the tool by
    sal-inf-bmc -d 5 mytest <property>
   where <property> is the name of the property inside the file
   mytest.hsal
+For detailed explanation on ONE small example, see the document
+ doc/hsal-ra-report.pdf
 
 How to run the demo?
 --------------------
@@ -126,6 +128,8 @@ Other simple examples:
 -----------------
 Simple Thermostat: SimpleThermo4.hsal
 Other linear continuous dynamical systems: Linear*.hsal
+See doc/hsal-ra-report.pdf for explanation of the working of
+the relational abstractor on the example examples/Linear1.hsal
 
 Contact: Ashish Tiwari
 

@@ -60,6 +60,7 @@ Note: Auxiliary lemmas may be needed.
 sal-inf-bmc and other SAL tools are publicly available
 from http://sal.csl.sri.com/
 
+See README file for more details on how to use the installed tool.
 
 ----------------------------------------------------
 Author: Ashish Tiwari (tiwari@csl.sri.com)
