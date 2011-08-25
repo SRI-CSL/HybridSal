@@ -18,10 +18,24 @@ Installation instructions for HybridSAL Relational Abstractor:
     on such systems. Then installing numpy and scipy from 
     the source is also possible (but it may not be that easy).
 
+   Make sure that java is installed and running.
+   In particular, there should be a rt.jar file.
+   NOTE: java-6-openjdk/jre/lib/rt.jar seems to be buggy. 
+   But java-6-sun/jre/lib/rt.jar works fine.
+
+   To install java6:
+      sudo aptitude install sun-java6-bin
+   Make sure java points to /usr/lib/jvm/java-6-sun/jre/bin/java
+
+   NOTE: Make sure javac is pointing to a java compiler;
+   or jikes is installed.
+
 
 (2) Run 
 
     make install
+
+    If there are errors, make sure Step (1) above was performed.
 
 
 (3) Run 
