@@ -31,7 +31,7 @@ class ImportVocabTokenManager extends SimpleTokenManager implements Cloneable {
           grammarFile = new File( Tool.getOutputDirectory(), filename_);
 
           if ( ! grammarFile.exists() ) {
-			tool.panic("Cannot find importVocab file '" + filename);
+			Tool.panic("Cannot find importVocab file '" + filename);
           }
         }
 
@@ -48,13 +48,13 @@ class ImportVocabTokenManager extends SimpleTokenManager implements Cloneable {
 			tokdefParser.file(this);
 		}
 		catch (FileNotFoundException fnf) {
-			tool.panic("Cannot find importVocab file '" + filename);
+			Tool.panic("Cannot find importVocab file '" + filename);
 		}
 		catch (RecognitionException ex) {
-			tool.panic("Error parsing importVocab file '" + filename + "': " + ex.toString());
+			Tool.panic("Error parsing importVocab file '" + filename + "': " + ex.toString());
 		}
 		catch (TokenStreamException ex) {
-			tool.panic("Error reading importVocab file '" + filename + "'");
+			Tool.panic("Error reading importVocab file '" + filename + "'");
 		}
 	}
 	public Object clone() {

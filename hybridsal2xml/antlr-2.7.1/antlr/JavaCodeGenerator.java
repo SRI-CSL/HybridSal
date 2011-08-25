@@ -231,7 +231,7 @@ public class JavaCodeGenerator extends CodeGenerator {
 			
 	setGrammar(g);
 	if (!(grammar instanceof LexerGrammar)) {
-	    tool.panic("Internal error generating lexer");
+	    Tool.panic("Internal error generating lexer");
 	}
 
 	// SAS: moved output creation to method so a subclass can change
@@ -519,7 +519,7 @@ public class JavaCodeGenerator extends CodeGenerator {
 
 	setGrammar(g);
 	if (!(grammar instanceof ParserGrammar)) {
-	    tool.panic("Internal error generating parser");
+	    Tool.panic("Internal error generating parser");
 	}
 
 	// Open the output stream for the parser and set the currentOutput
@@ -717,14 +717,14 @@ public class JavaCodeGenerator extends CodeGenerator {
 				// Warn if the rule has no return type
 		if (rs.block.returnAction == null)
 		    {
-			tool.warning("Rule '" + rr.targetRule + "' has no return type", grammar.getFilename(), rr.getLine());
+			Tool.warning("Rule '" + rr.targetRule + "' has no return type", grammar.getFilename(), rr.getLine());
 		    }
 		_print(rr.idAssign + "=");
 	    } else {
 				// Warn about return value if any, but not inside syntactic predicate
 		if ( !(grammar instanceof LexerGrammar) && syntacticPredLevel == 0 && rs.block.returnAction != null)
 		    {
-			tool.warning("Rule '" + rr.targetRule + "' returns a value", grammar.getFilename(), rr.getLine());
+			Tool.warning("Rule '" + rr.targetRule + "' returns a value", grammar.getFilename(), rr.getLine());
 		    }
 	    }
 
@@ -832,7 +832,7 @@ public class JavaCodeGenerator extends CodeGenerator {
     public void gen(TokenRefElement atom) {
 	if ( DEBUG_CODE_GENERATOR ) System.out.println("genTokenRef("+atom+")");
 	if ( grammar instanceof LexerGrammar ) {
-	    tool.panic("Token reference found in lexer");
+	    Tool.panic("Token reference found in lexer");
 	}
 	genErrorTryForElement(atom);
 	// Assign Token value to token label variable
@@ -901,7 +901,7 @@ public class JavaCodeGenerator extends CodeGenerator {
 	// SAS: debugging stuff removed for now...
 	setGrammar(g);
 	if (!(grammar instanceof TreeWalkerGrammar)) {
-	    tool.panic("Internal error generating tree-walker");
+	    Tool.panic("Internal error generating tree-walker");
 	}
 	// Open the output stream for the parser and set the currentOutput
 	// SAS: move file open to method so subclass can override it
@@ -1411,7 +1411,7 @@ public class JavaCodeGenerator extends CodeGenerator {
 	    // Generate a warning if there is a synPred for single alt.
 	    if (alt.synPred != null)
 		{
-		    tool.warning(
+		    Tool.warning(
 				 "Syntactic predicate superfluous for single alternative",
 				 grammar.getFilename(), 
 				 blk.getAlternativeAt(0).synPred.getLine()
@@ -1463,7 +1463,7 @@ public class JavaCodeGenerator extends CodeGenerator {
 		}
 		Lookahead p = alt.cache[1];
 		if (p.fset.degree() == 0 && !p.containsEpsilon()) {
-		    tool.warning("Alternate omitted due to empty prediction set",
+		    Tool.warning("Alternate omitted due to empty prediction set",
 				 grammar.getFilename(),
 				 alt.head.getLine());
 		}
@@ -1786,7 +1786,7 @@ public class JavaCodeGenerator extends CodeGenerator {
 	}
 	RuleSymbol rs = (RuleSymbol)grammar.getSymbol(r);
 	if (rs == null) {
-	    tool.panic("Enclosing rule not found!");
+	    Tool.panic("Enclosing rule not found!");
 	}
 	ExceptionSpec ex = rs.block.findExceptionSpec(el.getLabel());
 	if (ex != null) {
@@ -1842,7 +1842,7 @@ public class JavaCodeGenerator extends CodeGenerator {
 	}
 	RuleSymbol rs = (RuleSymbol)grammar.getSymbol(r);
 	if (rs == null) {
-	    tool.panic("Enclosing rule not found!");
+	    Tool.panic("Enclosing rule not found!");
 	}
 	ExceptionSpec ex = rs.block.findExceptionSpec(el.getLabel());
 	if (ex != null) {
@@ -2025,7 +2025,7 @@ public class JavaCodeGenerator extends CodeGenerator {
 	for (int i=0; i<nextTokenBlk.getAlternatives().size(); i++) {
 	    Alternative a = nextTokenBlk.getAlternativeAt(i);
 	    if ( a.cache[1].containsEpsilon() ) {
-		tool.warning("found optional path in nextToken()");
+		Tool.warning("found optional path in nextToken()");
 	    }
 	}
 
@@ -2309,7 +2309,7 @@ public class JavaCodeGenerator extends CodeGenerator {
 	    if ( pred!=null )
 		genSemPred(pred, currentRule.line);
 	    if (alt.synPred != null) {
-		tool.warning(
+		Tool.warning(
 			     "Syntactic predicate ignored for single alternative", 
 			     grammar.getFilename(), alt.synPred.getLine()
 			     );
@@ -2475,13 +2475,13 @@ public class JavaCodeGenerator extends CodeGenerator {
 
 			// Warn if the rule accepts no arguments
 		if (rs.block.argAction == null) {
-		    tool.warning("Rule '" + rr.targetRule + "' accepts no arguments", grammar.getFilename(), rr.getLine());
+		    Tool.warning("Rule '" + rr.targetRule + "' accepts no arguments", grammar.getFilename(), rr.getLine());
 		}
 	    } else {
 				// For C++, no warning if rule has parameters, because there may be default
 				// values for all of the parameters
 		if (rs.block.argAction != null) {
-		    tool.warning("Missing parameters on reference to rule "+rr.targetRule, grammar.getFilename(), rr.getLine());
+		    Tool.warning("Missing parameters on reference to rule "+rr.targetRule, grammar.getFilename(), rr.getLine());
 		}
 	    }
 	_println(");");
@@ -2858,7 +2858,7 @@ public class JavaCodeGenerator extends CodeGenerator {
 	 */
     public String getRangeExpression(int k, int[] elems) {
 	if (!elementsAreRange(elems)) {
-	    tool.panic("getRangeExpression called with non-range");
+	    Tool.panic("getRangeExpression called with non-range");
 	}
 	int begin = elems[0];
 	int end = elems[elems.length-1];
@@ -2879,7 +2879,7 @@ public class JavaCodeGenerator extends CodeGenerator {
 	    TokenSymbol ts = grammar.tokenManager.getTokenSymbolAt(value);
 	    if ( ts == null ) {
 		return ""+value; // return token type as string
-				// tool.panic("vocabulary for token type " + value + " is null");
+				// Tool.panic("vocabulary for token type " + value + " is null");
 	    }
 	    String tId = ts.getId();
 	    if ( ts instanceof StringLiteralSymbol ) {
@@ -3108,7 +3108,7 @@ public class JavaCodeGenerator extends CodeGenerator {
 	    throwNoViable = "throw new NoViableAltException(_t);";
 	}
 	else {
-	    tool.panic("Unknown grammar type");
+	    Tool.panic("Unknown grammar type");
 	}
     }
 

@@ -50,7 +50,7 @@ public Object clone() {
 		tm.tool = this.tool;
 		tm.name = this.name;
 	} catch (CloneNotSupportedException e) {
-		tool.panic("cannot clone token manager");
+		Tool.panic("cannot clone token manager");
 		return null;
 	}
 	return tm;

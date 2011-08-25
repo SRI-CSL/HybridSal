@@ -238,7 +238,7 @@ public abstract class CodeGenerator {
 	    }
 	// Something is bogus, but we cannot parse the language-specific
 	// actions any better.  The compiler will have to catch the problem.
-	tool.warning("Ill-formed action", grammar.getFilename(), line);
+	Tool.warning("Ill-formed action", grammar.getFilename(), line);
 	return "";
     }
 
@@ -276,7 +276,7 @@ public abstract class CodeGenerator {
 	    }
 	// Something is bogus, but we cannot parse the language-specific
 	// actions any better.  The compiler will have to catch the problem.
-	tool.warning("Ill-formed action", grammar.getFilename(), line);
+	Tool.warning("Ill-formed action", grammar.getFilename(), line);
 	return "";
     }
 
@@ -398,7 +398,7 @@ public abstract class CodeGenerator {
 		    // check for a paraphrase
 		    TokenSymbol ts = (TokenSymbol)tm.getTokenSymbol(s);
 		    if ( ts==null ) {
-			tool.warning("undefined token symbol: "+s);
+			Tool.warning("undefined token symbol: "+s);
 		    }
 		    else {
 			if ( ts.getParaphrase()!=null ) {

@@ -9,6 +9,9 @@ RTJARPATH=__RTJAR_PATH__
 JAVAFLAGS =
 JAVACLASSPATH = .:${ANTLRPATH}:${ANTLRPATH}/antlr.jar:${RTJARPATH}::
 
+antlrJava:=$(wildcard antlr-2.7.1/antlr/*.java)
+antlrClass=$(antlrJava:.java=.class)
+
 .SUFFIXES:
 .SUFFIXES: .java .class
 .java.class : ; (export CLASSPATH=${JAVACLASSPATH}; $(JAVAC) $(JAVAFLAGS) $<)
@@ -23,7 +26,7 @@ all : HybridSalTokenTypes.class \
       XmlAst.class \
       HybridSal2Xml.class
 
-HybridSalParser.java HybridSalLexer.java HybridSalTokenTypes.java : HybridSalParser.g
+HybridSalParser.java HybridSalLexer.java HybridSalTokenTypes.java : HybridSalParser.g $(antlrClass)
 	(export CLASSPATH=${JAVACLASSPATH}; java antlr.Tool $(ANTLRFLAGS) HybridSalParser.g)
 
 test: ./hybridsal2xml examples/SimpleThermo3.sal all HybridSal2Xml.class

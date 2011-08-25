@@ -54,7 +54,7 @@ public class MakeGrammar extends DefineGrammarSymbols {
 		super.beginExceptionGroup();
 		if (!(context().block instanceof RuleBlock))
 		{
-			tool.panic("beginExceptionGroup called outside of rule block");
+			Tool.panic("beginExceptionGroup called outside of rule block");
 		}
 	}
 	/** Add an exception spec to an exception group or rule block */
@@ -262,7 +262,7 @@ public class MakeGrammar extends DefineGrammarSymbols {
 		super.endExceptionSpec();
 		if (currentExceptionSpec == null)
 		{
-			tool.panic("exception processing internal error -- no active exception spec");
+			Tool.panic("exception processing internal error -- no active exception spec");
 		}
 		if (context().block instanceof RuleBlock)
 		{
@@ -419,7 +419,7 @@ public class MakeGrammar extends DefineGrammarSymbols {
 			!((LexerGrammar)grammar).caseSensitive && cl.getType() < 128 && 
 			Character.toLowerCase((char)cl.getType()) != (char)cl.getType()
 		) {
-			tool.warning("Character literal must be lowercase when caseSensitive=false", grammar.getFilename(), lit.getLine());
+			Tool.warning("Character literal must be lowercase when caseSensitive=false", grammar.getFilename(), lit.getLine());
 		}
 
 		addElementToCurrentAlt(cl);
@@ -446,10 +446,10 @@ public class MakeGrammar extends DefineGrammarSymbols {
 		// Generate a warning for non-lowercase ASCII when case-insensitive
 		if (!((LexerGrammar)grammar).caseSensitive) {
 			if (rangeMin < 128 && Character.toLowerCase((char)rangeMin) != (char)rangeMin) {
-				tool.warning("Character literal must be lowercase when caseSensitive=false", grammar.getFilename(), t1.getLine());
+				Tool.warning("Character literal must be lowercase when caseSensitive=false", grammar.getFilename(), t1.getLine());
 			}
 			if (rangeMax < 128 && Character.toLowerCase((char)rangeMax) != (char)rangeMax) {
-				tool.warning("Character literal must be lowercase when caseSensitive=false", grammar.getFilename(), t2.getLine());
+				Tool.warning("Character literal must be lowercase when caseSensitive=false", grammar.getFilename(), t2.getLine());
 			}
 		}
 
@@ -475,7 +475,7 @@ public class MakeGrammar extends DefineGrammarSymbols {
 		TokenSymbol ts = (TokenSymbol)
 			grammar.tokenManager.getTokenSymbol(tok.getText());
 		if ( ts==null ) {
-			tool.panic("cannot find "+tok.getText()+"in tokens {...}");
+			Tool.panic("cannot find "+tok.getText()+"in tokens {...}");
 		}
 		if ( option.getText().equals("AST") ) {
 			ts.setASTNodeType(value.getText());
@@ -512,7 +512,7 @@ public class MakeGrammar extends DefineGrammarSymbols {
 		super.refExceptionHandler(exTypeAndName, action);
 		if (currentExceptionSpec == null)
 		{
-			tool.panic("exception handler processing internal error");
+			Tool.panic("exception handler processing internal error");
 		}
 		currentExceptionSpec.addHandler(new ExceptionHandler(exTypeAndName, action));
 	}
@@ -536,7 +536,7 @@ public class MakeGrammar extends DefineGrammarSymbols {
 			String name = CodeGenerator.lexerRuleName(((RuleBlock)context().block).getRuleName());
 			RuleSymbol rs = (RuleSymbol)grammar.getSymbol(name);
 			if (rs.access.equals("public")) {
-				tool.warning("public Lexical rules cannot specify return type", grammar.getFilename(), returnAction.getLine());
+				Tool.warning("public Lexical rules cannot specify return type", grammar.getFilename(), returnAction.getLine());
 				return;
 			}
 		}
@@ -610,7 +610,7 @@ public class MakeGrammar extends DefineGrammarSymbols {
 			for (int i = 1; i < lit.getText().length()-1; i++) {
 				char c = lit.getText().charAt(i);
 				if (c < 128 && Character.toLowerCase(c) != c) {
-					tool.warning("Characters of string literal must be lowercase when caseSensitive=false", grammar.getFilename(), lit.getLine());
+					Tool.warning("Characters of string literal must be lowercase when caseSensitive=false", grammar.getFilename(), lit.getLine());
 					break;
 				}
 			}

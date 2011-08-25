@@ -190,7 +190,7 @@ public class DefineGrammarSymbols implements ANTLRGrammarParseBehavior
 				// Otherwise, labels conflict: error.
 				if ( name==null || sl.getLabel()!=null )
 				{
-					tool.warning("Redefinition of literal in tokens {...}: " + literal, grammar.getFilename(), tokliteral.getLine());
+					Tool.warning("Redefinition of literal in tokens {...}: " + literal, grammar.getFilename(), tokliteral.getLine());
 					return;
 				}
 				else if ( name!=null )
@@ -212,7 +212,7 @@ public class DefineGrammarSymbols implements ANTLRGrammarParseBehavior
 					// If it already has a literal attached, then: conflict.
 					if ( ts instanceof StringLiteralSymbol )
 					{
-						tool.warning("Redefinition of token in tokens {...}: " + name, grammar.getFilename(), tokliteral.getLine());
+						Tool.warning("Redefinition of token in tokens {...}: " + name, grammar.getFilename(), tokliteral.getLine());
 						return;
 					}
 					// a simple token symbol such as DECL is defined
@@ -251,7 +251,7 @@ public class DefineGrammarSymbols implements ANTLRGrammarParseBehavior
 		{
 			if (grammar.tokenManager.tokenDefined(name))
 			{
-				tool.warning("Redefinition of token in tokens {...}: " + name, grammar.getFilename(), tokname.getLine());
+				Tool.warning("Redefinition of token in tokens {...}: " + name, grammar.getFilename(), tokname.getLine());
 				return;
 			}
 			int tt = grammar.tokenManager.nextTokenType();
@@ -312,7 +312,7 @@ public class DefineGrammarSymbols implements ANTLRGrammarParseBehavior
 			// first make sure input!=output
 			if ( grammar.importVocab.equals(grammar.exportVocab) )
 			{
-				tool.warning("Grammar " + grammar.getClassName() +
+				Tool.warning("Grammar " + grammar.getClassName() +
 								 " cannot have importVocab same as default output vocab (grammar name); ignored.");
 				// kill importVocab option and try again: use default vocab
 				grammar.importVocab = null;
@@ -615,7 +615,7 @@ public class DefineGrammarSymbols implements ANTLRGrammarParseBehavior
 		{
 			if (value.getType() == ANTLRParser.STRING_LITERAL)
 			{
-				tool.literalsPrefix = tool.stripFrontBack(value.getText(), "\"","\"");
+				Tool.literalsPrefix = Tool.stripFrontBack(value.getText(), "\"","\"");
 			}
 			else
 			{
@@ -626,11 +626,11 @@ public class DefineGrammarSymbols implements ANTLRGrammarParseBehavior
 		{
 			if (value.getText().equals("true"))
 			{
-				tool.upperCaseMangledLiterals = true;
+				Tool.upperCaseMangledLiterals = true;
 			}
 			else if (value.getText().equals("false"))
 			{
-				tool.upperCaseMangledLiterals = false;
+				Tool.upperCaseMangledLiterals = false;
 			}
 			else
 			{
@@ -652,7 +652,7 @@ public class DefineGrammarSymbols implements ANTLRGrammarParseBehavior
 				{
 					if(!( value.getText().equals("true") || value.getText().equals("false") ))
 						tool.error("genHashLines option must be true or false", filename, value.getLine());
-					tool.genHashLines = value.getText().equals("true");
+					Tool.genHashLines = value.getText().equals("true");
 				}
 				else
 				{
@@ -665,9 +665,9 @@ public class DefineGrammarSymbols implements ANTLRGrammarParseBehavior
 						if ( key.getText().equals("namespace") )
 							tool.setNameSpace(value.getText());
 						else if( key.getText().equals("namespaceStd") )
-							tool.namespaceStd = value.getText();
+							Tool.namespaceStd = value.getText();
 						else if( key.getText().equals("namespaceAntlr") )
-							tool.namespaceAntlr = value.getText();
+							Tool.namespaceAntlr = value.getText();
 					}
 				}
 			}
@@ -740,7 +740,7 @@ public class DefineGrammarSymbols implements ANTLRGrammarParseBehavior
 	{
 		if ( numLexers>0 )
 		{
-			tool.panic("You may only have one lexer per grammar file: class "+ name.getText());
+			Tool.panic("You may only have one lexer per grammar file: class "+ name.getText());
 		}
 		numLexers++;
 		reset();
@@ -751,11 +751,11 @@ public class DefineGrammarSymbols implements ANTLRGrammarParseBehavior
 		{
 			if (!(g instanceof LexerGrammar))
 			{
-				tool.panic("'" + name.getText() + "' is already defined as a non-lexer");
+				Tool.panic("'" + name.getText() + "' is already defined as a non-lexer");
 			}
 			else
 			{
-				tool.panic("Lexer '" + name.getText() + "' is already defined");
+				Tool.panic("Lexer '" + name.getText() + "' is already defined");
 			}
 		}
 		else
@@ -778,7 +778,7 @@ public class DefineGrammarSymbols implements ANTLRGrammarParseBehavior
 	{
 		if ( numParsers>0 )
 		{
-			tool.panic("You may only have one parser per grammar file: class "+ name.getText());
+			Tool.panic("You may only have one parser per grammar file: class "+ name.getText());
 		}
 		numParsers++;
 		reset();
@@ -789,11 +789,11 @@ public class DefineGrammarSymbols implements ANTLRGrammarParseBehavior
 		{
 			if (!(g instanceof ParserGrammar))
 			{
-				tool.panic("'" + name.getText() + "' is already defined as a non-parser");
+				Tool.panic("'" + name.getText() + "' is already defined as a non-parser");
 			}
 			else
 			{
-				tool.panic("Parser '" + name.getText() + "' is already defined");
+				Tool.panic("Parser '" + name.getText() + "' is already defined");
 			}
 		}
 		else
@@ -814,7 +814,7 @@ public class DefineGrammarSymbols implements ANTLRGrammarParseBehavior
 	{
 		if ( numTreeParsers>0 )
 		{
-			tool.panic("You may only have one tree parser per grammar file: class "+ name.getText());
+			Tool.panic("You may only have one tree parser per grammar file: class "+ name.getText());
 		}
 		numTreeParsers++;
 		reset();
@@ -825,11 +825,11 @@ public class DefineGrammarSymbols implements ANTLRGrammarParseBehavior
 		{
 			if (!(g instanceof TreeWalkerGrammar))
 			{
-				tool.panic("'" + name.getText() + "' is already defined as a non-tree-walker");
+				Tool.panic("'" + name.getText() + "' is already defined as a non-tree-walker");
 			}
 			else
 			{
-				tool.panic("Tree-walker '" + name.getText() + "' is already defined");
+				Tool.panic("Tree-walker '" + name.getText() + "' is already defined");
 			}
 		}
 		else

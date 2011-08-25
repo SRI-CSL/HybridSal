@@ -65,7 +65,7 @@ public class LLkAnalyzer implements LLkGrammarAnalyzer {
 
 		/* don't allow nongreedy (...) blocks */
 		if ( blk.greedy==false && !(blk instanceof OneOrMoreBlock) && !(blk instanceof ZeroOrMoreBlock) ) {
-			tool.warning("Being nongreedy only makes sense for (...)+ and (...)*", grammar.getFilename(), blk.getLine());
+			Tool.warning("Being nongreedy only makes sense for (...)+ and (...)*", grammar.getFilename(), blk.getLine());
 		}
 
 		// SPECIAL CASE: only one alternative.  We don't need to check the
@@ -271,7 +271,7 @@ public class LLkAnalyzer implements LLkGrammarAnalyzer {
 			Alternative alt = blk.getAlternativeAt(i);
 			
 			if ( alt.head instanceof BlockEndElement ) {
-				tool.warning("empty alternative makes no sense in (...)* or (...)+", grammar.getFilename(), blk.getLine());
+				Tool.warning("empty alternative makes no sense in (...)* or (...)+", grammar.getFilename(), blk.getLine());
 			}
 			
 			k = 1;							// assume eac alt is LL(1) with exit branch
@@ -337,7 +337,7 @@ public class LLkAnalyzer implements LLkGrammarAnalyzer {
 						// loop may terminate incorrectly.
 						// For example, ('a'..'d')+ ("ad"|"cb")
 						if ( !lookaheadEquivForApproxAndFullAnalysis(blk.exitCache, grammar.maxk) ) {
-							tool.warning(new String[] {
+							Tool.warning(new String[] {
 								"nongreedy block may exit incorrectly due",
 									"\tto limitations of linear approximate lookahead (first k-1 sets",
 									"\tin lookahead not singleton)."},
@@ -640,7 +640,7 @@ public class LLkAnalyzer implements LLkGrammarAnalyzer {
 		}
 		else {
 			// Should have been avoided by MakeGrammar
-			tool.panic("Character literal reference found in parser");
+			Tool.panic("Character literal reference found in parser");
 			// ... so we make the compiler happy
 			return Lookahead.of(atom.getType());
 		}
@@ -664,7 +664,7 @@ public class LLkAnalyzer implements LLkGrammarAnalyzer {
 		
 		if ( lexicalAnalysis ) {
 			// MakeGrammar should have created a rule reference instead
-			tool.panic("token reference found in lexer");
+			Tool.panic("token reference found in lexer");
 		}
 		// Skip until analysis hits k==1 
 		if ( k>1 ) {

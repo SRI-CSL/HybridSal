@@ -82,7 +82,7 @@ class LexerGrammar extends Grammar {
 	public boolean setOption(String key, Token value) {
 		String s = value.getText();
 		if (key.equals("buildAST")) {
-			tool.warning("buildAST option is not valid for lexer", getFilename(), value.getLine());
+			Tool.warning("buildAST option is not valid for lexer", getFilename(), value.getLine());
 			return true;
 		}
 		if (key.equals("testLiterals")) {
@@ -91,7 +91,7 @@ class LexerGrammar extends Grammar {
 			} else if (s.equals("false")) {
 				testLiterals = false;
 			} else {
-				tool.warning("testLiterals option must be true or false", getFilename(), value.getLine());
+				Tool.warning("testLiterals option must be true or false", getFilename(), value.getLine());
 			}
 			return true;
 		}
@@ -111,7 +111,7 @@ class LexerGrammar extends Grammar {
 			} else if (s.equals("false")) {
 				caseSensitive = false;
 			} else {
-				tool.warning("caseSensitive option must be true or false", getFilename(), value.getLine());
+				Tool.warning("caseSensitive option must be true or false", getFilename(), value.getLine());
 			}
 			return true;
 		}
@@ -121,7 +121,7 @@ class LexerGrammar extends Grammar {
 			} else if (s.equals("false")) {
 				caseSensitiveLiterals= false;
 			} else {
-				tool.warning("caseSensitiveLiterals option must be true or false", getFilename(), value.getLine());
+				Tool.warning("caseSensitiveLiterals option must be true or false", getFilename(), value.getLine());
 			}
 			return true;
 		}
@@ -135,12 +135,12 @@ class LexerGrammar extends Grammar {
 				filterRule = s;
 			}
 			else {
-				tool.warning("filter option must be true, false, or a lexer rule name", getFilename(), value.getLine());
+				Tool.warning("filter option must be true, false, or a lexer rule name", getFilename(), value.getLine());
 			}
 			return true;
 		}
 		if (key.equals("longestPossible")) {
-			tool.warning("longestPossible option has been deprecated; ignoring it...", getFilename(), value.getLine());
+			Tool.warning("longestPossible option has been deprecated; ignoring it...", getFilename(), value.getLine());
 			return true;
 		}
 		if (super.setOption(key, value)) {
