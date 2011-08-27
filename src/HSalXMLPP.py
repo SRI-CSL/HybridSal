@@ -188,7 +188,14 @@ def HSalPPInitForDecl(initdecl):
 def HSalPPInitDecl(initdecl):
     global fp
     print >> fp, "INITIALIZATION"
-    HSalPPAssgns(initdecl)
+    firstChild = getArg(initdecl, 1)
+    if firstChild.localName == "SIMPLEDEFINITION":
+        HSalPPAssgns(initdecl)
+    elif firstChild.localName == "SOMECOMMANDS":
+        HSalPPSomecommands(initdecl)
+    else:
+        print "ERROR: INITIALIZATION block found unexpected tag ",
+        print firstChild.localName
     print >> fp, "\n",
 
 def HSalPPGuard(guard):
@@ -243,6 +250,10 @@ def HSalPPMultiCommand(node):
 def HSalPPTransDecl(transdecl):
     global fp
     print >> fp, "TRANSITION"
+    HSalPPSomecommands(transdecl)
+
+def HSalPPSomecommands(transdecl):
+    global fp
     print >> fp, "["
     j = 0
     cmds = transdecl.getElementsByTagName("SOMECOMMANDS")[0]

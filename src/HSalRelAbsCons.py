@@ -40,6 +40,10 @@
 # p1 >= 0 and p2 <= 0 => p2' <= p2 and p1' >= 0 AND
 # p1 <= 0 and p2 >= 0 => p2' >= p2 and p1' >= 0 
 
+# Aug 26, 2011: Adding support for INVARIANT and INITFORMULA
+# INITFORMULA \phi will be replaced by INITIALIZATION [ \phi --> ]
+# INVARIANT \phi will be deleted and each guarded command with
+# get \phi AND \phi' in its guard.
 
 import xml.dom.minidom
 import sys	# for sys.argv[0]
@@ -51,6 +55,7 @@ import os.path
 import shutil
 import subprocess
 import HSalPreProcess
+import HSalPreProcess2
 from xmlHelpers import *
 #import polyrep2XML
 
@@ -732,6 +737,7 @@ def main():
     dom = xml.dom.minidom.parse(xmlfilename)
     setDom(dom)
     ctxt = HSalPreProcess.handleContext(dom)
+    ctxt = HSalPreProcess2.handleContext(ctxt)
     newctxt = handleContext(ctxt)
     absfilename = basename + ".haxml"
     moveIfExists(absfilename)
