@@ -44,6 +44,8 @@
 # INITFORMULA \phi will be replaced by INITIALIZATION [ \phi --> ]
 # INVARIANT \phi will be deleted and each guarded command with
 # get \phi AND \phi' in its guard.
+# Aug 29, 2011: Flow need not define all variables. Undefined variables are
+# treated as unchanging...
 
 import xml.dom.minidom
 import sys	# for sys.argv[0]
@@ -154,12 +156,24 @@ def getFlow(defs):
     return flow
 
 def flow2var(flow):
-    "extract variables from the flow"
+    "extract variables from the flow: LHS and RHS"
     i = 0
     varlist = dict()
+    # get variables from LHS
     while i < len(flow):
         varnamedot = flow[i]
         varlist[varnamedot[0:-3]] = i/2
+        i += 2
+    # now get variables from RHS too
+    i = 1
+    j = len(varlist)
+    while i < len(flow):
+        rhsExpr = flow[i]
+        for [c,pp] in rhsExpr:
+            for var in pp.keys():
+                if not(var in varlist): 
+                    varlist[var] = j
+                    j += 1
         i += 2
     return varlist
 
@@ -190,7 +204,10 @@ def flow2Ab(flow):
     A = list()
     b = list()
     while i < n:
-        Aibi = flow2Aibi(flow[2*i+1], varlist)
+        if 2*i+1 < len(flow): 
+            Aibi = flow2Aibi(flow[2*i+1], varlist)
+        else:
+            Aibi = [ [ 0 for j in range(n) ], 0 ]
         if Aibi == None:
             return None
         A.append(Aibi[0])
@@ -396,7 +413,7 @@ def createQuadInv(nodePnew,nodePold,nodeQnew,nodeQold,a,b):
         |xnew| <= |xold| or |ynew| <= |yold|
         |xnew| <= |yold| or |ynew| <= |xold| """
     global opt
-    if (opt == 1) & (a < 0):
+    if opt & 0x1 & (a < 0):
         ans=createNodeApp("quadInvOpt", [ nodePold, nodeQold, nodePnew, nodeQnew])
         return ans
     if a < 0:
@@ -597,27 +614,13 @@ def absGuardedCommandAux(varlist,A,b):
 
 # If we fail to find eigen, we need BOX invs -- for later...
 
-def makePrime(expr):
-    """Replace var by var' in expr"""
-    ans = expr.cloneNode(True)
-    # get all NAMEEXPR nodes; if its parent is TUPLELITERAL then add prime to it
-    nameexprs = ans.getElementsByTagName("NAMEEXPR")
-    for i in nameexprs:
-        name = i.childNodes[0].data
-        if name in ['TRUE', 'FALSE']:
-            continue
-        parentNode = i.parentNode
-        if parentNode.localName == 'TUPLELITERAL':
-            icopy = i.cloneNode(True)
-            primeVar = createNodeTagChild("NEXTOPERATOR", icopy)
-            parentNode.replaceChild(oldChild=i, newChild=primeVar)
-    return ans
-
-def absAssignments(varlist):
+def absAssignments(varlist, keyLimit):
     """For each variable in varlist, create RHSSELECTION"""
     global dom
     ans = dom.createElement("ASSIGNMENTS")
     for var,index in varlist.iteritems():
+        if index >= keyLimit:
+            continue
         nameexpr = createNodeTag("NAMEEXPR",var)
         nextop = createNodeTagChild("NEXTOPERATOR",nameexpr)
         ident = createNodeTag("IDENTIFIER","aZtQ")
@@ -631,6 +634,8 @@ def absAssignments(varlist):
 
 def absGuardedCommand(gc):
     "Return a new guarded command that is a rel abs of input GC"
+    global opt
+    global dom
     guard = gc.getElementsByTagName("GUARD")[0]
     assigns = gc.getElementsByTagName("ASSIGNMENTS")[0]
     defs = assigns.getElementsByTagName("SIMPLEDEFINITION")
@@ -640,16 +645,16 @@ def absGuardedCommand(gc):
     print A
     print "b"
     print b
-    # guardExpr = HSalXMLPP.getArg(guard,1)
-    # guard = guardExpr.cloneNode(True)
-    # primeguard = makePrime(guard)
-    # guard = createNodeInfixApp('AND',guard,primeguard)
     guard = HSalXMLPP.getArg(guard,1)
+    guardCopy = guard.cloneNode(True)
+    if (opt & 0x4) :
+        primeguard = HSalPreProcess2.makePrime(guardCopy, dom)
+        guardCopy = createNodeInfixApp('AND',guardCopy,primeguard)
     absgc = absGuardedCommandAux(varlist,A,b)
-    absguardnode = createNodeInfixApp('AND',guard.cloneNode(True),absgc)
+    absguardnode = createNodeInfixApp('AND',guardCopy,absgc)
     absguard = createNodeTagChild('GUARD',absguardnode)
     # absassigns = assigns.cloneNode(True)
-    absassigns = absAssignments(varlist)
+    absassigns = absAssignments(varlist, keyLimit=len(flow)/2)
     return createNodeTagChild2('GUARDEDCOMMAND', absguard, absassigns)
 
 def handleContext(ctxt):
@@ -674,11 +679,11 @@ def handleContext(ctxt):
                 print "Unknown parent node type"
     cbody = ctxt.getElementsByTagName("CONTEXTBODY")
     assert len(cbody) == 1
-    if opt == 1:
+    if opt & 0x1:
         cbody[0].insertBefore(newChild=createNodeQuadInvOpt(),refChild=cbody[0].firstChild)
-    elif opt == 2:
+    if opt & 0x2:
         cbody[0].insertBefore(newChild=createNodeQuadInvNonlinear(),refChild=cbody[0].firstChild)
-    if opt != 2:
+    if not(opt & 0x2):
         cbody[0].insertBefore(newChild=createNodeQuadInv(),refChild=cbody[0].firstChild)
     cbody[0].insertBefore(newChild=createNodeEigenInv(),refChild=cbody[0].firstChild)
     cbody[0].insertBefore(newChild=createNodeMultirateInv(),refChild=cbody[0].firstChild)
@@ -700,7 +705,7 @@ def moveIfExists(filename):
         shutil.move(filename, filename + "~")
 
 def printUsage():
-    print "Usage: hsal2hasal [-o|--opt|-n|--nonlinear] filename.hsal"
+    print "Usage: hsal2hasal [-o|--opt|-n|--nonlinear|-c|--copyguard] filename.hsal"
 
 def main():
     global dom
@@ -708,10 +713,13 @@ def main():
     opt = 0
     for i in sys.argv[1:]:
         if (i == '-o') | (i == '--opt') :
-            opt = 1
+            opt |= 0x1
             continue
         if (i == '-n') | (i == '--nonlinear') :
-            opt = 2
+            opt |= 0x2
+            continue
+        if (i == '-c') | (i == '--copyguard') :
+            opt |= 0x4
             continue
         if (len(i) > 0) & (i[0] == '-'):
             print "Unknown option" + i

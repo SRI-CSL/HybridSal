@@ -109,15 +109,35 @@ def handleBasemoduleInitForDecl(basemod):
     basemod.replaceChild(newChild=initdecl, oldChild=initfordecl)
     return
 
-def makePrime(phi):
-    """Replace all NAMEEXPR in phi by NEXTOPERATORS NAMEEXPR"""
-    # print phi.toxml()
-    nameexprs = phi.getElementsByTagName("NAMEEXPR")
+def makePrime(expr, basemod):
+    """Replace var by var' in expr"""
+    # first get the types of all variables from dom
+    vdecls = basemod.getElementsByTagName('VARDECL')
+    allRealVars = list()
+    for i in vdecls:
+        varnames = i.getElementsByTagName('IDENTIFIER')
+        typenames = i.getElementsByTagName('TYPENAME')
+        if len(typenames) > 0:
+            typename = HSalXMLPP.valueOf(typenames[0])
+            assert len(varnames) > 0
+            varname = HSalXMLPP.valueOf(varnames[0])
+            if typename == 'REAL':
+                allRealVars.append(varname)
+    # now allRealVars has names of all REAL variables in the CONTEXT
+    ans = expr.cloneNode(True)
+    # get all NAMEEXPR nodes; if its parent is TUPLELITERAL then add prime to it
+    nameexprs = ans.getElementsByTagName("NAMEEXPR")
     for i in nameexprs:
-        parent = i.parentNode
-        iPrime = createNodeTagChildn("NEXTOPERATOR", [ i.cloneNode(True) ])
-        parent.replaceChild(oldChild=i,newChild=iPrime)
-    return phi
+        name = HSalXMLPP.valueOf(i)
+        if not(name in allRealVars): 	# if name in ['TRUE', 'FALSE']:
+            continue
+        parentNode = i.parentNode
+        if parentNode.tagName == 'NEXTOPERATOR': 	# if name in ['TRUE', 'FALSE']:
+            continue
+        icopy = i.cloneNode(True)
+        primeVar = xmlHelpers.createNodeTagChild("NEXTOPERATOR", icopy)
+        parentNode.replaceChild(oldChild=i, newChild=primeVar)
+    return ans
 
 def handleBasemoduleInvarDecl(basemod):
     """<INVARDECL> \phi </INVARDECL> is removed and 
@@ -135,7 +155,7 @@ def handleBasemoduleInvarDecl(basemod):
         print "ERROR: INVARIANT can not be EMPTY; Expression expected"
         return
     phiPrime = phi.cloneNode(True)
-    phiPrime = makePrime(phiPrime)
+    phiPrime = makePrime(phiPrime, basemod)
     phiPhi = createNodeAnd([ phi, phiPrime ])
     tdecls = basemod.getElementsByTagName("TRANSDECL")
     assert len(tdecls) == 1
