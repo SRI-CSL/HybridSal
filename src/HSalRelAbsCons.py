@@ -49,6 +49,7 @@
 
 import xml.dom.minidom
 import sys	# for sys.argv[0]
+import math
 import linearAlgebra
 import HSalExtractRelAbs
 import polyrep # internal representation for expressions
@@ -426,6 +427,85 @@ def createQuadInv(nodePnew,nodePold,nodeQnew,nodeQold,a,b):
         ans = createNodeAnd([ ans1, ans2 ])
     return ans
 
+# *****************************************************************************
+# Functions for creating specific XML node for Timed Invariants
+# This code is executed when flag -t is used.
+# *****************************************************************************
+def createTimedNodeEigenInv():
+    """eigenTimedInv(xold,xnew,k): BOOLEAN = (xnew = k*xold) ;"""
+    fname = createNodeTag("IDENTIFIER", "eigenTimedInv")
+    vd1 = createNodeVarType("xold", "REAL")
+    vd2 = createNodeVarType("xnew", "REAL")
+    vd3 = createNodeVarType("k", "REAL")
+    fparams = createNodeTagChild3("VARDECLS", vd1, vd2, vd3)
+    ftype = createNodeTag("TYPENAME", "BOOLEAN")
+    fact0 = createNodeApp("*", [ "k", "xold" ])
+    fval = createNodeApp("=", [ "xnew", fact0 ])
+    ans = createNodeTagChild4("CONSTANTDECLARATION", fname, fparams, ftype, fval)
+    return ans
+
+def createCallToTimedEigenInv(nodePnew,nodePold,lamb,time):
+    """eigenTimedInv(nodePold,nodePnew,exp(lamb*time))"""
+    if equal(lamb, 0):
+        ans = createNodeInfixApp('=', nodePold, nodePnew)
+    else:
+        k = math.exp(lamb*time)
+        knode = createNodeTag("NUMERAL", str(k))
+        ans = createNodeApp("eigenTimedInv", [ nodePold, nodePnew, knode ], infix=False)
+    return ans
+
+def createTimedNodeQuadInv():
+    """ quadTimedInv(xold,yold,xnew,ynew,k:REAL):BOOLEAN =
+        |xnew|,|ynew| <= k*(|xold| + |yold|)
+        |xnew| <= k*|xold| or |ynew| <= k*|yold|
+        |xnew| <= k*|yold| or |ynew| <= k*|xold| """
+    fname = createNodeTag("IDENTIFIER", "quadTimedInv")
+    vd1 = createNodeVarType("xold", "REAL")
+    vd2 = createNodeVarType("yold", "REAL")
+    vd3 = createNodeVarType("xnew", "REAL")
+    vd4 = createNodeVarType("ynew", "REAL")
+    vd5 = createNodeVarType("k", "REAL")
+    fparams = createNodeTagChildn("VARDECLS", [vd1, vd2, vd3, vd4, vd5])
+    ftype = createNodeTag("TYPENAME", "BOOLEAN")
+    modxnew = createNodeAbsVar("xnew")
+    modynew = createNodeAbsVar("ynew")
+    modxold = createNodeAbsVar("xold")
+    modyold = createNodeAbsVar("yold")
+    xoldPlusyold = createNodeApp("+", [modxold, modyold])
+    kxoldPlusyold = createNodeApp("*", [ "k", xoldPlusyold ])
+    fact1 = createNodeApp("<=", [modxnew, kxoldPlusyold])
+    fact2 = createNodeApp("<=", [modynew, kxoldPlusyold.cloneNode(True)])
+    kxold = createNodeApp("*", ["k", modxold.cloneNode(True)])
+    kyold = createNodeApp("*", ["k", modyold.cloneNode(True)])
+    fact31 = createNodeApp("<=", [modxnew.cloneNode(True), kxold])
+    fact32 = createNodeApp("<=", [modynew.cloneNode(True), kyold])
+    fact3 = createNodeApp("OR", [ fact31, fact32 ])
+    fact41 = createNodeApp("<=", [modxnew.cloneNode(True), kyold.cloneNode(True)])
+    fact42 = createNodeApp("<=", [modynew.cloneNode(True), kxold.cloneNode(True)])
+    fact4 = createNodeApp("OR", [ fact41, fact42 ])
+    fval = createNodeAnd([fact1, fact2, fact3, fact4])
+    ans = createNodeTagChild4("CONSTANTDECLARATION", fname, fparams, ftype, fval)
+    return ans
+
+def createCallToTimedQuadInv(nodePnew,nodePold,nodeQnew,nodeQold,a,b,time):
+    """ quadTimedInv(nodePold,nodeQold,nodePnew,nodeQnew,exp(a*t)) """
+    if equal(a, 0):
+        knode = createNodeTag("NUMERAL", "1")
+        ans1=createNodeApp("quadInv", [ nodePold, nodeQold, nodePnew, nodeQnew, knode])
+        ans2=createNodeApp("quadInv", [ nodePnew.cloneNode(True), nodeQnew.cloneNode(True), nodePold.cloneNode(True), nodeQold.cloneNode(True), knode.cloneNode(True)])
+        ans = createNodeAnd([ ans1, ans2 ])
+    else:
+        k = math.exp(a*time)
+        if a < 0:
+            knode = createNodeTag("NUMERAL", str(k))
+            ans=createNodeApp("quadTimedInv", [ nodePold, nodeQold, nodePnew, nodeQnew, knode])
+        else:
+            knode = createNodeTag("NUMERAL", str(1.0/k))
+            ans=createNodeApp("quadTimedInv", [ nodePnew, nodeQnew, nodePold, nodeQold, knode])
+    return ans
+# *****************************************************************************
+
+
 def ifGoodCreateNodes(soln, vectors, lamb, m, l):
     """soln is (m+l+1) vector, vectors has l (nx1) vectors, lamb is a scalar"""
     assert l == len(vectors)
@@ -711,22 +791,36 @@ def main():
     global dom
     global opt
     opt = 0
-    for i in sys.argv[1:]:
-        if (i == '-o') | (i == '--opt') :
-            opt |= 0x1
-            continue
-        if (i == '-n') | (i == '--nonlinear') :
-            opt |= 0x2
-            continue
-        if (i == '-c') | (i == '--copyguard') :
-            opt |= 0x4
-            continue
-        if (len(i) > 0) & (i[0] == '-'):
-            print "Unknown option" + i
+    args = sys.argv[1:]
+    if len(args) < 1:
+        printUsage()
+        return 1
+    if ('-o' in args) | ('--opt' in args) :
+        opt |= 0x1
+    if ('-n' in args) | ('--nonlinear' in args) :
+        opt |= 0x2
+    if ('-c' in args) | ('--copyguard' in args) :
+        opt |= 0x4
+    if ('-t' in args) | ('--time' in args) :
+        opt |= 0x8
+        if ('-t' in args):
+            index = args.index('-t')
+        else:
+            index = args.index('--time')
+        assert len(args) > index+1
+        try:
+            time = float(args[index+1])
+        except ValueError:
+            print "-t|--time should be followed by a float"
             printUsage()
             return 1
-        filename = i
-    # filename = sys.argv[1]
+    # for i in sys.argv[1:]:
+        # if (len(i) > 0) & (i[0] == '-'):
+            # print "Unknown option" + i
+            # printUsage()
+            # return 1
+        # filename = i
+    filename = args[len(args)-1] # sys.argv[1]
     if not(os.path.isfile(filename)):
         print "File does not exist. Quitting."
         return 1

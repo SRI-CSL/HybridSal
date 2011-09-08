@@ -182,7 +182,129 @@ in HybridSAL that is a composition of five modules.  Only one of the
 five has continuous differential equations in the dynamics.
 \end{description}
 
-\section{Theoretical Contribution}
+Apart from the syntax for writing differential equations,
+the HybridSAL input language supports two additional features
+that are not part of the SAL language~\cite{sal}.
+These features are:
+\begin{description}
+\item[Invariant]
+ Apart from {\tt{INITIALIZATION}} and {\tt{TRANSITION}} blocks,
+ each basemodule can also have an {\tt{INVARIANT}} block.
+ The invariant block contains a formula that is an (assumed)
+ invariant of the system.
+ 
+ In our running example, we can add the Invariant block:
+ \begin{tt}
+ \begin{verbatim}
+  INVARIANT y >= 0
+ \end{verbatim}
+ \end{tt}
+ in the basemodule, for example, just before/after the 
+ {\tt{INITIALIZATION}} block.
+ Then, we could replace the guard
+ $y \geq 0 \wedge y'\geq 0$ by the new guard $\mathit{True}$
+ in the (only) transition.
+ If $\phi$ is declared as the invariant, then it has the
+ effect of adding the formula $\phi \wedge \phi'$ in the guards
+ of {\em{all}} transitions.  This is performed as a preprocessing
+ step by the HSal Relational Abstractor.
+
+\item[INITFORMULA]
+ Instead of {\tt{INITIALIZATION}} block, a HybridSAL input file
+ can contain a {\tt{INITFORMULA}} block that has a formula
+ as the initialization predicate.
+ 
+ In our running example, the initialization block shown above
+ can be replaced by
+ \begin{tt}
+ \begin{verbatim}
+  INITFORMULA 0 <= x AND x <= 1 AND 2 <= y AND y <= 3
+ \end{verbatim}
+ \end{tt}
+ without changing the meaning of the HybridSAL model.
+
+ The {\tt{INITFORMULA}} block is also handled during the
+ preprocessing phase.
+ The preprocessing phase also handles {\em{defined constants}}.
+\end{description}
+
+\section{HSal Relational Abstractor: Flags}
+
+The HybridSAL Relational Abstractor tool accepts the following options/flags.
+\begin{description}
+\item[-n, --nonlinear]
+ With this option, the tool creates a more precise relational abstraction,
+ but it may be nonlinear.  Even when the input model is a linear
+ continuous dynamical system, the output could be a nonlinear discrete
+ time system.
+ 
+ Currently, the SAL model checker can not analyze nonlinear discrete time
+ systems.  Hence, this flag is useful only if using other backend tools
+ that can handle discrete time nonlinear systems.
+
+ By default, this option is {\em{not}} turned on, and the tool
+ creates linear relational abstractions that can be analyzed by SAL
+ infinite bounded model checker.
+
+\item[-c, --copyguard]
+ With this option, the tool explicitly handles the guard in the 
+ continuous dynamics as state invariants.
+ Recall the HybridSAL code for the differential equations
+ $dx/dt = -y+x, dy/dt = -y-x$.
+ \begin{tt}
+ \begin{verbatim}
+ [
+ y >= 0 AND y' >= 0 --> 
+  xdot' = -y + x ;
+  ydot' = -y - x
+ ]
+ \end{verbatim}
+ \end{tt}
+ Here the guard $y \geq 0 \wedge y'\geq 0$ says that $y$ should be
+ nonnegative both {\em{before}} and {\em{after}} the transition.
+ In other words, $y\geq 0$ is the mode invariant.
+ We could have written the same dynamics as follows:
+ \begin{tt}
+ \begin{verbatim}
+ [
+ y >= 0 --> 
+  xdot' = -y + x ;
+  ydot' = -y - x
+ ]
+ \end{verbatim}
+ \end{tt}
+ The new HybridSAL file, when processed with the flag {\tt{-c}},
+ produces the same output as the original file would produce 
+ without the {\tt{-c}} flag.
+ Thus, the {\tt{-c}} flag causes copying of the guard 
+ of the continuous transitions, but
+ with variables replaced by their prime forms.
+
+ By default, this option is {\em{not}} turned on, and the tool
+ assumes that the input HybridSAL file already 
+ contains guards on prime variables.
+
+\item[-o, --opt]
+ This flag turns on some optimizations in the relational
+ abstractor.
+ Currently, this flag causes the tool to construct a 
+ relational abstraction that assumes that a certain amount
+ of time is always spent in each mode.  This is an
+ unsound assumption.  Hence, the output of the relational
+ abstractor can be unsound when the {\tt{-o}} flag is used.
+ 
+ The {\tt{-o}} flag is useful if the (sound) relational abstraction
+ is too large to be analyzable (in reasonable time) by the model checker.
+ In that case, the user could try to create a simpler, but unsound,
+ abstraction using the {\tt{-o}} flag and model checking it.
+ 
+ By default, this option is {\em{not}} turned on.
+\end{description}
+
+The tool is expected to include more options in the future
+as new extensions and features are implemented.
+
+\section{HSal Relational Abstractor: Background}
 
 Hybrid dynamical systems are formal models of complex systems 
 that have both discrete and continuous behavior.  
@@ -232,7 +354,7 @@ found in papers~\cite{ST11:CAV,Tiwari03:HSCC}.  The HybridSAL verification frame
 been extended by an implementation of relational abstraction.
 
 
-\section{Qualitative versus Relational Abstraction}
+\subsection{Qualitative versus Relational Abstraction}
 
 Qualitative and predicate abstraction are techniques for abstracting
 a system that work by simplifying the state space of the system.
@@ -248,26 +370,30 @@ abstraction.  The new HybridSAL Relational Abstractor implements
 relational abstraction. 
 
 
-\section{Tool: The HybridSAL Relational Abstractor}
+\section{HSal Relational Abstractor: Technical Background}
 
 We extended the HybridSAL tool by implementing a 
 relational abstractor for HybridSAL models.
 The input to the tool is a specification of a hybrid system 
 in the HybridSAL language.  
 
-The verification workflow for using the HybridSAL relatioal
+The {\bf{verification workflow}} for using the HybridSAL relatioal
 abstractor is as follows:
-(1) Create a model of a hybrid system in HybridSAL:
+\begin{enumerate}
+\item  Create a model of a hybrid system in HybridSAL:
  The user creates such a model in a file, say in 
  file filename.hsal, using any text editor.
-(2) Construct a relational abstraction:
+\item
+ Construct a relational abstraction:
  The user runs the HybridSAL relational abstractor to create a discrete,
  but infinite-state relational abstraction of the original model.
  The relational abstraction is output in the SAL language as
  filename.sal.
-(3) Analyze the SAL model:
+\item
+ Analyze the SAL model:
  The user runs the SAL infinite bounded model checker or k-induction prover
  to analyze the SAL model in filename.sal
+\end{enumerate}
 
 We now discuss the implementation of the HybridSAL relational abstractor.
 We first define relational abstraction of a continuous dynamical
