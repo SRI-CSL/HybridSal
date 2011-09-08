@@ -431,6 +431,29 @@ def createQuadInv(nodePnew,nodePold,nodeQnew,nodeQold,a,b):
 # Functions for creating specific XML node for Timed Invariants
 # This code is executed when flag -t is used.
 # *****************************************************************************
+def createTimedNodeMultirateInv():
+    """multirateTimedInv(xold,x,r,yold,y,s,t) = y'-y/s = x-x'/r = t"""
+    fname = createNodeTag("IDENTIFIER", "multirateInv")
+    vds = []
+    vds.append(createNodeVarType("xold", "REAL"))
+    vds.append(createNodeVarType("xnew", "REAL"))
+    vds.append(createNodeVarType("r", "REAL"))
+    vds.append(createNodeVarType("yold", "REAL"))
+    vds.append(createNodeVarType("ynew", "REAL"))
+    vds.append(createNodeVarType("s", "REAL"))
+    vds.append(createNodeVarType("t", "REAL"))
+    fparams = createNodeTagChildn("VARDECLS", vds)
+    ftype = createNodeTag("TYPENAME", "BOOLEAN")
+    num1 = createNodeApp("-", [ "xnew", "xold" ])
+    num2 = createNodeApp("-", [ "ynew", "yold" ])
+    lhs = createNodeApp("/", [ num1, "r" ])
+    rhs = createNodeApp("/", [ num2, "s" ])
+    fact1 = createNodeApp("=", [ lhs, rhs ])
+    fact2 = createNodeApp("=", [ rhs.cloneNode(True), "t" ])
+    fval = createNodeApp("AND", [ fact1, fact2 ])
+    ans = createNodeTagChild4("CONSTANTDECLARATION", fname, fparams, ftype, fval)
+    return ans
+
 def createTimedNodeEigenInv():
     """eigenTimedInv(xold,xnew,k): BOOLEAN = (xnew = k*xold) ;"""
     fname = createNodeTag("IDENTIFIER", "eigenTimedInv")
@@ -765,8 +788,13 @@ def handleContext(ctxt):
         cbody[0].insertBefore(newChild=createNodeQuadInvNonlinear(),refChild=cbody[0].firstChild)
     if not(opt & 0x2):
         cbody[0].insertBefore(newChild=createNodeQuadInv(),refChild=cbody[0].firstChild)
-    cbody[0].insertBefore(newChild=createNodeEigenInv(),refChild=cbody[0].firstChild)
-    cbody[0].insertBefore(newChild=createNodeMultirateInv(),refChild=cbody[0].firstChild)
+    if opt & 0x8:
+        cbody[0].insertBefore(newChild=createTimedNodeQuadInv(),refChild=cbody[0].firstChild)
+        cbody[0].insertBefore(newChild=createTimedNodeEigenInv(),refChild=cbody[0].firstChild)
+        cbody[0].insertBefore(newChild=createTimedNodeMultirateInv(),refChild=cbody[0].firstChild)
+    else:
+        cbody[0].insertBefore(newChild=createNodeEigenInv(),refChild=cbody[0].firstChild)
+        cbody[0].insertBefore(newChild=createNodeMultirateInv(),refChild=cbody[0].firstChild)
     cbody[0].insertBefore(newChild=createModNode(),refChild=cbody[0].firstChild)
     return ctxt
 
@@ -790,6 +818,7 @@ def printUsage():
 def main():
     global dom
     global opt
+    global time
     opt = 0
     args = sys.argv[1:]
     if len(args) < 1:
