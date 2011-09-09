@@ -56,13 +56,41 @@ This will create the file examples/powertrain.sal
 Now model check using the following commands
    cd examples
    sal-inf-bmc -d 12 powertrain nochatter
-This verifies the 'nochatter' property of powertrain.
+This takes about 3 minutes of real time and
+verifies the 'nochatter' property of powertrain.
+
 Now change the initial condition: increase 
-grade to 0.15 (15% grade).   Now, re-verify.
+grade to 0.15 (15% grade).  This can be done by
+changing the constant 0.05 in INITIALIZATION of 
+grade in either powertrain.hsal OR powertrain.sal 
+to 0.15.  You will have to reconstruct the powertrain.sal
+from powertrain.hsal (using bin/hsal2hasal command above)
+if you only change the .hsal file.
+Now, re-verify.
    sal-inf-bmc -d 12 powertrain nochatter
 You will get a trace that shows violation of the property.
+This will take about 3 minutes of real time.
 Note that we can analyze the property for a range of 
 initial conditions using just ONE run.
+
+Some Simple Examples
+--------------------
+The Linear*.hsal files contain some simple examples.
+ bin/hsal2hasal examples/Linear1.hsal
+This creates examples/Linear1.sal
+ sal-inf-bmc -i -d 2 Linear1 correct
+This model checks the property.  It fails to find a 
+violation, but also fails to prove it.
+ sal-inf-bmc -i -d 2 -l helper Linear1 correct
+Using the helper lemma, the model checker is able to
+prove the property.
+ sal-inf-bmc -i -d 2 Linear1 helper
+The helper lemma is itself successfully proved.
+
+The following commands will verify properties of Linear5.hsal
+ bin/hsal2hasal examples/Linear1.hsal
+ cd examples
+ sal-inf-bmc -i -d 3 Linear5 correct
 
 Blood Glucose (incomplete)
 -------------
@@ -119,10 +147,16 @@ RLC Circuit:
 ------------
 A simple model of the RLC circuit using three differential equations
 is presented in RLC.hsal
-   bin/hsal2hasal examples/RLC.hsal
+   bin/hsal2hasal -o examples/RLC.hsal
    cd examples
-   sal-inf-bmc -i -d 5 RLC correct
+   sal-inf-bmc -i -d 5 RLC ibounded
    sal-inf-bmc -d 5 RLC canreach
+Analyzing the RLC circuit at certain sampling times:
+   bin/hsal2hasal -t 0.005 examples/RLC.hsal
+   cd examples
+   sal-inf-bmc -i -d 5 RLC ibounded
+   sal-inf-bmc -i -d 5 RLC canprove
+   sal-inf-bmc -d 8 RLC canreach
  
 Other simple examples:
 -----------------

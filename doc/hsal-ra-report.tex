@@ -299,6 +299,15 @@ The HybridSAL Relational Abstractor tool accepts the following options/flags.
  abstraction using the {\tt{-o}} flag and model checking it.
  
  By default, this option is {\em{not}} turned on.
+
+\item[-t $\langle$timestep$\rangle$, --time $\langle$timestep$\rangle$]
+ This flag is still under development.
+ It constructs  a timed relational abstraction of the given system.
+ This is useful in cases where all discrete mode switches are
+ {\em{time triggered}}.  The value of {\tt{timestep}} should be
+ a real number, which is interpreted as the inverse of the
+ sampling frequency.  It is important to choose the
+ timestep carefully.
 \end{description}
 
 The tool is expected to include more options in the future

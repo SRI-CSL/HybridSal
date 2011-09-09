@@ -122,18 +122,10 @@ def createNodeEigenInv():
     ans = createNodeTagChild4("CONSTANTDECLARATION", fname, fparams, ftype, fval)
     return ans
 
-def createEigenInv(nodePnew,nodePold,lamb):
-    "0 <= nodePnew <= nodePold OR nodePold <= nodePnew <= 0 if lamb < 0"
-    "0 <= nodePold <= nodePnew OR nodePnew <= nodePold <= 0 if lamb > 0"
-    "nodePold = nodePnew if lamb == 0"
-    if equal(lamb, 0):
-        ans = createNodeInfixApp('=', nodePold, nodePnew)
-    elif lamb < 0:
-        ans = createNodeApp("eigenInv", [ nodePold, nodePnew ], infix=False)
-    else:
-        ans = createNodeApp("eigenInv", [ nodePnew, nodePold ], infix=False)
-    return ans
-
+def mystr(k):
+    """return floating value k as a string; str(k) uses e notation
+       use 8 decimal places"""
+    return '{0:.8f}'.format(k)
 # ********************************************************************
 
 def simpleDefinitionRhsExpr(defn):
@@ -279,28 +271,6 @@ def multirateList(y, b2):
         multirateL.append([ynew, yold, b2[i]])
     return multirateL
 
-def multirateAbs(rateL):
-    """rateL is list of [ynew, yold, rate]
-       Return an XML SAL expression -- guard"""
-    (xold,xnew,r) = (None,None,None)
-    nodes = list()
-    for [ynew,yold,srate] in rateL:
-        if equal(srate, 0):
-            nodes.append(createNodeInfixApp('=', yold, ynew))
-        elif xold == None:
-            (xold,xnew) = (yold,ynew)
-            r = createNodeTag("NUMERAL", str(srate))
-            if srate > 0:
-                nodes.append(createNodeInfixApp('<=', xold, xnew))
-            else:
-                nodes.append(createNodeInfixApp('>=', xold, xnew))
-            (xold,xnew) = (xold.cloneNode(True),xnew.cloneNode(True))
-        else:
-            s = createNodeTag("NUMERAL", str(srate))
-            nodes.append(createNodeApp("multirateInv", [xold,xnew,r,yold,ynew,s], infix=False))
-            (xold,xnew,r) = (xold.cloneNode(True),xnew.cloneNode(True),r.cloneNode(True))
-    return createNodeAnd(nodes)
-
 def createNodeVarType(varName, typeName):
     xold = createNodeTag("IDENTIFIER", varName)
     real = createNodeTag("TYPENAME", typeName)
@@ -409,51 +379,126 @@ def createNodeQuadInvOpt():
     ans = createNodeTagChild4("CONSTANTDECLARATION", fname, fparams, ftype, fval)
     return ans
 
-def createQuadInv(nodePnew,nodePold,nodeQnew,nodeQold,a,b):
-    """ if a < 0: |xnew|,|ynew| <= |xold| + |yold|
-        |xnew| <= |xold| or |ynew| <= |yold|
-        |xnew| <= |yold| or |ynew| <= |xold| """
+
+# *****************************************************************************
+# Wrapper for creating call to EigenInv or QuadInv or MultiAffineInv
+# *****************************************************************************
+def createCallToMultirateInv(rateL):
+    """rateL is list of [ynew, yold, rate].  Return an XML SAL 
+       expression for the guard that calls multiAffine(...)"""
+
+    def createMultirateInv(xold, xnew, r, yold, ynew, s):
+        return createNodeApp("multirateInv", [xold,xnew,r,yold,ynew,s])
+
+    def createTimedMultirateInv(xold, xnew, delta):
+        deltanode = createNodeTag("NUMERAL", mystr(delta))
+        xoldPlusDelta = createNodeInfixApp('+', xold, deltanode)
+        return createNodeInfixApp('=', xoldPlusDelta, xnew)
+
+    def createBaseCase(xold, xnew, rate):
+        global opt, time
+        if (opt & 0x8 != 0):
+            return createTimedMultirateInv(xold, xnew, rate*time)
+        if rate > 0:
+            return createNodeInfixApp('<=', xold, xnew)
+        else:
+            return createNodeInfixApp('>=', xold, xnew)
+
+    def createInductionCase(xold, xnew, r, yold, ynew, s):
+        global opt, time
+        if (opt & 0x8 != 0):
+            return createTimedMultirateInv(yold, ynew, s*time)
+        rn = createNodeTag("NUMERAL", mystr(r))
+        sn = createNodeTag("NUMERAL", mystr(s))
+        (xold,xnew) = (xold.cloneNode(True),xnew.cloneNode(True))
+        return createMultirateInv(xold,xnew,rn,yold,ynew,sn)
+
+    (xold,xnew,r) = (None,None,None)
+    nodes = list()
+    for [ynew,yold,srate] in rateL:
+        if equal(srate, 0):
+            nodes.append(createNodeInfixApp('=', yold, ynew))
+        elif xold == None:
+            (xold,xnew,r) = (yold,ynew,srate)
+            nodes.append( createBaseCase(xold, xnew, r) )
+        else:
+            nodes.append( createInductionCase(xold,xnew,r,yold,ynew,srate) )
+    return createNodeAnd(nodes)
+
+def createCallToEigenInv(xnew, xold, lamb):
+    """create call to appropriate eigenInv( ) function"""
     global opt
-    if opt & 0x1 & (a < 0):
-        ans=createNodeApp("quadInvOpt", [ nodePold, nodeQold, nodePnew, nodeQnew])
+    global time
+
+    def createEigenInv(nodePnew,nodePold,lamb):
+        """create in XML call for eigenInv(xnew,xold,lamb)"""
+        if lamb < 0:
+            ans = createNodeApp("eigenInv", [ nodePold, nodePnew ], infix=False)
+        else:
+            ans = createNodeApp("eigenInv", [ nodePnew, nodePold ], infix=False)
         return ans
-    if a < 0:
-        ans=createNodeApp("quadInv", [ nodePold, nodeQold, nodePnew, nodeQnew])
-    elif a > 0:
-        ans=createNodeApp("quadInv", [ nodePnew, nodeQnew, nodePold, nodeQold])
+
+    def createTimedEigenInv(nodePnew,nodePold,lamb,time):
+        """eigenTimedInv(nodePold,nodePnew,exp(lamb*time))"""
+        k = math.exp(lamb*time)
+        knode = createNodeTag("NUMERAL", mystr(k))
+        ans = createNodeApp("eigenTimedInv", [ nodePold, nodePnew, knode ], infix=False)
+        return ans
+
+    if equal(lamb, 0):
+        ans = createNodeInfixApp('=', xold, xnew)
+    elif opt & 0x8 != 0:
+        ans = createTimedEigenInv(xnew,xold,lamb,time)
     else:
-        ans1=createNodeApp("quadInv", [ nodePold, nodeQold, nodePnew, nodeQnew])
-        ans2=createNodeApp("quadInv", [ nodePnew.cloneNode(True), nodeQnew.cloneNode(True), nodePold.cloneNode(True), nodeQold.cloneNode(True)])
-        ans = createNodeAnd([ ans1, ans2 ])
+        ans = createEigenInv(xnew,xold,lamb)
     return ans
+
+def createCallToQuadInv(xnew,xold,ynew,yold,a,b):
+    """create appropriate call in XML to quadInv"""
+
+    def createQuadInv(xnew, xold, ynew, yold):
+        """create in XML call to quadInv(xold, xold, xnew, ynew)"""
+        return createNodeApp("quadInv", [ xold, yold, xnew, ynew ])
+
+    def createQuadInvOpt(xnew, xold, ynew, yold):
+        """create in XML call to quadInvOpt(xnew, xnew, xold, yold)"""
+        return createNodeApp("quadInvOpt", [ xold, yold, xnew, ynew ])
+
+    def createQuadTimedInv(xnew, xold, ynew, yold, a, b):
+        """create in XML call to quadTimedInv(xnew, xnew, xold, yold, k)"""
+        return createNodeApp("quadTimedInv", [ xold, yold, xnew, ynew, a, b ])
+
+    def createCallToTimedQuadInv(xnew,xold,ynew,yold,a,b,time):
+        """quadTimedInv(nodePold,nodeQold,nodePnew,nodeQnew,exp(a*t))"""
+        k = math.exp((a/2.0)*time)
+        l = math.cos(b*time)
+        knode = createNodeTag("NUMERAL", mystr(k*l))
+        l = math.sin(b*time)
+        lnode = createNodeTag("NUMERAL", mystr(k*l))
+        return createQuadTimedInv(xnew, xold, ynew, yold, knode, lnode)
+
+    global opt
+    global time
+    if (opt & 0x8 != 0):
+        return createCallToTimedQuadInv(xnew, xold, ynew, yold, a, b, time)
+    if equal(a, 0):
+        ans1=createQuadInv(xnew, xold, ynew, yold)
+        ans2=createQuadInv(xold.cloneNode(True), xnew.cloneNode(True), yold.cloneNode(True), ynew.cloneNode(True))
+        return createNodeAnd([ ans1, ans2 ])
+    if (opt & 0x1 != 0) & (a < 0):
+        return createQuadInvOpt(xnew, xold, ynew, yold)
+    if a < 0:
+        return createQuadInv(xnew, xold, ynew, yold)
+    if a > 0:
+        return createQuadInv(xold, xnew, yold, ynew)
+    print "Unreachable code"
+    return None
+# *****************************************************************************
 
 # *****************************************************************************
 # Functions for creating specific XML node for Timed Invariants
 # This code is executed when flag -t is used.
 # *****************************************************************************
-def createTimedNodeMultirateInv():
-    """multirateTimedInv(xold,x,r,yold,y,s,t) = y'-y/s = x-x'/r = t"""
-    fname = createNodeTag("IDENTIFIER", "multirateInv")
-    vds = []
-    vds.append(createNodeVarType("xold", "REAL"))
-    vds.append(createNodeVarType("xnew", "REAL"))
-    vds.append(createNodeVarType("r", "REAL"))
-    vds.append(createNodeVarType("yold", "REAL"))
-    vds.append(createNodeVarType("ynew", "REAL"))
-    vds.append(createNodeVarType("s", "REAL"))
-    vds.append(createNodeVarType("t", "REAL"))
-    fparams = createNodeTagChildn("VARDECLS", vds)
-    ftype = createNodeTag("TYPENAME", "BOOLEAN")
-    num1 = createNodeApp("-", [ "xnew", "xold" ])
-    num2 = createNodeApp("-", [ "ynew", "yold" ])
-    lhs = createNodeApp("/", [ num1, "r" ])
-    rhs = createNodeApp("/", [ num2, "s" ])
-    fact1 = createNodeApp("=", [ lhs, rhs ])
-    fact2 = createNodeApp("=", [ rhs.cloneNode(True), "t" ])
-    fval = createNodeApp("AND", [ fact1, fact2 ])
-    ans = createNodeTagChild4("CONSTANTDECLARATION", fname, fparams, ftype, fval)
-    return ans
-
 def createTimedNodeEigenInv():
     """eigenTimedInv(xold,xnew,k): BOOLEAN = (xnew = k*xold) ;"""
     fname = createNodeTag("IDENTIFIER", "eigenTimedInv")
@@ -467,64 +512,31 @@ def createTimedNodeEigenInv():
     ans = createNodeTagChild4("CONSTANTDECLARATION", fname, fparams, ftype, fval)
     return ans
 
-def createCallToTimedEigenInv(nodePnew,nodePold,lamb,time):
-    """eigenTimedInv(nodePold,nodePnew,exp(lamb*time))"""
-    if equal(lamb, 0):
-        ans = createNodeInfixApp('=', nodePold, nodePnew)
-    else:
-        k = math.exp(lamb*time)
-        knode = createNodeTag("NUMERAL", str(k))
-        ans = createNodeApp("eigenTimedInv", [ nodePold, nodePnew, knode ], infix=False)
-    return ans
-
 def createTimedNodeQuadInv():
-    """ quadTimedInv(xold,yold,xnew,ynew,k:REAL):BOOLEAN =
-        |xnew|,|ynew| <= k*(|xold| + |yold|)
-        |xnew| <= k*|xold| or |ynew| <= k*|yold|
-        |xnew| <= k*|yold| or |ynew| <= k*|xold| """
+    """ quadTimedInv(xold,yold,xnew,ynew,a,b:REAL):BOOLEAN =
+        x(t) = exp(-a/2*t) * ( x(0) cos(wt) - y(0) sin(wt) )
+        y(t) = exp(-a/2*t) * ( x(0) sin(wt) + y(0) cos(wt) )
+        x(t) = a * x(0) - b * y(0)
+        y(t) = b * x(0) + a * y(0) """
     fname = createNodeTag("IDENTIFIER", "quadTimedInv")
     vd1 = createNodeVarType("xold", "REAL")
     vd2 = createNodeVarType("yold", "REAL")
     vd3 = createNodeVarType("xnew", "REAL")
     vd4 = createNodeVarType("ynew", "REAL")
-    vd5 = createNodeVarType("k", "REAL")
-    fparams = createNodeTagChildn("VARDECLS", [vd1, vd2, vd3, vd4, vd5])
+    vd5 = createNodeVarType("a", "REAL")
+    vd6 = createNodeVarType("b", "REAL")
+    fparams = createNodeTagChildn("VARDECLS", [vd1,vd2,vd3,vd4,vd5,vd6])
     ftype = createNodeTag("TYPENAME", "BOOLEAN")
-    modxnew = createNodeAbsVar("xnew")
-    modynew = createNodeAbsVar("ynew")
-    modxold = createNodeAbsVar("xold")
-    modyold = createNodeAbsVar("yold")
-    xoldPlusyold = createNodeApp("+", [modxold, modyold])
-    kxoldPlusyold = createNodeApp("*", [ "k", xoldPlusyold ])
-    fact1 = createNodeApp("<=", [modxnew, kxoldPlusyold])
-    fact2 = createNodeApp("<=", [modynew, kxoldPlusyold.cloneNode(True)])
-    kxold = createNodeApp("*", ["k", modxold.cloneNode(True)])
-    kyold = createNodeApp("*", ["k", modyold.cloneNode(True)])
-    fact31 = createNodeApp("<=", [modxnew.cloneNode(True), kxold])
-    fact32 = createNodeApp("<=", [modynew.cloneNode(True), kyold])
-    fact3 = createNodeApp("OR", [ fact31, fact32 ])
-    fact41 = createNodeApp("<=", [modxnew.cloneNode(True), kyold.cloneNode(True)])
-    fact42 = createNodeApp("<=", [modynew.cloneNode(True), kxold.cloneNode(True)])
-    fact4 = createNodeApp("OR", [ fact41, fact42 ])
-    fval = createNodeAnd([fact1, fact2, fact3, fact4])
+    axold = createNodeApp("*", ["a", "xold"])
+    byold = createNodeApp("*", ["b", "yold"])
+    bxold = createNodeApp("*", ["b", "xold"])
+    ayold = createNodeApp("*", ["a", "yold"])
+    axMby = createNodeApp("-", [ axold, byold ])
+    bxPay = createNodeApp("+", [ bxold, ayold ])
+    fact1 = createNodeApp("=", [ "xnew", axMby ])
+    fact2 = createNodeApp("=", [ "ynew", bxPay ])
+    fval = createNodeAnd([fact1, fact2])
     ans = createNodeTagChild4("CONSTANTDECLARATION", fname, fparams, ftype, fval)
-    return ans
-
-def createCallToTimedQuadInv(nodePnew,nodePold,nodeQnew,nodeQold,a,b,time):
-    """ quadTimedInv(nodePold,nodeQold,nodePnew,nodeQnew,exp(a*t)) """
-    if equal(a, 0):
-        knode = createNodeTag("NUMERAL", "1")
-        ans1=createNodeApp("quadInv", [ nodePold, nodeQold, nodePnew, nodeQnew, knode])
-        ans2=createNodeApp("quadInv", [ nodePnew.cloneNode(True), nodeQnew.cloneNode(True), nodePold.cloneNode(True), nodeQold.cloneNode(True), knode.cloneNode(True)])
-        ans = createNodeAnd([ ans1, ans2 ])
-    else:
-        k = math.exp(a*time)
-        if a < 0:
-            knode = createNodeTag("NUMERAL", str(k))
-            ans=createNodeApp("quadTimedInv", [ nodePold, nodeQold, nodePnew, nodeQnew, knode])
-        else:
-            knode = createNodeTag("NUMERAL", str(1.0/k))
-            ans=createNodeApp("quadTimedInv", [ nodePnew, nodeQnew, nodePold, nodeQold, knode])
     return ans
 # *****************************************************************************
 
@@ -609,7 +621,7 @@ def absGuardedCommandAux(varlist,A,b):
                 nodePnew = createNodePnew(vec,x,wec,y,const)
                 nodePold = createNodePold(vec,x,wec,y,const)
                 if not(nodePnew == None):
-                    nodeL.append(createEigenInv(nodePnew,nodePold,lamb))
+                    nodeL.append(createCallToEigenInv(nodePnew,nodePold,lamb))
             # Pick d' s.t. l d' = c' A2 or, d l = A2' c
             # Let p := (c'x+d'y+ (c'b1+d'b2)/l) THEN dp/dt = l p
         if len(vectors) > 1:
@@ -643,8 +655,8 @@ def absGuardedCommandAux(varlist,A,b):
                 if vec != None:
                     nodePnew = createNodePnew(vec,x,wec,y,soln[j][m+l])
                     nodePold = createNodePold(vec,x,wec,y,soln[j][m+l])
-                    nodeL.append(createEigenInv(nodePnew,nodePold,lamb))
-    multirateGuard = multirateAbs(multirateL)
+                    nodeL.append(createCallToEigenInv(nodePnew,nodePold,lamb))
+    multirateGuard = createCallToMultirateInv(multirateL)
     if not(multirateGuard == None):
         nodeL.append(multirateGuard)
     i = 0
@@ -704,7 +716,7 @@ def absGuardedCommandAux(varlist,A,b):
         nodeQnew = createNodePnew(v,x,w2,y,c2)
         nodeQold = createNodePold(v,x,w2,y,c2)
         # vec could be 0 vector and hence nodePnew could be None
-        nodeL.append(createQuadInv(nodePnew,nodePold,nodeQnew,nodeQold,a,b))
+        nodeL.append(createCallToQuadInv(nodePnew,nodePold,nodeQnew,nodeQold,a,d))
     return createNodeAnd(nodeL)
 
 # collect all x s.t. dx/dt = constant
@@ -750,7 +762,7 @@ def absGuardedCommand(gc):
     print b
     guard = HSalXMLPP.getArg(guard,1)
     guardCopy = guard.cloneNode(True)
-    if (opt & 0x4) :
+    if (opt & 0x4 != 0) :
         primeguard = HSalPreProcess2.makePrime(guardCopy, dom)
         guardCopy = createNodeInfixApp('AND',guardCopy,primeguard)
     absgc = absGuardedCommandAux(varlist,A,b)
@@ -782,16 +794,15 @@ def handleContext(ctxt):
                 print "Unknown parent node type"
     cbody = ctxt.getElementsByTagName("CONTEXTBODY")
     assert len(cbody) == 1
-    if opt & 0x1:
+    if (opt & 0x1 != 0):
         cbody[0].insertBefore(newChild=createNodeQuadInvOpt(),refChild=cbody[0].firstChild)
-    if opt & 0x2:
+    if (opt & 0x2 != 0):
         cbody[0].insertBefore(newChild=createNodeQuadInvNonlinear(),refChild=cbody[0].firstChild)
-    if not(opt & 0x2):
+    if (opt & 0x2 == 0):
         cbody[0].insertBefore(newChild=createNodeQuadInv(),refChild=cbody[0].firstChild)
-    if opt & 0x8:
+    if (opt & 0x8 != 0):
         cbody[0].insertBefore(newChild=createTimedNodeQuadInv(),refChild=cbody[0].firstChild)
         cbody[0].insertBefore(newChild=createTimedNodeEigenInv(),refChild=cbody[0].firstChild)
-        cbody[0].insertBefore(newChild=createTimedNodeMultirateInv(),refChild=cbody[0].firstChild)
     else:
         cbody[0].insertBefore(newChild=createNodeEigenInv(),refChild=cbody[0].firstChild)
         cbody[0].insertBefore(newChild=createNodeMultirateInv(),refChild=cbody[0].firstChild)
