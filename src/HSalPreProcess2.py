@@ -109,10 +109,22 @@ def handleBasemoduleInitForDecl(basemod):
     basemod.replaceChild(newChild=initdecl, oldChild=initfordecl)
     return
 
-def makePrime(expr, basemod):
+def getInputs(basemod):
+    """Return all string input variable names in basemodule"""
+    inputdecls = basemod.getElementsByTagName("INPUTDECL")
+    inputs = list()
+    for i in inputdecls:
+        inputvars = i.getElementsByTagName("IDENTIFIER")
+        for j in inputvars:
+            inputs.append(HSalXMLPP.valueOf(j))
+    return inputs
+
+def makePrime(expr, inputs, basemodule):
     """Replace var by var' in expr"""
     # first get the types of all variables from dom
-    vdecls = basemod.getElementsByTagName('VARDECL')
+    if inputs == None:
+        inputs = getInputs(basemodule)
+    vdecls = basemodule.getElementsByTagName('VARDECL')
     allRealVars = list()
     for i in vdecls:
         varnames = i.getElementsByTagName('IDENTIFIER')
@@ -131,8 +143,10 @@ def makePrime(expr, basemod):
         name = HSalXMLPP.valueOf(i)
         if not(name in allRealVars): 	# if name in ['TRUE', 'FALSE']:
             continue
+        if name in inputs:
+            continue
         parentNode = i.parentNode
-        if parentNode.tagName == 'NEXTOPERATOR': 	# if name in ['TRUE', 'FALSE']:
+        if parentNode.tagName == 'NEXTOPERATOR':
             continue
         icopy = i.cloneNode(True)
         primeVar = xmlHelpers.createNodeTagChild("NEXTOPERATOR", icopy)
@@ -155,7 +169,7 @@ def handleBasemoduleInvarDecl(basemod):
         print "ERROR: INVARIANT can not be EMPTY; Expression expected"
         return
     phiPrime = phi.cloneNode(True)
-    phiPrime = makePrime(phiPrime, basemod)
+    phiPrime = makePrime(phiPrime, basemodule=basemod, inputs=None)
     phiPhi = createNodeAnd([ phi, phiPrime ])
     tdecls = basemod.getElementsByTagName("TRANSDECL")
     assert len(tdecls) == 1

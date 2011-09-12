@@ -80,10 +80,10 @@ def createNodeCXFromLinXpr(linXpr,flag):
     cx = list()
     for ci,xi in linXpr:
         if not(equal(ci, 0)):
-            cx.append(createNodeCXOne(ci, xi, flag))
+            cx.append(createNodeCXOne(ci, xi, flag, None))
     return createNodePlus(cx)
 
-def createNodeCXOne(c, x, flag):
+def createNodeCXOne(c, x, flag, inputs):
     #node1 = createNodeTag("NUMERAL", str(c))
     if equal(c, 1):
         node1 = None
@@ -93,7 +93,8 @@ def createNodeCXOne(c, x, flag):
         node1 = createNodeTag("NUMERAL", str(c))
     node2 = createNodeTag("NAMEEXPR", x)
     if flag:
-        node2 = createNodeTagChild("NEXTOPERATOR", node2)
+        if not(x in inputs):
+            node2 = createNodeTagChild("NEXTOPERATOR", node2)
     if node1 == None:
         node3 = node2
     else:
@@ -107,22 +108,23 @@ def dictKey(varlist, value):
             return var
     return None
 
-def createNodeCX(c,x,flag):
-    "create node for c1 x1+...+cn xn, use primes if flag"
+def createNodeCX(c,x,flag,inputs):
+    "create node for c1 x1+...+cn xn, use primes if flag && not(xi in inputs)"
     xindices = x.values()
     xindices.sort()
     n = len(xindices)
     cx = list()
     for i,v in enumerate(xindices):
         if not(equal(c[i], 0)):
-            cx.append(createNodeCXOne(c[i], dictKey(x,v), flag))
+            cx.append(createNodeCXOne(c[i], dictKey(x,v), flag, inputs))
     return createNodePlus(cx)
 
-def createNodePaux(c,x,d,y,e,flag):
-    "create node for c.x + d.y + e; with PRIME variables if flag"
+def createNodePaux(c,x,d,y,e,flag,inputs):
+    """create node for c.x + d.y + e; with PRIME variables if 
+       flag && xi not in inputs"""
     print "createNodePaux entering"
-    node1 = createNodeCX(c,x,flag)
-    node2 = createNodeCX(d,y,flag)
+    node1 = createNodeCX(c,x,flag,inputs)
+    node2 = createNodeCX(d,y,flag,inputs)
     if equal(e,0):
         node3 = None
     else:
@@ -132,10 +134,10 @@ def createNodePaux(c,x,d,y,e,flag):
         nodeL.remove(None)
     return createNodePlus(nodeL)
 
-def createNodePnew(vec,x,A2transvec,y,const):
-    return createNodePaux(vec,x,A2transvec,y,const,True)
+def createNodePnew(vec,x,A2transvec,y,const,inputs):
+    return createNodePaux(vec,x,A2transvec,y,const,True,inputs)
 
 def createNodePold(vec,x,A2transvec,y,const):
-    return createNodePaux(vec,x,A2transvec,y,const,False)
+    return createNodePaux(vec,x,A2transvec,y,const,False,None)
 
 # ********************************************************************

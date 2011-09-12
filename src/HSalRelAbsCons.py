@@ -242,35 +242,6 @@ def partitionAux(x, y, A, b):
     print b2
     return [A, A2, b, b2]
 
-def partition(varlist, A, b):
-    "output [x,y,A1,A2,b1,b2] s.t. (x;y) = (A1 A2; 0 0) (x;y) + (b1;b2)"
-    x = dict()
-    y = dict()
-    index = 0
-    for i in A:
-        if isZero(i):
-            var = dictKey(varlist, index)
-            y[var] = index
-        else:
-            var = dictKey(varlist, index)
-            x[var] = index
-        index += 1
-    [A1,A2,b1,b2] = partitionAux(x, y, A, b)
-    return [x,y,A1,A2,b1,b2]
-
-def multirateList(y, b2):
-    """Return list of [y[i]',y[i],b1[i]],
-       where y,y' are XML nodes, b1[i] is a float"""
-    multirateL = list()
-    yindices = y.values()
-    yindices.sort()
-    for i,v in enumerate(yindices):
-        varName = dictKey(y, v)
-        yold = createNodeTag("NAMEEXPR", varName)
-        ynew = createNodeTagChild("NEXTOPERATOR", yold.cloneNode(True))
-        multirateL.append([ynew, yold, b2[i]])
-    return multirateL
-
 def createNodeVarType(varName, typeName):
     xold = createNodeTag("IDENTIFIER", varName)
     real = createNodeTag("TYPENAME", typeName)
@@ -562,17 +533,50 @@ def ifGoodCreateNodes(soln, vectors, lamb, m, l):
             vec[i] += soln[m+j]*vectors[j][i]
     return (vec,wec)
 
-def absGuardedCommandAux(varlist,A,b):
+def absGuardedCommandAux(varlist,A,b,inputs):
     """varlist is a dict from var to indices
     A,b are the A,b matrix defined wrt these indices
+    inputs is a list of string names of all input variables
     Return an abstract GC"""
+
+    def multirateList(y, b2, inputs):
+        """Return list of [y[i]',y[i],b1[i]],
+           where y,y' are XML nodes, b1[i] is a float"""
+        multirateL = list()
+        yindices = y.values()
+        yindices.sort()
+        for i,v in enumerate(yindices):
+            varName = dictKey(y, v)
+            if varName in inputs:
+                continue
+            yold = createNodeTag("NAMEEXPR", varName)
+            ynew = createNodeTagChild("NEXTOPERATOR", yold.cloneNode(True))
+            multirateL.append([ynew, yold, b2[i]])
+        return multirateL
+
+    def partition(varlist, A, b):
+        "output [x,y,A1,A2,b1,b2] s.t. (x;y) = (A1 A2; 0 0) (x;y) + (b1;b2)"
+        x = dict()
+        y = dict()
+        index = 0
+        for i in A:
+            if isZero(i):
+                var = dictKey(varlist, index)
+                y[var] = index
+            else:
+                var = dictKey(varlist, index)
+                x[var] = index
+            index += 1
+        [A1,A2,b1,b2] = partitionAux(x, y, A, b)
+        return [x,y,A1,A2,b1,b2]
+
     [x,y,A1,A2,b1,b2] = partition(varlist,A,b)
     # [x,y,A1,A2,b1,b2] s.t. (x;y) = (A1 A2; 0 0) (x;y) + (b1;b2)"
     n = len(x)
     m = len(y)
     if n == 0:
         print "dx/dt is a constant for all x"
-    multirateL = multirateList(y, b2) 
+    multirateL = multirateList(y, b2, inputs) 
     # guardAbs1 = multirateAbs(y, b2)
     A1trans = linearAlgebra.transpose(A1)
     eigen = linearAlgebra.eigen(A1trans)
@@ -607,8 +611,8 @@ def absGuardedCommandAux(varlist,A,b):
             const = linearAlgebra.dotproduct(vec,b1)
             if equal(lamb, 0):
                 if isZero(wec):
-                    pold = createNodeCX(vec,x,False)
-                    pnew = createNodeCX(vec,x,True)
+                    pold = createNodeCX(vec,x,False,None)
+                    pnew = createNodeCX(vec,x,True,inputs)
                     multirateL.append([pnew,pold,const])
                 else:
                     print "lamb==0, but no corr. invariant found"
@@ -618,7 +622,7 @@ def absGuardedCommandAux(varlist,A,b):
                     wec[j] /= lamb
                 const += linearAlgebra.dotproduct(wec,b2)
                 const = float(const) / lamb
-                nodePnew = createNodePnew(vec,x,wec,y,const)
+                nodePnew = createNodePnew(vec,x,wec,y,const,inputs)
                 nodePold = createNodePold(vec,x,wec,y,const)
                 if not(nodePnew == None):
                     nodeL.append(createCallToEigenInv(nodePnew,nodePold,lamb))
@@ -653,7 +657,7 @@ def absGuardedCommandAux(varlist,A,b):
             for j in range(len(soln)):
                 (vec,wec) = ifGoodCreateNodes(soln[j],vectors,lamb,m,l)
                 if vec != None:
-                    nodePnew = createNodePnew(vec,x,wec,y,soln[j][m+l])
+                    nodePnew = createNodePnew(vec,x,wec,y,soln[j][m+l],inputs)
                     nodePold = createNodePold(vec,x,wec,y,soln[j][m+l])
                     nodeL.append(createCallToEigenInv(nodePnew,nodePold,lamb))
     multirateGuard = createCallToMultirateInv(multirateL)
@@ -711,9 +715,9 @@ def absGuardedCommandAux(varlist,A,b):
         c1 = (d*tmp1 + a*tmp2)/DD
         #ux+w1y+c1 and vx+w2y+c2 are position,velocity pair.
         # related by quadInv(_,_)
-        nodePnew = createNodePnew(u,x,w1,y,c1)
+        nodePnew = createNodePnew(u,x,w1,y,c1,inputs)
         nodePold = createNodePold(u,x,w1,y,c1)
-        nodeQnew = createNodePnew(v,x,w2,y,c2)
+        nodeQnew = createNodePnew(v,x,w2,y,c2,inputs)
         nodeQold = createNodePold(v,x,w2,y,c2)
         # vec could be 0 vector and hence nodePnew could be None
         nodeL.append(createCallToQuadInv(nodePnew,nodePold,nodeQnew,nodeQold,a,d))
@@ -747,10 +751,12 @@ def absAssignments(varlist, keyLimit):
         ans.appendChild(simpledef)
     return ans
 
-def absGuardedCommand(gc):
-    "Return a new guarded command that is a rel abs of input GC"
+def absGuardedCommand(gc, inputs, basemod):
+    """Return a new guarded command that is a rel abs of input GC.
+       gc is the XML node of the guarded command, 
+       inputs is a list of string names of all input variables
+       basemod is the XML node of the basemodule of the gc"""
     global opt
-    global dom
     guard = gc.getElementsByTagName("GUARD")[0]
     assigns = gc.getElementsByTagName("ASSIGNMENTS")[0]
     defs = assigns.getElementsByTagName("SIMPLEDEFINITION")
@@ -763,21 +769,23 @@ def absGuardedCommand(gc):
     guard = HSalXMLPP.getArg(guard,1)
     guardCopy = guard.cloneNode(True)
     if (opt & 0x4 != 0) :
-        primeguard = HSalPreProcess2.makePrime(guardCopy, dom)
+        primeguard = HSalPreProcess2.makePrime(guardCopy, inputs, basemod)
         guardCopy = createNodeInfixApp('AND',guardCopy,primeguard)
-    absgc = absGuardedCommandAux(varlist,A,b)
+    absgc = absGuardedCommandAux(varlist,A,b,inputs)
     absguardnode = createNodeInfixApp('AND',guardCopy,absgc)
     absguard = createNodeTagChild('GUARD',absguardnode)
     # absassigns = assigns.cloneNode(True)
     absassigns = absAssignments(varlist, keyLimit=len(flow)/2)
     return createNodeTagChild2('GUARDEDCOMMAND', absguard, absassigns)
 
-def handleContext(ctxt):
-    global opt
-    cbody = ctxt.getElementsByTagName("GUARDEDCOMMAND")
+def handleBasemodule(basemod, ctxt):
+    """Side effect: replace cont. transition by relational abstraction
+       by changing the DOM of the basemod, doms root is ctxt"""
+    inputs = HSalPreProcess2.getInputs(basemod)
+    cbody = basemod.getElementsByTagName("GUARDEDCOMMAND")
     for i in cbody:
         if isCont(i):
-            absGC = absGuardedCommand(i)
+            absGC = absGuardedCommand(i, inputs, basemod)
             parentNode = i.parentNode
             if parentNode.localName == 'MULTICOMMAND':
                 if not(absGC == None):
@@ -792,6 +800,12 @@ def handleContext(ctxt):
                 parentNode.replaceChild(newChild=newnode, oldChild=i)
             else:
                 print "Unknown parent node type"
+
+def handleContext(ctxt):
+    global opt
+    basemodules = ctxt.getElementsByTagName("BASEMODULE")
+    for i in basemodules:
+        handleBasemodule(i, ctxt)
     cbody = ctxt.getElementsByTagName("CONTEXTBODY")
     assert len(cbody) == 1
     if (opt & 0x1 != 0):
