@@ -1,0 +1,58 @@
+% Using timed relational abstraction to study stability
+% When a controller that is designed to be stable in the continuous domain
+% Is implemented on a discrete platform, 
+% the resulting system could be unstable.
+
+% Consider a 1-dimensional continuous plant: dx/dt = 5*x(t) + u(t) 
+% We are given a simple P-controller.  u(t) = -30*x(t)
+% We assume controller samples x(t) every T seconds and update u then.
+% Here we analyze for two T = 0.1s, and T = 0.05s
+
+% We assume the controller gets values of x(t)
+% from the plant at specific time instants.
+% (For e.g., x(t) is sent from plant to controller
+% on a time-triggered bus).
+% Assume x(t) is transmitted every 0.1 time units; that is, T = 0.1
+
+% Assume for now:
+% (1) transmission time = 0
+% (2) information u from control to plant is passed instantaneously.
+
+PTimed: CONTEXT =
+BEGIN
+
+ plant: MODULE = 
+ BEGIN
+  OUTPUT x: REAL
+  LOCAL xdot: REAL
+  INPUT u: REAL
+  INITFORMULA -1 <= x AND x <= 1
+  TRANSITION 
+  [
+   TRUE --> xdot' = 5*x + u
+  ]
+ END;
+
+ controller: MODULE = 
+ BEGIN
+  OUTPUT u: REAL
+  INPUT x: REAL
+  INITIALIZATION u = 0
+  TRANSITION
+  [
+   TRUE --> u' = -30*x'
+  ]
+ END;
+
+ system: MODULE = plant || controller ;
+
+ % We analyze these hybrid programs by first replacing the 
+ % differential equations in the program by their timed
+ % relational abstractions.
+ % Timed Relational Abstraction of the differential equation is :
+ % 5x'+u = (5x+u)*exp(.5) = 1.65*(5x+u)
+
+ stable: THEOREM
+  system |- G( -2 <= x AND x <= 2 ) ;
+
+END
