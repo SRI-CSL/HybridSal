@@ -52,6 +52,9 @@ BEGIN
  % Timed Relational Abstraction of the differential equation is :
  % 5x'+u = (5x+u)*exp(.5) = 1.65*(5x+u)
 
+ % When T = 0.1, there is a counter-example to this property
+ % When T = 0.01, this property is proved 
+ % Model checking commands to use: sal-inf-bmc -i -d 2 PSatTimed stable
  stable: THEOREM
   system |- G( -2 <= x AND x <= 2 ) ;
 

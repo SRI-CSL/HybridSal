@@ -53,6 +53,35 @@ powertrain:  ${exhsal}/powertrain.hsal
 	python src/HSalPreProcess.py ${exhsal}/powertrain.hxml
 	bin/hsal2hasal ${exhsal}/powertrain.hxml
 
+PTimed: ${exhsal}/PTimed.hsal
+	echo "***************************************************************"
+	echo "******** Constructing timed abstraction with T=0.01************"
+	bin/hsal2hasal -t 0.01 ${exhsal}/PTimed.hsal
+	echo "*********** Verifying timed abstraction with T=0.01************"
+	cd ${exhsal}; sal-inf-bmc -i -d 4 PTimed stable
+	echo "******** Constructing timed abstraction with T=0.1*************"
+	bin/hsal2hasal -t 0.1 ${exhsal}/PTimed.hsal
+	echo "*********** Verifying timed abstraction with T=0.1*************"
+	cd ${exhsal}; sal-inf-bmc -i -d 4 PTimed stable
+
+InvPenTimed: ${exhsal}/InvPenTimed.hsal
+	echo "************* Constructing untimed abstraction ****************"
+	bin/hsal2hasal ${exhsal}/InvPenTimed.hsal
+	echo "*********** Verifying untimed abstraction *********************"
+	cd ${exhsal}; sal-inf-bmc -i -d 2 InvPenTimed stableCont; sal-inf-bmc -i -d 4 InvPenTimed stableCont
+	echo "******** Constructing timed abstraction with T=0.01************"
+	bin/hsal2hasal -t 0.01 ${exhsal}/InvPenTimed.hsal
+	echo "*********** Verifying timed abstraction with T=0.01************"
+	cd ${exhsal}; sal-inf-bmc -i -d 14 InvPenTimed stableTimed; sal-inf-bmc -d 18 InvPenTimed stable
+
+PITimed: ${exhsal}/PITimed.sal
+	echo "*********** Verifying timed abstraction for T=0.01s************"
+	cd ${exhsal}; sed -e "s|__N__|0|g" PITimed.sal.proved > PITimed.sal; sal-inf-bmc -i -d 22 PITimed stable
+	echo "*********** Verifying timed abstraction for T=0.1s************"
+	cd ${exhsal}; sed -e "s|__N__|1|g" PITimed.sal.proved > PITimed.sal; sal-inf-bmc -i -d 10 PITimed stable
+	echo "*********** Verifying timed abstraction for T=0.5s************"
+	cd ${exhsal}; sed -e "s|__N__|2|g" PITimed.sal.proved > PITimed.sal; sal-inf-bmc -i -d 5 PITimed stable
+
 clean: 
 	rm -f ${HXMLS} $(EXPLS:.hsal=.hasal) $(EXPLS:.hsal=.haxml) $(EXPLS:.hsal=.xml)
 

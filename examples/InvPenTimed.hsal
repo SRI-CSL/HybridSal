@@ -1,0 +1,81 @@
+% A linearized model of inverted pendulum being controlled
+% by a bang-bang controller synthesized using our EMSOFT2010 paper.
+
+InvPenTimed: CONTEXT =
+BEGIN
+
+ plant: MODULE = 
+ BEGIN
+  OUTPUT x, y: REAL
+  LOCAL xdot, ydot: REAL
+  INPUT u: REAL
+  INITFORMULA -1/2 <= x AND x <= 1/2 AND y = 0
+  INVARIANT 16*x - y <= 11 AND 16*x - y >= -11 AND y <= 22/10 AND y >= -22/10
+  TRANSITION 
+  [
+   TRUE --> xdot' = y; ydot' = 20*x + 16*y + 4*u
+  ]
+ END;
+ 
+ controller: MODULE = 
+ BEGIN
+  OUTPUT u: REAL
+  INPUT x, y: REAL
+  INITIALIZATION u = 0
+  TRANSITION
+  [
+   y' >= 2 --> u' = -16
+   []
+   y' <= -2 --> u' = 16
+   []
+   16*x' - y' <= -10 --> u' = -16
+   []
+   16*x' - y' >= 10 --> u' = 16
+   []
+   else --> u' = u
+  ]
+ END;
+
+ plantTimed: MODULE = 
+ BEGIN
+  OUTPUT x, y: REAL
+  LOCAL xdot, ydot: REAL
+  INPUT u: REAL
+  INITFORMULA -1/2 <= x AND x <= 1/2 AND y = 0
+  TRANSITION 
+  [
+   TRUE --> xdot' = y; ydot' = 20*x + 16*y + 4*u
+  ]
+ END;
+ 
+ systemCont: MODULE = plant || controller ;
+
+ systemTimed: MODULE = plantTimed || controller ;
+
+ % stability for continuous version
+ % Construct untimed abstraction, without any flags
+ % prove using sal-inf-bmc -i -d 4 InvPenTimed stableCont
+ stableCont: THEOREM
+  systemCont |- G( -1 <= x AND x <= 1 
+    AND NOT(y = 22/10 AND X(y = 22/10))
+    AND NOT(y = -22/10 AND X(y = -22/10))
+    AND NOT(16*x - y  = -11 AND X(16*x - y = -11))
+    AND NOT(16*x - y  = 11 AND X(16*x - y = 11))) ;
+
+ % stability of discretized version; 
+ % Construct timed abstraction using T = 0.01
+ % prove using sal-inf-bmc -i -d 4 InvPenTimed stableTimed
+ stableTimed: THEOREM
+  systemTimed |- G( -1 <= x AND x <= 1 
+    AND NOT(y >= 2 AND X(y >= 2) AND X(X(y >= 2)))
+    AND NOT(y <= -2 AND X(y <= -2) AND X(X(y <= -2)))
+    AND NOT(16*x - y  <= -11 AND X(16*x - y <= -11))
+    AND NOT(16*x - y  >= 11 AND X(16*x - y >= 11))) ;
+
+ stable: THEOREM
+  systemTimed |- G( -1 <= x AND x <= 1 AND y <= 3 AND y >= -3 AND 16*x - y <= 11 AND 16*x - y >= -11) ;
+
+ canreach: THEOREM
+  systemTimed |- G( y = 0 ) ;
+
+END

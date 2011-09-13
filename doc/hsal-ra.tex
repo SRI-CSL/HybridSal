@@ -606,4 +606,62 @@ If initially $x = 5$, then relational abstraction
 can prove $x$ remains between $0$ and $5$
 \end{slide}
 % -------------------------------------------------------
+\begin{slide}
+\heading{Preliminary Demo of Timed Relational Abstraction}
+
+{\cem{New}}: First version of {\cem{Timed Relational Abstraction}}
+
+\medskip
+{\cem{Why TRA?}} 
+Would a controller that is designed and verified to be stable
+in the {\cem{continuous domain}}, but implemented on a
+{\cem{time triggered}} architecture, still maintain stability?
+
+\medskip
+{\cem{What is TRA?}} 
+Abstraction of $dx(t)/dt = f(x)$ by a {\cem{relation}}
+$R(x(0),x(T))$ that relates all possible pairs
+$x(0),x(T)$, where $T$ is the {\cem{sampling period}}
+
+\end{slide}
+% -------------------------------------------------------
+\begin{slide}
+\heading{Example 1: Timed Proportional Controller}
+
+Consider plant $\frac{dx}{dt} = 5*x + u$
+
+Consider a P-controller $u = -30*x$
+
+This is clearly stabilizing in the continuous domain.
+
+Time-triggered implementation of this controller need
+not be provably stabilizing.
+
+When $T = 0.01$, the controller is still stabilizing
+
+When $T = 0.1$, it is not so
+
+\end{slide}
+% -------------------------------------------------------
+\begin{slide}
+\heading{Example 2: Timed PI Controller}
+
+Consider plant $\frac{dx}{dt} = 5*x + u$
+
+Consider a PI-controller $u = -30*x - y$,
+where $\frac{dy}{dt} = x$
+
+When $T = 0.05$, the controller is stabilizing
+
+When $T = 0.1$, the controller is stabilizing
+
+When $T = 0.5$, it is not so
+
+\end{slide}
+% -------------------------------------------------------
+\begin{slide}
+\heading{Example 3: Inverted Pendulum}
+
+\end{slide}
+% -------------------------------------------------------
 \end{document}
