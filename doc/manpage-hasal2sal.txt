@@ -1,0 +1,25 @@
+
+NAME
+        bin/hasal2sal - convert hybridsal in XML to standard notation
+
+SYNOPSIS
+        bin/hasal2sal [FILE]
+
+DESCRIPTION
+        Extract the discrete part of the transition system contained in
+        the hybrid abstract HybridSAL file [FILE], with .hasal extension, 
+        and pretty print it.
+        The input is assumed to be a file with extension .hasal
+        The output is written in a new file that has the same
+        name as [FILE], but a different extension, namely .sal.
+
+        There is no analysis performed; it is a purely syntactic extraction.
+
+AUTHOR
+        Written by Ashish Tiwari
+
+REPORTING BUGS
+        Report bin/hasal2sal bugs to ashish_dot_tiwari_at_sri_dot_com
+
+COPYRIGHT
+        Copyright © 2011 Ashish Tiwari, SRI International.

@@ -1,0 +1,242 @@
+
+The HybridSAL tool suite
+-------------------------
+
+The HybridSAL relational abstractor is a tool that constructs 
+a relational abstraction of a hybrid system modeled in the
+HybridSAL language.
+
+Unix style man page for the HybridSAL relational abstractor,
+called bin/hsal2hasal, is included below.
+
+
+What the tool does?
+-------------------
+The HybridSAL language is a formal modeling language for systems
+with both discrete behavior (e.g. state machines and logic) and
+continuous dynamics (e.g. differential equations).
+
+The HybridSAL language can also model certain formal requirements,
+or specifications, of a dynamical system.  A typical example 
+is safety properties, that are modeled using textual syntax
+for Linear Temporal Logic.
+
+A HybridSAL file, thus, contains both a system model (hybrid 
+dynamical system) and a desired property (safety specification).
+
+The HybridSAL tool suite provides tools that can prove, or
+refute, the specified property for the specified system.
+
+The HybridSAL relational abstractor is one key component of the
+HybridSAL tool suite.
+
+
+Components of the HybridSAL tool chain
+--------------------------------------
+The HybridSAL tool suite consists of two classes of tools:
+(1) Abstractors
+(2) Verifiers
+
+(1) Abstractors:  The abstractors use a sound transformation 
+to eliminate differential equations from the model and replace
+them by discrete transitions.  
+Two abstractors are currently implemented and available:
+(1.1)  HybridSAL relational abstractor
+(1.2)  HybridSAL qualitative abstractor
+Here, we focus only on (1.1)
+The tool (1.2) and its documentation can be downloaded separately.
+
+(2) Verifiers:  The verifiers are tools based on the principle
+of model checking and induction.  The verifiers are used to prove,
+or refute, properties of discrete state transition systems modeled
+in the SAL language.  Examples of these verifiers are:
+(2.1) sal-emc: SAL explicit state model checker
+(2.2) sal-smc: SAL symbolic state model checker
+(2.3) sal-bmc: SAL bounded model checker
+(2.4) sal-inf-bmc: SAL infinite bounded model checker
+(2.5) sal-inf-bmc -i:  SAL k-induction prover
+(2.6) sal-atg: SAL automated test generator
+These tools and their documentation can be downloaded separately.
+
+
+The HybridSAL relational abstractor:
+------------------------------------
+The HybridSAL relational abstractor takes a HybridSAL file
+and create a SAL file.  The output SAL file contains an
+abstraction of the input HybridSAL file.  The output SAL file
+is a discrete, infinite state transition system.
+It can be verified using sal-inf-bmc or sal-inf-bmc -i 
+verifiers.
+
+The HybridSAL relational abstractor is itself built using
+several smaller components:
+- HybridSAL parser and XML generator
+- HybridSAL XML pretty printer
+- Extractor of (discrete) SAL component from a HybridSAL file
+However, from a user perspective, these smaller components may 
+not be independently useful.
+
+Unix style man pages for the HybridSAL relational abstractor
+and its components, developed mostly under META, are included 
+below.
+
+
+The HybridSAL Tool Suite Limitations:
+-------------------------------------
+We describer here the key limitations of the hybrid system 
+verification tool-chain consisting of 
+(1) the HybridSAL relational abstractor and
+(2) the SAL infinite bounded model checker and k-induction prover
+
+Limitations of the HybridSAL relational abstractor:
+(1) Nonlinear ordinary differential equations.
+ The abstractor does not handle nonlinear ODEs.
+ If the user wants to verify a hybrid system with nonlinear ODEs,
+ then the user has to approximate the nonlinear ODEs using 
+ multiple modes of linear ODEs.
+(2) Numerical floating point errors.
+ The abstractor uses a finite precision floating point numbers.
+ If the model contains dynamics described using very large and very
+ small numbers, then the numerical errors could lead to inaccurate
+ verification results.
+
+Limitations of the SAL model checker and k-induction prover:
+(1) Nonlinear constraints.
+ The SAL verifiers can not handle nonlinear constraints. 
+ Note that the HybridSAL relational abstractor can create high
+ quality, but nonlinear, abstractions (using the -n flag),
+ but the verifier, sal-inf-bmc, can not verify the SAL files
+ generated using the -n flag.
+(2) Scalability.
+ The verifier step is the bottleneck step for achieving scalability.
+ While models with 100s of differential equations and 10s of modes
+ can be abstracted in minutes, the resulting abstract SAL models
+ can take hours and days to be verified.
+(3) Inductive lemmas.
+ Verifying a safety property using k-induction may require a 
+ helping inductive lemma.  There are no automated tools for
+ lemma generation, and this step, if needed, has to be performed
+ by a human in the verification loop.
+
+-------------------------------------------------------------------------
+NAME
+        bin/hsal2hasal - construct relational abstraction of HybridSAL models
+
+SYNOPSIS
+        bin/hasal [OPTION]... [FILE]
+
+DESCRIPTION
+        Construct a relational abstraction of the model in [FILE].
+        Create a new SAL file containing the abstract model.
+        Input file is expected to be in HybridSAL (.hsal) syntax, or
+        HybridSAL's XML representation (.hxml).
+        The new file will have the same name as [FILE], but
+        a different extension, .sal
+
+        Options include:
+        -c, --copyguard
+            Explicitly handle the guards in the continuous dynamics
+            as state invariants
+        -n, --nonlinear
+            Create a nonlinear abstract model
+            Note that freely available model checkers are unable
+            to handle nonlinear models, hence this option is 
+            useful for research purposes only
+        -t <T>, --timed <T>
+            Create a timed relational abstraction assuming that
+            the controller is run every <T> time units.
+            <T> should be a number (such as, 0.01)
+        -o, --optimize
+            Create an optimized relational abstraction.
+            Certain transient's are unsoundly eliminated from the
+            abstract SAL model to improve performance of the model 
+            checkers on the generated SAL model
+
+AUTHOR
+        Written by Ashish Tiwari
+
+REPORTING BUGS
+        Report bin/hsal2hasal bugs to ashish_dot_tiwari_at_sri_dot_com
+
+COPYRIGHT
+        Copyright © 2011 Ashish Tiwari, SRI International.
+
+-------------------------------------------------------------------------
+
+NAME
+        hybridsal2xml/hybridsal2xml - convert hybridsal into XML format
+
+SYNOPSIS
+        hybridsal2xml/hybridsal2xml [OPTION]... [FILE]
+
+DESCRIPTION
+        Parse the HybridSAL file [FILE] (with .hsal extension) and
+        create a new file containing the XML representation of [FILE].
+        The new file will have the same name as [FILE], but
+        a different extension, namely .hxml.
+
+        Options include:
+        -o <filename>
+            Save the XML in file <filename>, rather than the default name.
+
+AUTHOR
+        Written by Ashish Tiwari
+
+REPORTING BUGS
+        Report hybridsal2xml bugs to ashish_dot_tiwari_at_sri_dot_com
+
+COPYRIGHT
+        Copyright © 2011 Ashish Tiwari, SRI International.
+
+-------------------------------------------------------------------------
+
+NAME
+        bin/hxml2hsal - convert hybridsal in XML to standard notation
+
+SYNOPSIS
+        bin/hxml2hsal [FILE]
+
+DESCRIPTION
+        Pretty print the XML file [FILE] as a HybridSAL file.
+        The input is assumed to be a file with extension .hxml
+        The output is written in a new file that has the same
+        name as [FILE], but a different extension, namely .hsal.
+
+        This is the ``inverse'' of hybridsal2xml tool.
+
+AUTHOR
+        Written by Ashish Tiwari
+
+REPORTING BUGS
+        Report bin/hxml2hsal bugs to ashish_dot_tiwari_at_sri_dot_com
+
+COPYRIGHT
+        Copyright © 2011 Ashish Tiwari, SRI International.
+
+-------------------------------------------------------------------------
+
+NAME
+        bin/hasal2sal - convert hybridsal in XML to standard notation
+
+SYNOPSIS
+        bin/hasal2sal [FILE]
+
+DESCRIPTION
+        Extract the discrete part of the transition system contained in
+        the hybrid abstract HybridSAL file [FILE], with .hasal extension, 
+        and pretty print it.
+        The input is assumed to be a file with extension .hasal
+        The output is written in a new file that has the same
+        name as [FILE], but a different extension, namely .sal.
+
+        There is no analysis performed; it is a purely syntactic extraction.
+
+AUTHOR
+        Written by Ashish Tiwari
+
+REPORTING BUGS
+        Report bin/hasal2sal bugs to ashish_dot_tiwari_at_sri_dot_com
+
+COPYRIGHT
+        Copyright © 2011 Ashish Tiwari, SRI International.
+-------------------------------------------------------------------------

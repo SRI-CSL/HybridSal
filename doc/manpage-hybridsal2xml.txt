@@ -1,0 +1,26 @@
+
+NAME
+        hybridsal2xml/hybridsal2xml - convert hybridsal into XML format
+
+SYNOPSIS
+        hybridsal2xml/hybridsal2xml [OPTION]... [FILE]
+
+DESCRIPTION
+        Parse the HybridSAL file [FILE] (with .hsal extension) and
+        create a new file containing the XML representation of [FILE].
+        The new file will have the same name as [FILE], but
+        a different extension, namely .hxml.
+
+        Options include:
+        -o <filename>
+            Save the XML in file <filename>, rather than the default name.
+
+AUTHOR
+        Written by Ashish Tiwari
+
+REPORTING BUGS
+        Report hybridsal2xml bugs to ashish_dot_tiwari_at_sri_dot_com
+
+COPYRIGHT
+        Copyright © 2011 Ashish Tiwari, SRI International.
+

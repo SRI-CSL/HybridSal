@@ -1,0 +1,24 @@
+
+NAME
+        bin/hxml2hsal - convert hybridsal in XML to standard notation
+
+SYNOPSIS
+        bin/hxml2hsal [FILE]
+
+DESCRIPTION
+        Pretty print the XML file [FILE] as a HybridSAL file.
+        The input is assumed to be a file with extension .hxml
+        The output is written in a new file that has the same
+        name as [FILE], but a different extension, namely .hsal.
+
+        This is the ``inverse'' of hybridsal2xml tool.
+
+AUTHOR
+        Written by Ashish Tiwari
+
+REPORTING BUGS
+        Report bin/hxml2hsal bugs to ashish_dot_tiwari_at_sri_dot_com
+
+COPYRIGHT
+        Copyright © 2011 Ashish Tiwari, SRI International.
+

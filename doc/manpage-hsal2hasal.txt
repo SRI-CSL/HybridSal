@@ -1,0 +1,43 @@
+
+NAME
+        bin/hsal2hasal - construct relational abstraction of HybridSAL models
+
+SYNOPSIS
+        bin/hasal [OPTION]... [FILE]
+
+DESCRIPTION
+        Construct a relational abstraction of the model in [FILE].
+        Create a new SAL file containing the abstract model.
+        Input file is expected to be in HybridSAL (.hsal) syntax, or
+        HybridSAL's XML representation (.hxml).
+        The new file will have the same name as [FILE], but
+        a different extension, .sal
+
+        Options include:
+        -c, --copyguard
+            Explicitly handle the guards in the continuous dynamics
+            as state invariants
+        -n, --nonlinear
+            Create a nonlinear abstract model
+            Note that freely available model checkers are unable
+            to handle nonlinear models, hence this option is 
+            useful for research purposes only.
+        -t <T>, --timed <T>
+            Create a timed relational abstraction assuming that
+            the controller is run every <T> time units.
+            <T> should be a number (such as, 0.01)
+        -o, --optimize
+            Create an optimized relational abstraction.
+            Certain transient's are unsoundly eliminated from the
+            abstract SAL model to improve performance of the model 
+            checkers on the generated SAL model.
+
+AUTHOR
+        Written by Ashish Tiwari
+
+REPORTING BUGS
+        Report bin/hsal2hasal bugs to ashish_dot_tiwari_at_sri_dot_com
+
+COPYRIGHT
+        Copyright © 2011 Ashish Tiwari, SRI International.
+

@@ -607,19 +607,26 @@ can prove $x$ remains between $0$ and $5$
 \end{slide}
 % -------------------------------------------------------
 \begin{slide}
-\heading{Preliminary Demo of Timed Relational Abstraction}
+\heading{Demo of (Prototype) Timed Relational Abstraction}
 
 {\cem{New}}: First version of {\cem{Timed Relational Abstraction}}
 
 \medskip
 {\cem{Why TRA?}} 
-Would a controller that is designed and verified to be stable
-in the {\cem{continuous domain}}, but implemented on a
-{\cem{time triggered}} architecture, still maintain stability?
+\begin{itemize}
+\item
+A controller is designed, and verified for stability, 
+in the {\cem{continuous domain}}
+\item
+The controller is implemented on a
+{\cem{time triggered}} architecture
+\item
+Is the system still {\cem{stable}}?
+\end{itemize}
 
 \medskip
 {\cem{What is TRA?}} 
-Abstraction of $dx(t)/dt = f(x)$ by a {\cem{relation}}
+Abstraction of $\frac{dx(t)}{dt} = f(x)$ by a {\cem{relation}}
 $R(x(0),x(T))$ that relates all possible pairs
 $x(0),x(T)$, where $T$ is the {\cem{sampling period}}
 
@@ -661,6 +668,33 @@ When $T = 0.5$, it is not so
 % -------------------------------------------------------
 \begin{slide}
 \heading{Example 3: Inverted Pendulum}
+
+\begin{eqnarray*}
+\mbox{A linearized plant} & := &
+\left\{\begin{array}{rcl}
+\frac{dx}{dt} & = & y
+\\
+\frac{dy}{dt} & = & 20*x + 16*y + 4*u
+\end{array}\right.
+\\
+\mbox{A controller} & := & 
+\left\{
+\begin{array}{rcl}
+   y \geq 2 & \longrightarrow & u = -16
+\\
+   y \leq -2 & \longrightarrow & u = 16
+\\
+   16*x - y \leq -10 & \longrightarrow & u = -16
+\\
+   16*x - y \geq 10 & \longrightarrow & u = 16
+\\
+   \mbox{Else}  & \longrightarrow & u = u
+\end{array}\right.
+\end{eqnarray*}
+
+A {\cem{continuous controller}} results in a {\cem{stable system}}
+
+For {\cem{any sampling period $T$}}, resulting system is {\cem{not stable}}
 
 \end{slide}
 % -------------------------------------------------------
