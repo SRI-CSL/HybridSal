@@ -1,0 +1,25 @@
+
+A short note on timed relational abstraction
+--------------------------------------------
+
+Timed relational abstraction is a technique for analyzing control
+systems where the controller runs on a time-triggered schedule.
+If T is the sampling time period, the assumption is that, every
+T time units, the controller samples the plant, computes the
+control values, and actuates the plant.
+When analyzing such time-triggered control systems,
+it is important to consider the effect of sampling at discrete
+time instances.  It is possible that a control system is stable
+when continuous or event-triggered sampling is assumed, but
+it becomes unstable under time-triggered sampling.
+Timed relational abstraction extends the original relational
+abstraction technique by supporting the analysis of time-triggered
+control systems.
+
+The HybridSAL relational abstraction tool was extended by
+including a prototype implementation of timed relational
+abstraction.  The implementation was used to analyze several
+models of simple control systems with and without the time-based
+sampling assumption.  Extensive testing of the tool is
+underway to determine its value and scalability.
+
