@@ -228,6 +228,49 @@ conservative safety bounds
 \end{slide}
 % -------------------------------------------------------
 \begin{slide}
+\heading{Relational Abstraction: Examples}
+
+\begin{tabular}{l|l}
+\hline
+continuous-time continuous-space 
+& 
+continuous-space discrete-time 
+\\
+concrete system & relational abstraction
+\\ \hline \hline
+$\dot{x} = 1, \dot{y} = 1$
+&
+$x'-x = y'-y \;\;\wedge\;\; y' \geq y$
+\\
+\hline
+$\dot{x} = 2, \dot{y} = 3$
+&
+$(x'-x)/2 = (y'-y)/3 \;\;\wedge\;\; y' \geq y$
+\\ \hline
+$\frac{dx}{dt}  =  -x$
+&  $x \geq x' > 0 \vee x\leq x' < 0\vee x=x'=0$
+\\ \hline
+ $\frac{dx}{dt}  =  -x + y$
+& 
+   $\mathtt{max}(|x|,|y|) \geq \mathtt{max}(|x'|,|y'|) \;\wedge\;$
+\\
+ $\frac{dy}{dt}  =  -x - y$
+& 
+   $x^2 + y^2 \geq {x'}^2 + {y'}^2$
+\\ \hline
+ $\frac{d\vec{x}}{dt}  =  A\vec{x}$
+&
+ $(c^T\vec{x} \geq c^T\vec{x'} > 0 \;\;\vee$
+\\ & 
+ $c^T\vec{x} \leq c^T\vec{x'} < 0 \;\;\vee$
+\\ &
+ $c^T\vec{x} = c^T\vec{x'} = 0) \;\;\;\wedge \ldots $
+\\ \hline
+\end{tabular}
+
+\end{slide}
+% -------------------------------------------------------
+\begin{slide}
 \heading{Relational Abstraction: Example}
 
 For the continuous-time continuous-space dynamical system:
@@ -293,8 +336,9 @@ BEGIN
 \heading{Computing Relational Abstractions}
 
 We have an {\cem{algorithm}} for computing relational abstractions
-of {\cem{linear}} systems
+of {\cem{linear}} systems:  Lots of linear algebra
 
+\ignore{
 \bigskip
 
 \begin{tabular}{|l|l|}
@@ -333,8 +377,10 @@ $\ldots$
 \begin{slide}
 \heading{Computing Relational Abstractions}
 
-For linear systems, we can use plenty of linear algebra
-to {\cem{automatically}} generate relational abstractions
+\endignore}
+
+% For linear systems, we can use plenty of linear algebra
+% to {\cem{automatically}} generate relational abstractions
 
 \medskip
 More generally, there is a {\cem{standard}} way to generate
@@ -345,7 +391,7 @@ The relation $\crm{\rightarrow}$ is a rel.abs. of $\cem{\rightarrow}$ if
 \begin{eqnarray*}
  \mathtt{Init}(\vec{x}) & \Rightarrow &  \vec{x} {\crm{\rightarrow}} \vec{x}
 \\
- \vec{x} {\crm{\rightarrow}} \vec{x}  \;\wedge\;
+ \vec{x} {\crm{\rightarrow}} \vec{x'}  \;\wedge\;
  \vec{x'} {\cem{\rightarrow}} \vec{y}  & \Rightarrow &
  \vec{x} {\crm{\rightarrow}} \vec{y}
 \end{eqnarray*}
@@ -385,6 +431,34 @@ Now we can also create relational abstractions from HybridSAL:
 HybridSAL  $\stackrel{\mathtt{Relational Abstraction}}{\Longrightarrow}$ SAL
 \end{center}
 Resulting SAL is {\cem{infinite-state}} model, can be {\cem{infinite bounded model checked}}
+
+\end{slide}
+% -------------------------------------------------------
+\begin{slide}
+\heading{RelAbs: Q\&A}
+
+\begin{itemize}
+\item How to verify the abstract system?
+ \begin{itemize}
+  \item k-induction and infinite BMC
+  \item scalability?
+ \end{itemize}
+\item How to verify time-triggered systems?
+ \begin{itemize}
+  \item timed relational abstraction
+  \item Reducing sampling rate leads to instability
+ \end{itemize}
+\item How to relationally abstract nonlinear systems?
+ \begin{itemize}
+  \item Use quantifier elimination (qepcad+redlog+slfq)
+ \end{itemize}
+\item Can we get nonlinear relational abstractions?
+ \begin{itemize}
+  \item Yes, they will be more precise
+  \item But, current SMT solvers can't analyze those abstractions
+ \end{itemize}
+ 
+\end{itemize}
 
 \end{slide}
 \end{document}
