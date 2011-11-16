@@ -62,7 +62,7 @@ These tools and their documentation can be downloaded separately.
 The HybridSAL relational abstractor:
 ------------------------------------
 The HybridSAL relational abstractor takes a HybridSAL file
-and create a SAL file.  The output SAL file contains an
+and creates a SAL file.  The output SAL file contains an
 abstraction of the input HybridSAL file.  The output SAL file
 is a discrete, infinite state transition system.
 It can be verified using sal-inf-bmc or sal-inf-bmc -i 
