@@ -1,7 +1,33 @@
 
 import sys
+import os
 import os.path
 import subprocess
+
+def isFile(filename):
+    tmp = os.path.normpath(filename)
+    return os.path.isfile(tmp)
+
+def findFile(baseList, dirList, fileList):
+    """See if you can find rt.jar in any directory in baseList"""
+    done = False
+    for i in fileList:
+        for k in baseList:
+            for j in dirList:
+                rtjar = k + j + i
+                if isFile(rtjar):
+                    done = True
+                    break
+            if done:
+                break
+        if done:
+            break
+    if done:
+        rtjar = os.path.normpath(rtjar)
+        print 'rt.jar found as %s' % rtjar
+    else:
+        rtjar = None
+    return rtjar
 
 def main():
     #
@@ -13,22 +39,28 @@ def main():
     if output == '' or output == '\n':
         print 'Error: Java not found, Install java first'
         return 1
-    javapath = os.path.realpath(output[0:-1])
-    (javabase, javafile) = os.path.split(javapath)
-    if os.path.isdir(javabase):
-        print 'Java found in %s' % javabase
-    else:
-        print 'Error: Failed to find JAVA_HOME'
-        return 1
-    javahome = os.path.normpath(javabase + "/..")
-    if os.path.isdir(javahome):
-        print 'JAVA_HOME found in %s' % javahome
-    rtjar = os.path.normpath(javahome + "/lib/rt.jar")
-    if os.path.isfile(rtjar):
-        print 'rt.jar found as %s' % rtjar
-    else:
-        print 'Error: Failed to find rt.jar in JAVA_HOME/lib/rt.jar'
-        return 1
+
+    # Set rtjar 
+    rtjar = 'rt.jar'
+    if '--rtjar' in sys.argv:
+        index = sys.argv.index('--rtjar')
+        if index+1 < len(sys.argv):
+            rtjar = sys.argv[index+1]
+    if not(isFile(rtjar)):
+        javapath = os.path.realpath(output[0:-1])
+        (javabase, javafile) = os.path.split(javapath)
+        baseList = [javabase]
+        if os.environ.has_key('JAVA_HOME'):
+            baseList.append( os.environ['JAVA_HOME'] )
+        if os.environ.has_key('JDK_HOME'):
+            baseList.append( os.environ['JDK_HOME'] )
+        rtjar = findFile(baseList, ['/../lib', '/../Classes'], ['/rt.jar', '/classes.jar'])
+        if rtjar == None:
+            print 'Error: Failed to find rt.jar in all possible places'
+            print 'Make sure the system has rt.jar (on Mac, it is sometimes called classes.jar)'
+            print 'Rerun install script as: python install.py --rtjar <absolute-path/filename.jar>'
+            return 1
+    rtjar = os.path.abspath(rtjar)
 
     #
     # Search for jikes? 
@@ -38,13 +70,20 @@ def main():
     proc = subprocess.Popen(['which', 'jikes'], stdout=subprocess.PIPE)
     output = proc.stdout.read()
     if output == '' or output == '\n':
-        print 'Warning: jikes not found; You can not COMPILE hybridsal2xml'
-        print ' But you may be able to use the class files already present'
-        print ' The class files were built on 64-bit Ubuntu'
-        print 'Optionally, you can try to install jikes and rerun this script'
+        print 'Warning: jikes not found; Trying to find javac ...'
         jikespath = ''
     else:
         jikespath = os.path.realpath(output[0:-1])
+    if jikespath == '':
+        proc = subprocess.Popen(['which', 'javac'], stdout=subprocess.PIPE)
+        output = proc.stdout.read()
+        if output == '' or output == '\n':
+            print 'Warning: jikes not found; You can not COMPILE hybridsal2xml'
+            print ' But you may be able to use the class files already present'
+            print ' The class files were built on 64-bit Ubuntu'
+            print 'Optionally, you can try to install jikes/javac and rerun this script'
+        else:
+            jikespath = os.path.realpath(output[0:-1])
 
     #
     # Check that we're in the right directory
