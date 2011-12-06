@@ -55,6 +55,15 @@ Installation instructions for HybridSAL Relational Abstractor:
     files in examples/*.hsal
 
 
+Additional notes for Macs.
+--------------------------
+The install script (install.py) tries to search for the correct path to
+rt.jar or classes.jar, but it usually fails the path to classes.jar on Mac.
+In this case, run the install script as follows:
+  python install.py --rtjar <absolute-path/filename.jar>
+
+
+
 How to use the relational abstractions?
 ---------------------------------------
 

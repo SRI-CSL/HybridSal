@@ -48,30 +48,6 @@ For detailed explanation on ONE small example, see the document
 
 How to run the demo?
 --------------------
-Powertrain
------------
-To analyze the powertrain model, run the following commands
-   bin/hsal2hasal -o examples/powertrain.hsal
-This will create the file examples/powertrain.sal
-Now model check using the following commands
-   cd examples
-   sal-inf-bmc -d 12 powertrain nochatter
-This takes about 3 minutes of real time and
-verifies the 'nochatter' property of powertrain.
-
-Now change the initial condition: increase 
-grade to 0.15 (15% grade).  This can be done by
-changing the constant 0.05 in INITIALIZATION of 
-grade in either powertrain.hsal OR powertrain.sal 
-to 0.15.  You will have to reconstruct the powertrain.sal
-from powertrain.hsal (using bin/hsal2hasal command above)
-if you only change the .hsal file.
-Now, re-verify.
-   sal-inf-bmc -d 12 powertrain nochatter
-You will get a trace that shows violation of the property.
-This will take about 3 minutes of real time.
-Note that we can analyze the property for a range of 
-initial conditions using just ONE run.
 
 Some Simple Examples
 --------------------
@@ -158,6 +134,31 @@ Analyzing the RLC circuit at certain sampling times:
    sal-inf-bmc -i -d 5 RLC canprove
    sal-inf-bmc -d 8 RLC canreach
  
+Powertrain
+-----------
+To analyze the powertrain model, run the following commands
+   bin/hsal2hasal -o examples/powertrain.hsal
+This will create the file examples/powertrain.sal
+Now model check using the following commands
+   cd examples
+   sal-inf-bmc -d 12 powertrain nochatter
+This takes about 3 minutes of real time and
+verifies the 'nochatter' property of powertrain.
+
+Now change the initial condition: increase 
+grade to 0.15 (15% grade).  This can be done by
+changing the constant 0.05 in INITIALIZATION of 
+grade in either powertrain.hsal OR powertrain.sal 
+to 0.15.  You will have to reconstruct the powertrain.sal
+from powertrain.hsal (using bin/hsal2hasal command above)
+if you only change the .hsal file.
+Now, re-verify.
+   sal-inf-bmc -d 12 powertrain nochatter
+You will get a trace that shows violation of the property.
+This will take about 3 minutes of real time.
+Note that we can analyze the property for a range of 
+initial conditions using just ONE run.
+
 Other simple examples:
 -----------------
 Simple Thermostat: SimpleThermo4.hsal
