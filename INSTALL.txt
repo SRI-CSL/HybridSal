@@ -62,6 +62,10 @@ rt.jar or classes.jar, but it usually fails the path to classes.jar on Mac.
 In this case, run the install script as follows:
   python install.py --rtjar <absolute-path/filename.jar>
 
+Two issues that need to be fixed.
+sed --version does not work on Macs; so install script incorrectly
+complains that sed is not installed.
+Also, if bin/ files already exist, then install script complains again.
 
 
 How to use the relational abstractions?

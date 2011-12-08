@@ -163,6 +163,7 @@ def main():
     subprocess.call(['chmod', '+x', pwd+'/bin/hasal2sal'])
     subprocess.call(['chmod', '+x', pwd+'/bin/hsal2hasal'])
     subprocess.call(['chmod', '+x', pwd+'/bin/hxml2hsal'])
+    # BUG: FIRST Make sure /bin/hsal2hxml does NOT already exist
     subprocess.call(['ln', '-s', '../hybridsal2xml/hybridsal2xml', pwd+'/bin/hsal2hxml'])
     return 0
 
