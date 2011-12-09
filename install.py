@@ -19,6 +19,7 @@ def isFile(filename):
 
 def findFile(baseList, dirList, fileList):
     """See if you can find rt.jar in any directory in baseList"""
+    # On Macs: /System/Library/Frameworks/JavaVM.framework/Versions/1.4.1/Classes/classes.jar
     done = False
     for i in fileList:
         for k in baseList:
