@@ -63,16 +63,17 @@ def main():
         javapath = os.path.realpath(output[0:-1])
         (javabase, javafile) = os.path.split(javapath)
         baseList = [javabase]
+        baseList.append('/System/Library/Frameworks/JavaVM.framework/Versions/CurrentJDK/Classes')
         if os.environ.has_key('JAVA_HOME'):
             baseList.append( os.environ['JAVA_HOME'] )
         if os.environ.has_key('JDK_HOME'):
             baseList.append( os.environ['JDK_HOME'] )
         rtjar = findFile(baseList, ['/../lib', '/../Classes'], ['/rt.jar', '/classes.jar'])
         if rtjar == None:
-            print 'Error: Failed to find rt.jar in all possible places'
-            print 'Make sure the system has rt.jar (on Mac, it is sometimes called classes.jar)'
+            print 'Warning: Failed to find rt.jar in all possible places'
+            print 'Continuing without giving explicit rt.jar path; if this does not work, then...Make sure the system has rt.jar (on Mac, it is sometimes called classes.jar and is located at /System/Library/Frameworks/JavaVM.framework/Versions/CurrentJDK/Classes/classes.jar) and then ...'
             print 'Rerun install script as: python install.py --rtjar <absolute-path/filename.jar>'
-            return 1
+            rtjar = '.'
     rtjar = os.path.abspath(rtjar)
 
     #
