@@ -17,8 +17,8 @@ check_prog ()
 		fi
 }
 
-check_prog "sed --version" sed
-check_prog "chmod --version" chmod
+# check_prog "sed --version" sed
+# check_prog "chmod --version" chmod
 check_prog "java -version" java
 
 salenv_dir=`pwd`

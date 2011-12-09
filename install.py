@@ -4,6 +4,15 @@ import os
 import os.path
 import subprocess
 
+def checkProg(name):
+    """Check if name is installed on this machine"""
+    proc = subprocess.Popen(['which', name], stdout=subprocess.PIPE)
+    output = proc.stdout.read()
+    if output == '' or output == '\n':
+        print 'Error: %s not found, Install it first' % name
+        return False
+    return True
+    
 def isFile(filename):
     tmp = os.path.normpath(filename)
     return os.path.isfile(tmp)
@@ -33,6 +42,9 @@ def main():
     #
     # Search for java and JAVA_HOME
     #
+    checkProg('sed')
+    checkProg('chmod')
+
     print '\nSearching for java'
     proc = subprocess.Popen(['which', 'java'], stdout=subprocess.PIPE)
     output = proc.stdout.read()
@@ -123,7 +135,8 @@ def main():
     #
     # Run a test
     #
-    subprocess.call([ 'rm', '-f', 'examples/SimpleThermo4.xml'])
+    os.remove('examples/SimpleThermo4.xml')
+    # subprocess.call([ 'rm', '-f', 'examples/SimpleThermo4.xml'])
     subprocess.call([ './hybridsal2xml', '-o', 'examples/SimpleThermo4.xml', 'examples/SimpleThermo4.sal' ])
     if os.path.isfile('examples/SimpleThermo4.xml'):
         print 'hybridsal2xml successfully installed'
@@ -163,7 +176,9 @@ def main():
     subprocess.call(['chmod', '+x', pwd+'/bin/hasal2sal'])
     subprocess.call(['chmod', '+x', pwd+'/bin/hsal2hasal'])
     subprocess.call(['chmod', '+x', pwd+'/bin/hxml2hsal'])
-    # BUG: FIRST Make sure /bin/hsal2hxml does NOT already exist
+    filename = pwd+'/bin/hsal2hxml'
+    if os.path.isfile(filename):
+        os.remove(filename)
     subprocess.call(['ln', '-s', '../hybridsal2xml/hybridsal2xml', pwd+'/bin/hsal2hxml'])
     return 0
 
