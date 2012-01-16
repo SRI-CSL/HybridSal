@@ -171,9 +171,9 @@ variables $\vec{x},\vec{x}'$
 \item\label{loop1head}
  let $\vec{c}$ be a real left eigenvector of matrix $A_1$ and
  let $\lambda$ be the corresponding real eigenvalue, that is,
- \begin{eqnarray*}
-  \vec{c}^T A_1 & = & \lambda \vec{c}^T
- \end{eqnarray*}
+ %\begin{eqnarray*}
+  $\vec{c}^T A_1 \; = \; \lambda \vec{c}^T$
+ %\end{eqnarray*}
 \item
  if $\lambda == 0\wedge c^TA_2 == 0$: set $E := E\cup \{ \frac{\vec{c}^T(\vec{y}'-\vec{y})}{\vec{c}^T\vec{b_1}} \}$; else: $E := E$
 \item
@@ -208,9 +208,9 @@ variables $\vec{x},\vec{x}'$
  of left eigenvalue and eigenvector of $A_1$ 
 \item\label{loop2head}
  let $\vec{c}+\imath\vec{d}$ be a complex left eigenvector
- of $A_1$ corresponding to complex eigenvalue $\alpha+\imath\beta$
+ of $A_1$ corresponding to eigenvalue $\alpha+\imath\beta$
 \item
- using simple algebraic manipulation (linear equation solving)
+ using simple linear equation solving
  as above, find 
  $\vec{c_1}$, $\vec{d_1}$, $e_1$ and $e_2$ s.t.
  if $p_1$ denotes $\vec{c}^T\vec{y}+\vec{c_1}^T\vec{z}+e_1$
@@ -219,11 +219,11 @@ variables $\vec{x},\vec{x}'$
  then
  \begin{eqnarray*}
  \frac{d}{dt}(p_1)
-  & = &
+  \; = \;
   \alpha p_1 - \beta p_2
-\\
+ & \quad &
  \frac{d}{dt}(p_2)
-  & = &
+  \; = \;
   \beta p_1 + \alpha p_2
   \end{eqnarray*}
  let $p_1'$ and $p_2'$ denote the primed versions of $p_1,p_2$
