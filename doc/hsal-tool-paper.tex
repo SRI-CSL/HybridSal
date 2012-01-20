@@ -58,7 +58,7 @@ concrete system, it can be used to perform safety verification.
 
 HybridSAL relational abstracter is a tool that computes a relational
 abstraction of a hybrid system as described by
-Sankaranarayanan and Tiwari~\cite{ST11:CAV}.
+Sankaranarayanan and Tiwari~\cite{ST11:CAVsmall}.
 A hybrid system $(\XX, \ra)$ is a dynamical system with 
 \\
 (a) state space $\XX := \QQ\times\YY$, where $\QQ$ is a finite set and
@@ -99,7 +99,7 @@ a function $F$ from $[0,t_1]$ to $\RR^n$ s.t.} \nonumber %\label{eqn:sem}
 \end{eqnarray}
 The concrete semantics is defined using the ``solution''
 $F$ of the system of differential equations.  As a result,
-it is difficult to work directly with the concrete semantics.
+it is difficult to work directly with it.
 
 The relational abstraction of a hybrid system 
 $(\XX, \rra_{cont}\cup\rra_{disc})$ 
@@ -112,9 +112,9 @@ transitions defined by differential equations are abstracted.
 
 The HybridSal relational abstracter tool computes such a relational
 abstraction for an input hybrid system. 
-In this paper, we describe the core algorithms implemented in the
-tool, the tool interfaces and the examples and case studies that
-are part of the tool distribution.
+In this paper, we describe the tool, the core algorithm implemented in the
+tool, and we also provide some examples. % and case studies that
+%are part of the tool distribution.
 
 \section{Relational Abstraction of Linear Systems}
 
@@ -133,7 +133,7 @@ $\frac{d\vec{x}}{dt} = A\vec{x}+\vec{b}$.
 The output is a formula $\phi$ over the variables
 $\vec{x},\vec{x}'$ that represents the relational
 abstraction of $\frac{d\vec{x}}{dt} = A\vec{x}+\vec{b}$.
-The key idea in the algorithm below is to use 
+The key idea in the algorithm is to use 
 the eigenstructure of the matrix $A$ to generate the
 relational abstraction.
 
@@ -146,16 +146,15 @@ $A\in\RR^{n\times n}, b\in\RR^{n\times 1}$.
 variables $\vec{x},\vec{x}'$ 
 \begin{enumerate}
 \item
- identify variables that have a constant rate of change
-\\
- suppose $x_1, \ldots, x_k$ are all such variables and
+ identify all variables 
+ $x_1, \ldots, x_k$ s.t. 
  $\frac{dx_i}{dt} = b_i$ where $b_i\in\RR\;\;\forall{i}$
 \\
  %let $\phi_1$ be $\bigwedge_{i=2}^{k} \frac{x_i'-x_i}{b_i} = \frac{x_1'-x_1}{b_1}$
  let $E$ be $\{\frac{x_i'-x_i}{b_i} \mid i=1,\ldots,k\}$
 \item
- partition the variables $\vec{x}$ into $\vec{y}$ and $\vec{z}$ such that
- the system of differential equations can be rewritten as
+ partition the variables $\vec{x}$ into $\vec{y}$ and $\vec{z}$ s.t.
+ $\frac{d\vec{x}}{dt} = A\vec{x}+\vec{b}$ can be rewritten as
  \begin{eqnarray*}
   \left[ \begin{array}{c} \frac{d\vec{y}}{dt} \\ \frac{d\vec{z}}{dt} \end{array} \right]
   & = &
@@ -179,13 +178,16 @@ variables $\vec{x},\vec{x}'$
  if $\lambda == 0\wedge c^TA_2 == 0$: set $E := E\cup \{ \frac{\vec{c}^T(\vec{y}'-\vec{y})}{\vec{c}^T\vec{b_1}} \}$; else: $E := E$
 \item
  if $\lambda \neq 0$:
- define vector $\vec{d}$ and real number $e$ as follows:
- \begin{eqnarray*}
-  \vec{d}^T  \; = \; \frac{\vec{c}^T A_2}{\lambda}
-   & \qquad &
-  e  \; = \; \frac{\vec{c}^T \vec{b_1} + \vec{d}^T \vec{b_2}}{\lambda}
- \end{eqnarray*}
- let $p(\vec{x})$ denote the linear expression
+ define vector $\vec{d}$ and real number $e$ as:
+  $\vec{d}^T   = {\vec{c}^T A_2}/{\lambda}$ and
+  $e  = (\vec{c}^T \vec{b_1} + \vec{d}^T \vec{b_2})/{\lambda}$
+ %\begin{eqnarray*}
+  %\vec{d}^T  \; = \; \frac{\vec{c}^T A_2}{\lambda}
+  % & \qquad &
+  %e  \; = \; \frac{\vec{c}^T \vec{b_1} + \vec{d}^T \vec{b_2}}{\lambda}
+ %\end{eqnarray*}
+ \\
+ let $p(\vec{x})$ denote the expression
  $\vec{c}^T\vec{y}+\vec{d}^T\vec{z}+e$
  and let $p(\vec{x}')$ denote
  $\vec{c}^T\vec{y}'+\vec{d}^T\vec{z}'+e$
@@ -239,8 +241,7 @@ variables $\vec{x},\vec{x}'$
  complex eigenvalue eigenvector pair
 \item
  set $\phi := \phi\wedge
- \bigwedge_{e_1,e_2\in E} e_1 = e_2$
-\item return $\phi$
+ \bigwedge_{e_1,e_2\in E} e_1 = e_2;\;\;$ return $\phi$
 \end{enumerate}
 \caption{Algorithm implemented in HybridSal relational abstracter
 for computing relational abstractions of linear ordinary differential
@@ -308,7 +309,7 @@ the HybridSal relational abstracter constructs  a
 relational abstraction of a hybrid system.
 This abstract system is a purely discrete 
 infinite state space system that can be analyzed
-using infinite bounded model checking, 
+using infinite bounded model checking (inf-BMC), 
 k-induction, or abstract interpretation.
 
 We make two important remarks here.
@@ -319,18 +320,18 @@ of linear {\em{and nonlinear}} expressions.
 The nonlinear expressions can be replaced by their
 conservative linear approximations.  The
 HybridSal relational abstracter performs this approximation
-by default.  However, it can also generate the (more precise)
+by default.  It generates the (more precise)
 nonlinear abstraction (as described in Figure~\ref{fig:algo})
 when invoked using an appropriate command line flag.
-Both infinite bounded model checkers and k-induction
+Both inf-BMC and k-induction
 provers rely on satisfiability modulo theory (SMT) solvers.
-Most SMT solvers can only reason with Boolean combination
-of {\em{linear}} constraints, and hence, the ability to
+Most SMT solvers can only reason % with Boolean combination of 
+about {\em{linear}} constraints, and hence, the ability to
 generate linear relational abstractions is important.
 However, there is significant research effort going on
 into extending SMT solvers to handle nonlinear expressions.
-HybridSal relational abstracter and SAL infinite bounded
-model checker have been used to create benchmarks for 
+HybridSal relational abstracter and SAL inf-BMC 
+have been used to create benchmarks for 
 linear {\em{and nonlinear}} SMT solvers.
 
 Second, Procedure {\linODEabs} can be extended to
@@ -411,29 +412,34 @@ the binary relation $\mathit{guard2}(x,x',y,y')$.
 The semantics of all other constructs in HybridSal match
 exactly the semantics of their counterparts in SAL.
 
-Figure~\ref{fig:ex} contains sketches of a few examples of 
+Figure~\ref{fig:ex} contains sketches of two examples of 
 hybrid systems modeled in HybridSal.
-The example in Figure~\ref{fig:ex}(left) defines a SAL module
+The example in Figure~\ref{fig:ex}(left) defines a module
 {\tt{SimpleHS}} with two real-valued variables $x,y$.  Its 
-dynamics are defined by differential equations 
+dynamics are defined by % differential equations 
 $\frac{dx}{dt}=-y+x$, $\frac{dy}{dt}=-y-x$ with mode
-invariant $y \geq 0$, and a 
-discrete transition that resets the value of $x$ and $y$ when
+invariant $y \geq 0$, and by a 
+discrete transition with guard % that resets the value of $x$ and $y$ when
 $y \leq 0$.
 The HybridSal file {\tt{SimpleHS.hsal}} also defines 
 two safety properties. The latter
 one says that $x$ is always non-negative.
-This model is analyzed by first abstracting it 
-\begin{quote}
+This model is analyzed by abstracting it 
+\\ \indent
+%\begin{quote}
  {\tt{ bin/hsal2hasal examples/SimpleEx.hsal}}
-\end{quote}
-to create a SAL file named {\tt{examples/SimpleEx.sal}},
+%\end{quote}
+\\ \noindent
+to create a relational abstraction in 
+a SAL file named {\tt{examples/SimpleEx.sal}},
 and then (bounded) model checking the SAL file
-\begin{quote}
+%\begin{quote}
+\\ \indent
  {\tt{ sal-inf-bmc -i -d 1 SimpleEx helper}}
-\\
+\\ \indent
  {\tt{ sal-inf-bmc -i -d 1 -l helper SimpleEx correct}}
-\end{quote}
+\\ \noindent
+%\end{quote}
 The above commands prove the safety property using $k$-induction:
 first we prove a lemma, named {\tt{helper}}, using 1-induction and then
 use the lemma to prove the main theorem named {\tt{correct}}.
@@ -663,9 +669,9 @@ sy\=stem: MODULE = (observer || (train []
 \\ \>
 % sal-inf-bmc -i -ice -d 10  TGC correct
 % The gate is down (g = s2) when the train is on the intersection (s = s2)
-co\=rrect: THEOREM system |-
-\\ \> \>
-  G( (s = s2 AND x >= 2) => g = s2 ) ;
+co\=rrect: THEOREM system |- G ( ... ) ;
+% \\ \> \>
+  % G( (s = s2 AND x >= 2) => g = s2 ) ;
 %
 % The gate is always closed: This is false
 %\\
@@ -703,27 +709,27 @@ model of an automobile's automatic transmission from~\cite{ChutinanButts02:Mobie
 Users have to separately
 download and install SAL model checkers if they
 wish to analyze the output SAL files using
-k-induction provers or infinite bounded model checkers.
+k-induction or infinite BMC.
 
 The HybridSal relational abstracter constructs abstractions
-compositionally -- that is, it works on each mode 
+compositionally; i.e., it works on each mode 
 (each system of differential equations) separately.
 It just performs some simple linear algebraic manipulations
 and is therefore very fast.  
-The input HybridSal (.hsal) file is parsed into an XML (.hxml)
-file, and the tool works by replacing the XML elements 
-(in the XML DOM) representing
-the continuous differential equations by new XML elements 
-representing the relational abstraction. This creates a 
-SAL XML file (.xml), which is pretty printed into a SAL (.sal) file. 
+% The input HybridSal (.hsal) file is parsed into an XML (.hxml)
+% file, and the tool works by replacing the XML elements 
+% (in the XML DOM) representing
+% the continuous differential equations by new XML elements 
+% representing the relational abstraction. This creates a 
+% SAL XML file (.xml), which is pretty printed into a SAL (.sal) file. 
 The bottleneck step in our tool chain
-is the (bounded) model checking or k-induction proving step
-(which is orders of magnitude slower than the abstraction step)%
-\footnote{We have not tried abstract interpretation yet.}.
+is the inf-BMC and k-induction step,
+which is orders of magnitude slower than the abstraction step
+(we have not tried abstract interpretation yet).
 The performance of HybridSal matches the performance reported 
-in our earlier paper~\cite{ST11:CAV} on the navigation
+in our earlier paper~\cite{ST11:CAVsmall} on the navigation
 benchmarks (which are included with the HybridSal distribution).
-In~\cite{ST11:CAV} we had used many
+In~\cite{ST11:CAVsmall} we had used many
 different techniques (not all completely automated at that time)
 to construct the relational abstraction.
 
@@ -739,64 +745,63 @@ The HybridSal relational abstracter is a tool for verifying
 hybrid systems.  The other common tools for hybrid
 system verification consist of 
 (a) tools that iteratively compute
-an overapproximation of the reachable states~\cite{SpaceEx},
+an overapproximation of the reachable states~\cite{SpaceExsmall},
 (b) tools that directly search for correctness certificates
-(such as inductive invariants or Lyapunov function)~\cite{sostools,ST11:ISSAC},
+(such as inductive invariants or Lyapunov function)~\cite{sostools,ST11:ISSACsmall},
 or
 (c) tools that compute an abstraction and then analyze
-the abstraction~\cite{HybridSAL,AlurDangIvancic03:TACAS,Clarke03:TACAS}.
+the abstraction~\cite{HybridSALsmall,AlurDangIvancic03:TACASsmall,Clarke03:TACASsmall}.
 Our relational abstraction tool falls in category~(c), but unlike all
 other abstraction tools, it does
 not abstract the state space, but abstracts only the transition relation.
  
-The key benefit of developing the concept of relational abstractions
-is that it provides a new way to combine reasoning on continuous
-dynamics (as developed in control theory or systems theory)
+The key benefit of relational abstraction
+is that it cleanly separates reasoning on continuous
+dynamics (where we use control theory or systems theory)
 and
-reasoning on discrete state transition systems (as developed in
-the formal methods and computer science community.)
-The former is used for constructing high quality relational abstractions
-and the latter is used for verifying the abstract system.
+reasoning on discrete state transition systems (where we use 
+formal methods.)
+% The former is used for constructing high quality relational abstractions
+% and the latter is used for verifying the abstract system.
 Concepts such as Lyapunov functions or inductive invariants
-(aka barrier certificates) for continuous systems can be used
-to construct very precise relational abstractions of continuous
-dynamical systems, which then helps in the final verification effort
-of the abstracted system.
+(aka barrier certificates) for continuous systems are used
+to construct very precise relational abstractions, and
+formal methods is used to verify the abstracted system.
 In fact, for several classes of simple continuous dynamical systems, 
 lossless relational abstractions can be constructed, and hence
 all incompleteness in verification then comes from incompleteness
 of k-induction provers.
 
-When the relational abstraction is analyzed using 
-the k-induction prover or the infinite bounded model checker,
-we generate large SMT formulas containing linear and nonlinear
-arithmetic with Booleans connectives and other finite datatypes.
-These instances can serve as benchmarks for SMT provers.
-The scalability of verification is now strictly tied to the
-scalability of SMT solving.
+%When the relational abstraction is analyzed using 
+%the k-induction prover or inf-BMC,
+%we generate large SMT formulas containing linear and nonlinear
+%arithmetic with Booleans connectives and other finite datatypes.
+%These instances can serve as benchmarks for SMT provers.
+%The scalability of verification is now strictly tied to the
+%scalability of SMT solving.
 
 The relational abstraction methodology and tool have certain
 weaknesses, which we now enumerate.  
 (a) Relational abstraction generates verification 
 problem on a discrete, infinite state space system, which are difficult to
-automatically handle.  The successful application of k-induction 
-can require the need for auxiliary lemmas.  The SMT formulas
-generated can be very large.
+automatically handle.  
+% The use of k-induction can require the need for auxiliary lemmas.  
+% The SMT formulas generated can be very large.
 (b) Our tool does not use the mode invariants when creating
-relational abstractions.  The use of mode invariants can lead to
-discovery of more relational invariants.  
+relational abstractions.  % The use of mode invariants can lead to
+% discovery of more relational invariants.  
 (c) Our tool performs calculations using floating point 
 arithmetic and hence the computed eigenvalues and eigenvectors
 can have numerical errors.  
 (d) There are other techniques for discovering relational
 invariants that are not automated in our tool presently.
-(e) Our tool is restricted to handling linear differential equations.
-It can not handle nonlinear dynamics presently.
+(e) Our tool % is restricted to handling linear differential equations.  % It 
+can not handle nonlinear differential equations presently.
 (f) Our tool can not efficiently handle platform constraints
 imposed on control systems, such as sampling frequency, 
-sensing and actuating delays, etc.  The theory of 
-timed relational abstraction~\cite{ZST12:CAV} is being developed for that
-purpose.
+sensing and actuating delays, etc~\cite{ZST12:CAV}.% .  The theory of 
+%timed relational abstraction~\cite{ZST12:CAV} is being developed for that
+%purpose.
 We note that this is the first version of the tool and we hope to
 enhance the tool to address some of the above concerns in 
 future releases of the tool.
