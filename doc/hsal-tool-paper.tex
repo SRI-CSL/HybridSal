@@ -13,6 +13,7 @@
 
 \newif\iftrversion\trversionfalse
 \def\linODEabs{\tt{linODEabs}}
+\newcommand\ignore[1]{{}}
 
 \begin{document}
 
@@ -57,7 +58,7 @@ concrete system, it can be used to perform safety verification.
 
 HybridSAL relational abstracter is a tool that computes a relational
 abstraction of a hybrid system as described by
-Sankaranarayanan and Tiwari~\cite{ST:CAV2010}.
+Sankaranarayanan and Tiwari~\cite{ST11:CAV}.
 A hybrid system $(\XX, \ra)$ is a dynamical system with 
 \\
 (a) state space $\XX := \QQ\times\YY$, where $\QQ$ is a finite set and
@@ -257,6 +258,7 @@ with mode invariant $\mathit{True}$
 (as defined in Equation~\ref{eqn:sem}), then
 $\ra_{cont}  \;\subseteq\; \phi$.
 \end{proposition}
+\ignore{
 \begin{proof}(Sketch)
 First, let $p(\vec{x})$ be the linear expression
 $\vec{c}^T\vec{y}+\vec{d}^T\vec{z}+e$ discovered in Step~(6).
@@ -298,6 +300,7 @@ from $\vec{x}$ following the linear ODE dynamics.
 Hence, all these expressions need to be equal, as stated in Step~(13).
 \qed
 \end{proof}
+\endignore}
 
 By applying the above abstraction procedure on to the
 dynamics of each mode of a given hybrid system,
@@ -305,8 +308,8 @@ the HybridSal relational abstracter constructs  a
 relational abstraction of a hybrid system.
 This abstract system is a purely discrete 
 infinite state space system that can be analyzed
-using infinite bounded model checking and 
-k-induction.
+using infinite bounded model checking, 
+k-induction, or abstract interpretation.
 
 We make two important remarks here.
 First,
@@ -341,10 +344,12 @@ there is some $\lambda_0$ s.t.
 for each $i$
 $\lambda_i = n_i \lambda_0$ for some {\em{integer}} $n_i$.
 Then, we can extend $\phi$ by adding the following relation to it:
-$$
+\begin{eqnarray}
  p_i(\vec{x}')^{n_j} p_j(\vec{x})^{n_i}
- = p_j(\vec{x}')^{n_i}  p_i(\vec{x})^{n_j}
-$$
+ & = & p_j(\vec{x}')^{n_i}  p_i(\vec{x})^{n_j}
+\label{eqn:nl}
+\end{eqnarray}
+\ignore{
 The above relationship holds for any binary reachable
 pair of states $(\vec{x},\vec{x'})$ 
 because
@@ -355,6 +360,7 @@ $$
  =
  e^{n_in_j\lambda_0 t}
 $$
+\endignore}
 However, since $p_i$'s are linear or quadratic 
 expressions, the above relations will be highly
 nonlinear unless $n_i$'s are small.  So, they are
@@ -365,10 +371,12 @@ can be obtained.
 
 \section{The HybridSal Relational Abstracter}
 
-The HybridSal relational abstracter tool is available
-for download from {\url{http://www.csl.sri.com/~tiwari/}}.
-The tool directory contains the sources as well as
-documentation  and examples.
+The HybridSal relational abstracter tool, including
+the sources, documentation and examples, is freely available
+for download~\cite{hsalrelabs}.
+% from {\url{http://www.csl.sri.com/~tiwari/}}.
+% The tool directory contains the sources as well as
+% documentation  and examples.
 
 The input to the tool is a file containing a 
 specification of a hybrid system and safety
@@ -445,49 +453,39 @@ The final system is a complex composition of the base modules.
 
 \begin{figure}[htb!]
 \begin{tt}
-\begin{tabular}{lll}
+\begin{tabular}{ll}
 \begin{minipage}{2in}
 \begin{tabbing}
-SimpleEx: CONTEXT = 
-\\
-BEGIN
-\\
-SimpleHS: MODULE =
-\\
-BEGIN
-\\
-LOCAL x,y:REAL
-\\
-LOCAL xdot,ydot:REAL
-\\
-IN\=ITIALIZATION
+S\=impleEx: CONTEXT = BEGIN
 \\ \>
+S\=impleHS: MODULE = BEGIN
+\\ \> \>
+LOCAL x,y,xdot,ydot:REAL
+\\ \> \>
+I\=NITIALIZATION
+\\ \> \> \>
   x = 1; y IN \{z:REAL| z <= 2\}
-\\
-TRANSITION
-\\
+\\ \> \>
+T\=RANSITION
+\\ \> \> \>
 $[$
-\\
 y \= >= 0 AND y' >= 0 --> 
-\\ \>
+\\ \> \> \> \>
   xdot' = -y + x ;
-\\ \>
+\\ \> \> \> \>
   ydot' = -y - x
-\\
+\\ \> \> \>
 $[]$
-\\
-y <= 0 --> x' = 1; y' = 2
-$]$
-\\
+y <= 0 --> x' = 1; y' = 2$]$
+\\ \>
 END;
-\\
-helper: LEMMA
-\\
-SimpleHS |- G(0.9239 * x >= 0.3827 * y);
-\\
+\\ \>
+he\=lper: LEMMA SimpleHS |- 
+\\ \> \> G(0.9239*x >= 0.3827*y);
+\\ \>
 % proved using sal-inf-bmc -i -d 2 -l helper Linear1 correct
-correct : THEOREM
-\\
+co\=rrect : THEOREM
+\\ \>\>
 SimpleHS |- G(x >= 0);
 \\
 END
@@ -497,30 +495,25 @@ END
 \begin{minipage}{2in}
 % Train gate controller
 \begin{tabbing}
-TGC: CONTEXT =
-\\
-BEGIN
-\\
+T\=GC: CONTEXT = BEGIN
+\\ \>
 Mode: TYPE = \{s1, s2, s3, s4\};
-\\
-timeElapse: MODULE = 
-\\
-BEGIN
-\\
- GLOBAL/LOCAL/INPUT {\em{variable declarations}}
+\\ \>
+t\=imeElapse: MODULE = BEGIN
+\\ \> \>
+ {\em{variable declarations}}
 % \\
  % LOCAL xdot, ydot, zdot: REAL
 % \\
  % INPUT s, g, c: Mode
 % \\
  % INPUT lower, exit, raise, approach: BOOLEAN
-\\
+\\ \> \>
  INITIALIZATION x = 0; y = 0; z = 0 
-\\
- TRANSITION
-\\
-$[$
- {\em{mode invariants}}
+\\ \> \>
+ T\=RANSITION
+\\ \> \> \>
+$[${\em{m}}\={\em{ode invariants}} -->
  % ((s = s1 AND exit = FALSE) OR
 % \\
   % (s = s2 AND approach = FALSE AND x <= 5 AND x' <= 5)) AND
@@ -540,13 +533,11 @@ $[$
  % (x' >= x + 1/2) AND
 % \\
  % (x >= 0 AND y >= 0 AND z >= 0 AND x' >= 0 AND y' >= 0 AND z' >= 0)
-\\
- --> xdot' = 1; ydot' = 1; zdot' = 1 $]$
-\\
+\\ \> \> \> \>
+ --> xdot' = 1; ydot' = 1; zdot' = 1$]$
+\\ \>
 END;
-\\
-
-\\
+\\ \>
 train: MODULE = $\ldots$
 %\\
 %BEGIN
@@ -574,8 +565,7 @@ train: MODULE = $\ldots$
 %\\
 %END ;
 %\\
-
-\\
+\\ \>
 gate: MODULE = $\ldots$
 % \\
 % BEGIN
@@ -608,8 +598,7 @@ gate: MODULE = $\ldots$
 % \\
 % END ;
 %\\
-
-\\
+\\ \>
 controller: MODULE = $\ldots$
 % \\
 % BEGIN
@@ -647,8 +636,7 @@ controller: MODULE = $\ldots$
 % \\
 % END;
 %\\
-
-\\
+\\ \>
 observer: MODULE = $\ldots$
 %\\
 %BEGIN
@@ -666,21 +654,19 @@ observer: MODULE = $\ldots$
   %$]$
 %\\
 %END;
-\\
-
-\\
-system: MODULE = (observer ||
-\\
- (train [] gate [] controller [] timeElapse));
-\\
-
-\\
+%\\
+\\ \>
+sy\=stem: MODULE = (observer || (train []
+\\ \> \>
+  gate [] controller [] timeElapse));
+%\\
+\\ \>
 % sal-inf-bmc -i -ice -d 10  TGC correct
 % The gate is down (g = s2) when the train is on the intersection (s = s2)
-correct: THEOREM
-\\
-  system |- G( (s = s2 AND x >= 2) => g = s2 ) ;
-
+co\=rrect: THEOREM system |-
+\\ \> \>
+  G( (s = s2 AND x >= 2) => g = s2 ) ;
+%
 % The gate is always closed: This is false
 %\\
 %canreach: THEOREM
@@ -698,9 +684,9 @@ correct: THEOREM
 END
 \end{tabbing}
 \end{minipage}
-& 
-\begin{minipage}{2in}
-\end{minipage}
+%& 
+%\begin{minipage}{2in}
+%\end{minipage}
 \end{tabular}
 \end{tt}
 \caption{Modeling hybrid systems in HybridSal: A few examples.}
@@ -713,7 +699,7 @@ HybridSal distribution to help
 users understand the syntax and working of the
 relational abstracter.  
 A notable (nontrivial) example in the distribution is a hybrid
-model of an automobile's automatic transmission from~\cite{Butts}.
+model of an automobile's automatic transmission from~\cite{ChutinanButts02:Mobies}.
 Users have to separately
 download and install SAL model checkers if they
 wish to analyze the output SAL files using
@@ -730,13 +716,14 @@ file, and the tool works by replacing the XML elements
 the continuous differential equations by new XML elements 
 representing the relational abstraction. This creates a 
 SAL XML file (.xml), which is pretty printed into a SAL (.sal) file. 
-The bottleneck step in the analysis
+The bottleneck step in our tool chain
 is the (bounded) model checking or k-induction proving step
-(which is orders of magnitude slower than the abstraction step).
+(which is orders of magnitude slower than the abstraction step)%
+\footnote{We have not tried abstract interpretation yet.}.
 The performance of HybridSal matches the performance reported 
-in our earlier paper~\cite{ST:CAV2010} on the navigation
+in our earlier paper~\cite{ST11:CAV} on the navigation
 benchmarks (which are included with the HybridSal distribution).
-In~\cite{ST:CAV2010} we had used many
+In~\cite{ST11:CAV} we had used many
 different techniques (not all completely automated at that time)
 to construct the relational abstraction.
 
@@ -754,9 +741,10 @@ system verification consist of
 (a) tools that iteratively compute
 an overapproximation of the reachable states~\cite{SpaceEx},
 (b) tools that directly search for correctness certificates
-(such as inductive invariants or Lyapunov function)~\cite{SOSTools,ISSAC11},or
+(such as inductive invariants or Lyapunov function)~\cite{sostools,ST11:ISSAC},
+or
 (c) tools that compute an abstraction and then analyze
-the abstraction~\cite{ }.
+the abstraction~\cite{HybridSAL,AlurDangIvancic03:TACAS,Clarke03:TACAS}.
 Our relational abstraction tool falls in category~(c), but unlike all
 other abstraction tools, it does
 not abstract the state space, but abstracts only the transition relation.
@@ -807,7 +795,7 @@ It can not handle nonlinear dynamics presently.
 (f) Our tool can not efficiently handle platform constraints
 imposed on control systems, such as sampling frequency, 
 sensing and actuating delays, etc.  The theory of 
-timed relational abstraction~\cite{ } is being developed for that
+timed relational abstraction~\cite{ZST12:CAV} is being developed for that
 purpose.
 We note that this is the first version of the tool and we hope to
 enhance the tool to address some of the above concerns in 
@@ -842,11 +830,66 @@ future releases of the tool.
 
 
 \bibliographystyle{abbrv}
-\bibliography{database}
+\bibliography{/homes/tiwari/ConfPapers/ashish/all}
 
 %%\newpage %% For the on-line verification.
 %%\appendix{Proofs of Claims}
 %%\input{proofs}
 
+\appendix
+\section{Supplementary Material}
+\begin{proof}(Proof sketch for Proposition~\ref{prop:corr})
+First, let $p(\vec{x})$ be the linear expression
+$\vec{c}^T\vec{y}+\vec{d}^T\vec{z}+e$ discovered in Step~(6).
+Then,
+\begin{eqnarray*}
+\frac{dp}{dt} &=& \vec{c}^T(A_1\vec{y}+A_2\vec{z}+\vec{b_1}) +
+ \vec{d}^T\vec{b_2}
+\; = \; \lambda\vec{c}^T\vec{y}+\lambda\vec{d}^T\vec{z}+\vec{c}^T\vec{b_1} + \vec{d}^T\vec{b_2}
+\\
+& = & \lambda*(\vec{c}^T\vec{y}+\vec{d}^T\vec{z}+\vec{c})
+\; = \; \lambda*p
+\end{eqnarray*}
+Hence, $p(\vec{x}(t)) = p(\vec{x}(0)) e^{\lambda t}$.
+Therefore, the relation added in Step~(6) to $\phi$ 
+will hold between an initial state $\vec{x}$ and a future
+state $\vec{x'}$.
+
+Next, consider the quadratic relations added to $\phi$ 
+in Step~(11).  Let $p_1,p_2$ be as defined in Step~(10).
+Then,
+\begin{eqnarray*}
+\frac{d(p_1^2+p_2^2)}{dt} 
+& = &
+ 2p_1(\alpha p_1-\beta p_2)+2p_2(\beta p_1+\alpha p_2)
+\; = \;
+ 2\alpha(p_1^2 + p_2^2)
+\end{eqnarray*}
+Hence, 
+$p_1(\vec{x}(t))^2+p_2(\vec{x}(t))^2 = 
+ (p_1(\vec{x}(0))^2+p_2(\vec{x}(0))^2) e^{2\alpha t}$,
+and therefore, the relation added in Step~(11) to $\phi$
+will hold between an initial state $\vec{x}$ and a future
+state $\vec{x'}$.
+
+Next, consider the relations added in Step~(13).
+It is easy to observe that every expression $s(\vec{x},\vec{x'})$ 
+in the set $E$ is equal to the time $t$ taken to reach $\vec{x}'$
+from $\vec{x}$ following the linear ODE dynamics.
+Hence, all these expressions need to be equal, as stated in Step~(13).
+
+Finally, the nonlinear relationship in Equation~\ref{eqn:nl}
+holds for any binary reachable
+pair of states $(\vec{x},\vec{x'})$ 
+because
+$$
+ \left(\frac{p_i(\vec{x}')}{p_i(\vec{x})}\right)^{n_j} 
+ = 
+ \left(\frac{p_j(\vec{x}')}{p_j(\vec{x})}\right)^{n_i} 
+ =
+ e^{n_in_j\lambda_0 t}
+$$
+\qed
+\end{proof}
 \end{document}
 
