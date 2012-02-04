@@ -1136,7 +1136,7 @@ definitions :
   definition (SEMI! definition)* ;
 
 guard :
-  expression | elseexpression
+  (expression | elseexpression)
   {#guard = #(#[GUARD,"GUARD"],#guard);
    setPlaceAttribute(#guard);};
 

@@ -1867,7 +1867,7 @@ public HybridSalParser(ParserSharedInputState state) {
 			astFactory.addASTChild(currentAST, returnAST);
 		}
 		{
-		_loop225:
+		_loop226:
 		do {
 			if ((LA(1)==ASYNC||LA(1)==SYNC)) {
 				{
@@ -1904,7 +1904,7 @@ public HybridSalParser(ParserSharedInputState state) {
 				}
 			}
 			else {
-				break _loop225;
+				break _loop226;
 			}
 			
 		} while (true);
@@ -5587,6 +5587,7 @@ public HybridSalParser(ParserSharedInputState state) {
 		ASTPair currentAST = new ASTPair();
 		XmlAst guard_AST = null;
 		
+		{
 		switch ( LA(1)) {
 		case IDENTIFIER:
 		case LC:
@@ -5612,7 +5613,6 @@ public HybridSalParser(ParserSharedInputState state) {
 			if (inputState.guessing==0) {
 				astFactory.addASTChild(currentAST, returnAST);
 			}
-			guard_AST = (XmlAst)currentAST.root;
 			break;
 		}
 		case LITERAL_ELSE:
@@ -5621,16 +5621,6 @@ public HybridSalParser(ParserSharedInputState state) {
 			if (inputState.guessing==0) {
 				astFactory.addASTChild(currentAST, returnAST);
 			}
-			if ( inputState.guessing==0 ) {
-				guard_AST = (XmlAst)currentAST.root;
-				guard_AST = (XmlAst)astFactory.make( (new ASTArray(2)).add((XmlAst)astFactory.create(GUARD,"GUARD")).add(guard_AST));
-				setPlaceAttribute(guard_AST);
-				currentAST.root = guard_AST;
-				currentAST.child = guard_AST!=null &&guard_AST.getFirstChild()!=null ?
-					guard_AST.getFirstChild() : guard_AST;
-				currentAST.advanceChildToEnd();
-			}
-			guard_AST = (XmlAst)currentAST.root;
 			break;
 		}
 		default:
@@ -5638,6 +5628,17 @@ public HybridSalParser(ParserSharedInputState state) {
 			throw new NoViableAltException(LT(1), getFilename());
 		}
 		}
+		}
+		if ( inputState.guessing==0 ) {
+			guard_AST = (XmlAst)currentAST.root;
+			guard_AST = (XmlAst)astFactory.make( (new ASTArray(2)).add((XmlAst)astFactory.create(GUARD,"GUARD")).add(guard_AST));
+			setPlaceAttribute(guard_AST);
+			currentAST.root = guard_AST;
+			currentAST.child = guard_AST!=null &&guard_AST.getFirstChild()!=null ?
+				guard_AST.getFirstChild() : guard_AST;
+			currentAST.advanceChildToEnd();
+		}
+		guard_AST = (XmlAst)currentAST.root;
 		returnAST = guard_AST;
 	}
 	
@@ -5676,7 +5677,7 @@ public HybridSalParser(ParserSharedInputState state) {
 			astFactory.addASTChild(currentAST, returnAST);
 		}
 		{
-		_loop218:
+		_loop219:
 		do {
 			if ((LA(1)==SEMI)) {
 				XmlAst tmp157_AST = null;
@@ -5688,7 +5689,7 @@ public HybridSalParser(ParserSharedInputState state) {
 				}
 			}
 			else {
-				break _loop218;
+				break _loop219;
 			}
 			
 		} while (true);
@@ -5825,10 +5826,10 @@ public HybridSalParser(ParserSharedInputState state) {
 			break;
 		}
 		default:
-			boolean synPredMatched228 = false;
+			boolean synPredMatched229 = false;
 			if (((LA(1)==LP))) {
-				int _m228 = mark();
-				synPredMatched228 = true;
+				int _m229 = mark();
+				synPredMatched229 = true;
 				inputState.guessing++;
 				try {
 					{
@@ -5837,12 +5838,12 @@ public HybridSalParser(ParserSharedInputState state) {
 					}
 				}
 				catch (RecognitionException pe) {
-					synPredMatched228 = false;
+					synPredMatched229 = false;
 				}
-				rewind(_m228);
+				rewind(_m229);
 				inputState.guessing--;
 			}
-			if ( synPredMatched228 ) {
+			if ( synPredMatched229 ) {
 				multisynchronous();
 				if (inputState.guessing==0) {
 					astFactory.addASTChild(currentAST, returnAST);
@@ -5850,10 +5851,10 @@ public HybridSalParser(ParserSharedInputState state) {
 				basicmodule_AST = (XmlAst)currentAST.root;
 			}
 			else {
-				boolean synPredMatched230 = false;
+				boolean synPredMatched231 = false;
 				if (((LA(1)==LP))) {
-					int _m230 = mark();
-					synPredMatched230 = true;
+					int _m231 = mark();
+					synPredMatched231 = true;
 					inputState.guessing++;
 					try {
 						{
@@ -5862,12 +5863,12 @@ public HybridSalParser(ParserSharedInputState state) {
 						}
 					}
 					catch (RecognitionException pe) {
-						synPredMatched230 = false;
+						synPredMatched231 = false;
 					}
-					rewind(_m230);
+					rewind(_m231);
 					inputState.guessing--;
 				}
-				if ( synPredMatched230 ) {
+				if ( synPredMatched231 ) {
 					multiasynchronous();
 					if (inputState.guessing==0) {
 						astFactory.addASTChild(currentAST, returnAST);
@@ -6277,7 +6278,7 @@ public HybridSalParser(ParserSharedInputState state) {
 		XmlAst basedeclarations_AST = null;
 		
 		{
-		_loop235:
+		_loop236:
 		do {
 			if ((_tokenSet_6.member(LA(1)))) {
 				basedeclaration();
@@ -6286,7 +6287,7 @@ public HybridSalParser(ParserSharedInputState state) {
 				}
 			}
 			else {
-				break _loop235;
+				break _loop236;
 			}
 			
 		} while (true);
@@ -6633,7 +6634,7 @@ public HybridSalParser(ParserSharedInputState state) {
 			astFactory.addASTChild(currentAST, returnAST);
 		}
 		{
-		_loop260:
+		_loop261:
 		do {
 			if ((LA(1)==SEMI)) {
 				XmlAst tmp192_AST = null;
@@ -6645,7 +6646,7 @@ public HybridSalParser(ParserSharedInputState state) {
 				}
 			}
 			else {
-				break _loop260;
+				break _loop261;
 			}
 			
 		} while (true);
@@ -6683,7 +6684,7 @@ public HybridSalParser(ParserSharedInputState state) {
 			astFactory.addASTChild(currentAST, returnAST);
 		}
 		{
-		_loop263:
+		_loop264:
 		do {
 			if ((LA(1)==SEMI)) {
 				XmlAst tmp194_AST = null;
@@ -6695,7 +6696,7 @@ public HybridSalParser(ParserSharedInputState state) {
 				}
 			}
 			else {
-				break _loop263;
+				break _loop264;
 			}
 			
 		} while (true);
@@ -6726,7 +6727,7 @@ public HybridSalParser(ParserSharedInputState state) {
 			astFactory.addASTChild(currentAST, returnAST);
 		}
 		{
-		_loop244:
+		_loop245:
 		do {
 			if ((LA(1)==COMMA)) {
 				XmlAst tmp195_AST = null;
@@ -6738,7 +6739,7 @@ public HybridSalParser(ParserSharedInputState state) {
 				}
 			}
 			else {
-				break _loop244;
+				break _loop245;
 			}
 			
 		} while (true);
@@ -6797,7 +6798,7 @@ public HybridSalParser(ParserSharedInputState state) {
 			astFactory.addASTChild(currentAST, returnAST);
 		}
 		{
-		_loop282:
+		_loop283:
 		do {
 			if ((LA(1)==SEMI)) {
 				XmlAst tmp197_AST = null;
@@ -6809,7 +6810,7 @@ public HybridSalParser(ParserSharedInputState state) {
 				}
 			}
 			else {
-				break _loop282;
+				break _loop283;
 			}
 			
 		} while (true);
@@ -6983,10 +6984,10 @@ public HybridSalParser(ParserSharedInputState state) {
 		ASTPair currentAST = new ASTPair();
 		XmlAst namedcommand_AST = null;
 		
-		boolean synPredMatched267 = false;
+		boolean synPredMatched268 = false;
 		if (((LA(1)==IDENTIFIER))) {
-			int _m267 = mark();
-			synPredMatched267 = true;
+			int _m268 = mark();
+			synPredMatched268 = true;
 			inputState.guessing++;
 			try {
 				{
@@ -6995,12 +6996,12 @@ public HybridSalParser(ParserSharedInputState state) {
 				}
 			}
 			catch (RecognitionException pe) {
-				synPredMatched267 = false;
+				synPredMatched268 = false;
 			}
-			rewind(_m267);
+			rewind(_m268);
 			inputState.guessing--;
 		}
-		if ( synPredMatched267 ) {
+		if ( synPredMatched268 ) {
 			labeledcommand();
 			if (inputState.guessing==0) {
 				astFactory.addASTChild(currentAST, returnAST);
@@ -7027,10 +7028,10 @@ public HybridSalParser(ParserSharedInputState state) {
 		ASTPair currentAST = new ASTPair();
 		XmlAst somecommand_AST = null;
 		
-		boolean synPredMatched270 = false;
+		boolean synPredMatched271 = false;
 		if (((_tokenSet_7.member(LA(1))))) {
-			int _m270 = mark();
-			synPredMatched270 = true;
+			int _m271 = mark();
+			synPredMatched271 = true;
 			inputState.guessing++;
 			try {
 				{
@@ -7038,12 +7039,12 @@ public HybridSalParser(ParserSharedInputState state) {
 				}
 			}
 			catch (RecognitionException pe) {
-				synPredMatched270 = false;
+				synPredMatched271 = false;
 			}
-			rewind(_m270);
+			rewind(_m271);
 			inputState.guessing--;
 		}
-		if ( synPredMatched270 ) {
+		if ( synPredMatched271 ) {
 			namedcommand();
 			if (inputState.guessing==0) {
 				astFactory.addASTChild(currentAST, returnAST);
@@ -7078,7 +7079,7 @@ public HybridSalParser(ParserSharedInputState state) {
 			astFactory.addASTChild(currentAST, returnAST);
 		}
 		{
-		_loop276:
+		_loop277:
 		do {
 			if ((LA(1)==SYNC)) {
 				XmlAst tmp204_AST = null;
@@ -7090,7 +7091,7 @@ public HybridSalParser(ParserSharedInputState state) {
 				}
 			}
 			else {
-				break _loop276;
+				break _loop277;
 			}
 			
 		} while (true);
@@ -7122,7 +7123,7 @@ public HybridSalParser(ParserSharedInputState state) {
 			astFactory.addASTChild(currentAST, returnAST);
 		}
 		{
-		_loop273:
+		_loop274:
 		do {
 			if ((LA(1)==ASYNC)) {
 				XmlAst tmp206_AST = null;
@@ -7134,7 +7135,7 @@ public HybridSalParser(ParserSharedInputState state) {
 				}
 			}
 			else {
-				break _loop273;
+				break _loop274;
 			}
 			
 		} while (true);
@@ -7225,7 +7226,7 @@ public HybridSalParser(ParserSharedInputState state) {
 				astFactory.addASTChild(currentAST, returnAST);
 			}
 			{
-			_loop290:
+			_loop291:
 			do {
 				if ((LA(1)==COMMA)) {
 					XmlAst tmp207_AST = null;
@@ -7237,7 +7238,7 @@ public HybridSalParser(ParserSharedInputState state) {
 					}
 				}
 				else {
-					break _loop290;
+					break _loop291;
 				}
 				
 			} while (true);
@@ -7300,7 +7301,7 @@ public HybridSalParser(ParserSharedInputState state) {
 				astFactory.addASTChild(currentAST, returnAST);
 			}
 			{
-			_loop294:
+			_loop295:
 			do {
 				if ((LA(1)==COMMA)) {
 					XmlAst tmp208_AST = null;
@@ -7312,7 +7313,7 @@ public HybridSalParser(ParserSharedInputState state) {
 					}
 				}
 				else {
-					break _loop294;
+					break _loop295;
 				}
 				
 			} while (true);
