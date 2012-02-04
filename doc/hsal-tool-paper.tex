@@ -739,7 +739,7 @@ to construct the relational abstraction.
 %
 %illustrate 
 
-\section{Discussion: Strengths and Weaknesses}
+\section{Related Work and Conclusion}
 
 The HybridSal relational abstracter is a tool for verifying
 hybrid systems.  The other common tools for hybrid
@@ -770,7 +770,7 @@ formal methods is used to verify the abstracted system.
 In fact, for several classes of simple continuous dynamical systems, 
 lossless relational abstractions can be constructed, and hence
 all incompleteness in verification then comes from incompleteness
-of k-induction provers.
+of verification of infinite state transition systems. %k-induction provers.
 
 %When the relational abstraction is analyzed using 
 %the k-induction prover or inf-BMC,
@@ -780,31 +780,47 @@ of k-induction provers.
 %The scalability of verification is now strictly tied to the
 %scalability of SMT solving.
 
-The relational abstraction methodology and tool have certain
-weaknesses, which we now enumerate.  
+We note that our tool is the first in its space and is still
+under active development.  We hope to
+enhance the tool in some of the following ways 
+% to address several of following shortcomings
+in the future. % releases of the tool.
+% The relational abstraction methodology and tool have certain
+% weaknesses, which we now enumerate.  
 (a) Relational abstraction generates verification 
 problem on a discrete, infinite state space system, which are difficult to
-automatically handle.  
+verify automatically.  
+Nevertheless, dedicated methods for generating 
+invariants and for performing abstract interpretation can be developed
+that are tailored to analyzing relational abstractions.
+% There is a need to develop 
 % The use of k-induction can require the need for auxiliary lemmas.  
 % The SMT formulas generated can be very large.
-(b) Our tool does not use the mode invariants when creating
-relational abstractions.  % The use of mode invariants can lead to
+(b) More precise relational abstractions can be potentially generated
+by using mode invariants.
+% Our tool does not use the mode invariants when creating
+% relational abstractions.  % The use of mode invariants can lead to
 % discovery of more relational invariants.  
-(c) Our tool performs calculations using floating point 
-arithmetic and hence the computed eigenvalues and eigenvectors
-can have numerical errors.  
-(d) There are other techniques for discovering relational
-invariants that are not automated in our tool presently.
-(e) Our tool % is restricted to handling linear differential equations.  % It 
-can not handle nonlinear differential equations presently.
-(f) Our tool can not efficiently handle platform constraints
+(c) Numerical errors due to floating point arithmetic need
+to be handled properly.
+% can be eliminated
+% by and hence the computed eigenvalues and eigenvectors
+% can have numerical errors.  
+(d) Other techniques for discovering relational
+invariants can be included to complement the current procedure.
+% that are not automated in our tool presently.
+(e) Support for nonlinear differential equations is required to
+analyze more complex hybrid models.
+% Our tool % is restricted to handling linear differential equations.  % It
+% can not handle nonlinear differential equations presently.
+(f) We also need support to efficiently handle platform constraints
 imposed on control systems, such as sampling frequency, 
-sensing and actuating delays, etc~\cite{ZST12:CAV}.% .  The theory of 
+sensing and actuation delays, etc~\cite{ZST12:CAV}.% .  The theory of 
 %timed relational abstraction~\cite{ZST12:CAV} is being developed for that
 %purpose.
-We note that this is the first version of the tool and we hope to
-enhance the tool to address some of the above concerns in 
-future releases of the tool.
+%We note that this is the first version of the tool and we hope to
+%enhance the tool to address some of the above concerns in 
+%future releases of the tool.
 
 
 

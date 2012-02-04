@@ -17,6 +17,8 @@
 // Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 // --------------------------------------------------------------------
 
+// ASHISH: 2.3.12: Added 'elseexpression' to correctly parse "ELSE -->" in SAL
+
 /* -*- Mode: Java -*- */
 // HybridSAL Parser
 // header {
@@ -1134,7 +1136,7 @@ definitions :
   definition (SEMI! definition)* ;
 
 guard :
-  expression
+  expression | elseexpression
   {#guard = #(#[GUARD,"GUARD"],#guard);
    setPlaceAttribute(#guard);};
 
@@ -1148,6 +1150,10 @@ guardedcommand :
   {#guardedcommand = #(#[GUARDEDCOMMAND,"GUARDEDCOMMAND"],#guardedcommand);
    setPlaceAttribute(#guardedcommand);};
 
+elseexpression :
+  "ELSE"
+  {#elseexpression = #makeNameExpr((XmlAst)#elseexpression);};
+  
 /* The Module Language */
 
 module : 
