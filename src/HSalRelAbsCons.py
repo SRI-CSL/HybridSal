@@ -122,10 +122,10 @@ def createNodeEigenInv():
     ans = createNodeTagChild4("CONSTANTDECLARATION", fname, fparams, ftype, fval)
     return ans
 
-def mystr(k):
-    """return floating value k as a string; str(k) uses e notation
-       use 8 decimal places"""
-    return '{0:.8f}'.format(k)
+# def mystr(k):
+    # """return floating value k as a string; str(k) uses e notation
+       # use 8 decimal places"""
+    # return '{0:.8f}'.format(k)
 # ********************************************************************
 
 def simpleDefinitionRhsExpr(defn):

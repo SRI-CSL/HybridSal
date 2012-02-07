@@ -198,6 +198,17 @@ def HSalPPInitDecl(initdecl):
         print firstChild.localName
     print >> fp, "\n",
 
+def HSalPPDefDecl(defdecl):
+    global fp
+    print >> fp, "DEFINITION"
+    firstChild = getArg(defdecl, 1)
+    if not(firstChild.localName == "SIMPLEDEFINITION"):
+        print "ERROR: DEFINITION block found unexpected tag ",
+        print firstChild.localName
+    else: 
+        HSalPPAssgns(defdecl)
+    print >> fp, "\n",
+
 def HSalPPGuard(guard):
     global fp
     print >> fp, HSalPPExprs(guard.childNodes),
@@ -289,6 +300,9 @@ def HSalPPBaseModule(basemod):
     invardecl = basemod.getElementsByTagName("INVARDECL")
     if not(invardecl == None) and len(invardecl) > 0:
         HSalPPInvarDecl(invardecl[0])
+    defdecl = basemod.getElementsByTagName("DEFDECL")
+    if not(defdecl == None) and len(defdecl) > 0:
+        HSalPPDefDecl(defdecl[0])
     initdecl = basemod.getElementsByTagName("INITFORDECL")
     if not(initdecl == None) and len(initdecl) > 0:
         HSalPPInitForDecl(initdecl[0])

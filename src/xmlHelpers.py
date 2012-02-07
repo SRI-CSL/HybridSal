@@ -1,6 +1,17 @@
 
 import linearAlgebra
 equal = linearAlgebra.equal
+
+def mystr(k):
+    """return floating value k as a string; str(k) uses e notation
+       use 8 decimal places"""
+    for i in range(6):
+        if abs(k) >= pow(10,-i):
+            fmt = '{0:.' + str(i+2) + 'f}'
+            return fmt.format(k)
+    print 'WARNING: Very small number detected'
+    return '0'
+
 # ********************************************************************
 # Functions for creating XML node for expressions
 # ********************************************************************
@@ -43,7 +54,7 @@ def createNodeInfixApp(op, child1, child2):
 # unused function createNodeTime, delete it
 def createNodeTime(varName, rate):
     "Return varName' - varName / rate"
-    rateNode = createNodeTag("NUMERAL", str(rate))
+    rateNode = createNodeTag("NUMERAL", mystr(rate))
     varNode = createNodeTag("NAMEEXPR", varName)
     varPrimeNode = createNodeTagChild("NEXTOPERATOR", varNode.cloneNode(True))
     differenceNode = createNodeInfixApp('-', varPrimeNode, varNode)
@@ -84,13 +95,13 @@ def createNodeCXFromLinXpr(linXpr,flag):
     return createNodePlus(cx)
 
 def createNodeCXOne(c, x, flag, inputs):
-    #node1 = createNodeTag("NUMERAL", str(c))
+    #node1 = createNodeTag("NUMERAL", mystr(c))
     if equal(c, 1):
         node1 = None
     else:
         #node1 = createNodeTag("NUMERAL", format(c,'.4f'))
         #Increase precision
-        node1 = createNodeTag("NUMERAL", str(c))
+        node1 = createNodeTag("NUMERAL", mystr(c))
     node2 = createNodeTag("NAMEEXPR", x)
     if flag:
         if not(x in inputs):
@@ -128,7 +139,8 @@ def createNodePaux(c,x,d,y,e,flag,inputs):
     if equal(e,0):
         node3 = None
     else:
-        node3 = createNodeTag("NUMERAL", format(e,'.4f'))
+        #node3 = createNodeTag("NUMERAL", format(e,'.4f'))
+        node3 = createNodeTag("NUMERAL", mystr(e))
     nodeL = [ node1, node2, node3 ]
     while None in nodeL:
         nodeL.remove(None)
