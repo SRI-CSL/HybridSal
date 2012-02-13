@@ -170,8 +170,8 @@ END;
 system:MODULE  = plant || control ;
 
 % Prove the correct property by running:
-% bin/hsal2hasal -o -mdt 0.1 examples/drivetrain.hsal
-% sal-inf-bmc -i -d  4  -ice drivetrain correct
+% bin/hsal2hasal -o -mdt 0.1 examples/drivetrain3.hsal
+% sal-inf-bmc -i -d  4  -ice drivetrain3 correct
 correct : THEOREM
 system |- G( f5 < 112 AND f7 < 1350 AND f17 < 6700 );
 
