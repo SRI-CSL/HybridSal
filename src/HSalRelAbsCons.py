@@ -366,10 +366,22 @@ def createCallToMultirateInv(rateL):
         xoldPlusDelta = createNodeInfixApp('+', xold, deltanode)
         return createNodeInfixApp('=', xoldPlusDelta, xnew)
 
+    def createMinDwellMultirateInv(xold, xnew, delta):
+        deltanode = createNodeTag("NUMERAL", mystr(delta))
+        xoldPlusDelta = createNodeInfixApp('+', xold, deltanode)
+        if delta > 0:
+            return createNodeInfixApp('<=', xoldPlusDelta, xnew)
+        elif delta < 0:
+            return createNodeInfixApp('>=', xoldPlusDelta, xnew)
+        else:
+            return createNodeInfixApp('=', xoldPlusDelta, xnew)
+
     def createBaseCase(xold, xnew, rate):
         global opt, time
         if (opt & 0x8 != 0):
             return createTimedMultirateInv(xold, xnew, rate*time)
+        if (opt & 0x10 != 0):
+            return createMinDwellMultirateInv(xold, xnew, rate*time)
         if rate > 0:
             return createNodeInfixApp('<=', xold, xnew)
         else:
@@ -379,6 +391,8 @@ def createCallToMultirateInv(rateL):
         global opt, time
         if (opt & 0x8 != 0):
             return createTimedMultirateInv(yold, ynew, s*time)
+        if (opt & 0x10 != 0):
+            return createMinDwellMultirateInv(yold, ynew, s*time)
         rn = createNodeTag("NUMERAL", mystr(r))
         sn = createNodeTag("NUMERAL", mystr(s))
         (xold,xnew) = (xold.cloneNode(True),xnew.cloneNode(True))
@@ -416,10 +430,20 @@ def createCallToEigenInv(xnew, xold, lamb):
         ans = createNodeApp("eigenTimedInv", [ nodePold, nodePnew, knode ], infix=False)
         return ans
 
+    def createMinDwellEigenInv(nodePnew,nodePold,lamb,time):
+        """eigenTimedInv(nodePold,nodePnew,exp(lamb*time))"""
+        k = math.exp(-abs(lamb)*time)
+        knode = createNodeTag("NUMERAL", mystr(k))
+        nodePold1 = createNodeApp("*", [ knode, nodePold ], infix=True)
+        ans = createEigenInv(nodePnew, nodePold1, lamb)
+        return ans
+
     if equal(lamb, 0):
         ans = createNodeInfixApp('=', xold, xnew)
     elif opt & 0x8 != 0:
         ans = createTimedEigenInv(xnew,xold,lamb,time)
+    elif opt & 0x10 != 0:
+        ans = createMinDwellEigenInv(xnew,xold,lamb,time)
     else:
         ans = createEigenInv(xnew,xold,lamb)
     return ans
@@ -448,10 +472,30 @@ def createCallToQuadInv(xnew,xold,ynew,yold,a,b):
         lnode = createNodeTag("NUMERAL", mystr(k*l))
         return createQuadTimedInv(xnew, xold, ynew, yold, knode, lnode)
 
+    def createCallToMinDwellQuadInv(xnew,xold,ynew,yold,a,b,time):
+        """x(t) = exp(-a/2*t) * ( x(0) cos(wt) - y(0) sin(wt) )
+        y(t) = exp(-a/2*t) * ( x(0) sin(wt) + y(0) cos(wt) )
+        x(t) = a * x(0) - b * y(0)
+        y(t) = b * x(0) + a * y(0) """
+        k = math.exp((a/2.0)*time)
+        l = math.cos(b*time)
+        a1 = createNodeTag("NUMERAL", mystr(k*l))
+        l = math.sin(b*time)
+        b1 = createNodeTag("NUMERAL", mystr(k*l))
+        xold11 = createNodeApp("*", [ a1, xold], infix=True) 
+        xold12 = createNodeApp("*", [ b1, yold], infix=True) 
+        xold1 = createNodeApp("-", [ xold11, xold12], infix=True)
+        yold11 = createNodeApp("*", [ b1.cloneNode(True), xold.cloneNode(True)], infix=True) 
+        yold12 = createNodeApp("*", [ a1.cloneNode(True), yold.cloneNode(True)], infix=True) 
+        yold1 = createNodeApp("+", [ yold11, yold12], infix=True)
+        return (xold1, yold1)
+
     global opt
     global time
     if (opt & 0x8 != 0):
         return createCallToTimedQuadInv(xnew, xold, ynew, yold, a, b, time)
+    if (opt & 0x10 != 0):
+        (xold,yold) = createCallToMinDwellQuadInv(xnew, xold, ynew, yold, a, b, time)
     if equal(a, 0):
         ans1=createQuadInv(xnew, xold, ynew, yold)
         ans2=createQuadInv(xold.cloneNode(True), xnew.cloneNode(True), yold.cloneNode(True), ynew.cloneNode(True))
@@ -485,6 +529,33 @@ def createTimedNodeEigenInv():
 
 def createTimedNodeQuadInv():
     """ quadTimedInv(xold,yold,xnew,ynew,a,b:REAL):BOOLEAN =
+        x(t) = exp(-a/2*t) * ( x(0) cos(wt) - y(0) sin(wt) )
+        y(t) = exp(-a/2*t) * ( x(0) sin(wt) + y(0) cos(wt) )
+        x(t) = a * x(0) - b * y(0)
+        y(t) = b * x(0) + a * y(0) """
+    fname = createNodeTag("IDENTIFIER", "quadTimedInv")
+    vd1 = createNodeVarType("xold", "REAL")
+    vd2 = createNodeVarType("yold", "REAL")
+    vd3 = createNodeVarType("xnew", "REAL")
+    vd4 = createNodeVarType("ynew", "REAL")
+    vd5 = createNodeVarType("a", "REAL")
+    vd6 = createNodeVarType("b", "REAL")
+    fparams = createNodeTagChildn("VARDECLS", [vd1,vd2,vd3,vd4,vd5,vd6])
+    ftype = createNodeTag("TYPENAME", "BOOLEAN")
+    axold = createNodeApp("*", ["a", "xold"])
+    byold = createNodeApp("*", ["b", "yold"])
+    bxold = createNodeApp("*", ["b", "xold"])
+    ayold = createNodeApp("*", ["a", "yold"])
+    axMby = createNodeApp("-", [ axold, byold ])
+    bxPay = createNodeApp("+", [ bxold, ayold ])
+    fact1 = createNodeApp("=", [ "xnew", axMby ])
+    fact2 = createNodeApp("=", [ "ynew", bxPay ])
+    fval = createNodeAnd([fact1, fact2])
+    ans = createNodeTagChild4("CONSTANTDECLARATION", fname, fparams, ftype, fval)
+    return ans
+
+def createMinDwellNodeQuadInv():
+    """ quadMinDwellInv(xold,yold,xnew,ynew,a,b:REAL):BOOLEAN =
         x(t) = exp(-a/2*t) * ( x(0) cos(wt) - y(0) sin(wt) )
         y(t) = exp(-a/2*t) * ( x(0) sin(wt) + y(0) cos(wt) )
         x(t) = a * x(0) - b * y(0)
@@ -838,7 +909,61 @@ def moveIfExists(filename):
         shutil.move(filename, filename + "~")
 
 def printUsage():
-    print "Usage: hsal2hasal [-o|--opt|-n|--nonlinear|-c|--copyguard] filename.hsal"
+    print "Usage: hsal2hasal [-o|--opt|-n|--nonlinear|-c|--copyguard|-mdt <t>|--mindwelltime <t>|-t <t>|--time <t>] filename.hsal"
+
+def printHelp():
+    print """
+-------------------------------------------------------------------------
+NAME
+        bin/hsal2hasal - construct relational abstraction of HybridSAL models
+
+SYNOPSIS
+        bin/hasal [OPTION]... [FILE]
+
+DESCRIPTION
+        Construct a relational abstraction of the model in [FILE].
+        Create a new SAL file containing the abstract model.
+        Input file is expected to be in HybridSAL (.hsal) syntax, or
+        HybridSAL's XML representation (.hxml).
+        The new file will have the same name as [FILE], but
+        a different extension, .sal
+
+        Options include:
+        -c, --copyguard
+            Explicitly handle the guards in the continuous dynamics
+            as state invariants
+        -n, --nonlinear
+            Create a nonlinear abstract model
+            Note that freely available model checkers are unable
+            to handle nonlinear models, hence this option is 
+            useful for research purposes only
+        -t <T>, --timed <T>
+            Create a timed relational abstraction assuming that
+            the controller is run every <T> time units.
+            <T> should be a number (such as, 0.01)
+        -o, --optimize
+            Create an optimized relational abstraction.
+            Certain transient's are unsoundly eliminated from the
+            abstract SAL model to improve performance of the model 
+            checkers on the generated SAL model
+        -mdt <T>, --mindwelltime <T>
+            Create a relational abstraction assuming a minimum of 
+            <T> time units is spent in each mode.
+
+EXAMPLE
+        bin/hsal2hasal examples/Linear1.hsal
+        This command creates a file examples/Linear1.sal
+
+AUTHOR
+        Written by Ashish Tiwari
+
+REPORTING BUGS
+        Report bin/hsal2hasal bugs to ashish_dot_tiwari_at_sri_dot_com
+
+COPYRIGHT
+        Copyright 2011 Ashish Tiwari, SRI International.
+-------------------------------------------------------------------------
+"""
 
 def main():
     global dom
@@ -849,6 +974,9 @@ def main():
     if len(args) < 1:
         printUsage()
         return 1
+    if ('-h' in args) | ('--help' in args) | ('-help' in args) | ('--h' in args):
+        printHelp()
+        return 0
     if ('-o' in args) | ('--opt' in args) :
         opt |= 0x1
     if ('-n' in args) | ('--nonlinear' in args) :
@@ -861,6 +989,19 @@ def main():
             index = args.index('-t')
         else:
             index = args.index('--time')
+        assert len(args) > index+1
+        try:
+            time = float(args[index+1])
+        except ValueError:
+            print "-t|--time should be followed by a float"
+            printUsage()
+            return 1
+    if ('-mdt' in args) | ('--mindwelltime' in args) :
+        opt |= 0x10
+        if ('-mdt' in args):
+            index = args.index('-mdt')
+        else:
+            index = args.index('--mindwelltime')
         assert len(args) > index+1
         try:
             time = float(args[index+1])
