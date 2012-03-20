@@ -14,10 +14,7 @@
 % (For e.g., x(t) is sent from plant to controller
 % on a time-triggered bus).
 
-% Current timed relational abstraction does not generate 
-% the fact (x'-5*y')-(x-5*y) = 0.05*u in the timed abstraction
-% We need that to prove stability below
-PITimed: CONTEXT =
+PISatTimed: CONTEXT =
 BEGIN
 
  plant: MODULE = 
@@ -25,6 +22,7 @@ BEGIN
   OUTPUT x, y: REAL
   INPUT u: REAL
   INITFORMULA -1 <= x AND x <= 1 AND y = 0
+  INVARIANT -1 <= y AND y <= 1
   TRANSITION 
   [
    TRUE --> xdot' = 5*x + u;  ydot' = x
@@ -48,4 +46,6 @@ BEGIN
  stable: THEOREM
   system |- G( -2 <= x AND x <= 2 ) ;
 
+ wrong: THEOREM
+  system |- G( -1 <= x AND x <= 1 ) ;
 END

@@ -4,7 +4,7 @@ BEGIN
 
  plant: MODULE =
  BEGIN
- INPUT direction : BOOLEAN  % moving left/right
+ INPUT direction : BOOLEAN  % moving NE/NW
  OUTPUT x, vx, y, vy : REAL
  INITIALIZATION
   x IN {z: REAL | -1 <= z AND z <= 1};
@@ -23,12 +23,10 @@ BEGIN
  BEGIN
  OUTPUT direction: BOOLEAN
  INPUT x, vx : REAL
- % INITIALIZATION
-  % direction IN { TRUE, FALSE }
  TRANSITION
- [ direction = TRUE AND x + vx <= -2 -->
+ [ direction = TRUE AND x' + vx' <= -1 -->
      direction' = FALSE
- [] direction = FALSE AND x + vx >= 2 -->
+ [] direction = FALSE AND x' + vx' >= 1 -->
      direction' = TRUE  
  %[]	% sal-inf-bmc -i fails if ELSE clause included.
  %ELSE -->
@@ -37,8 +35,14 @@ BEGIN
 
  system: MODULE = plant || controller ;
 
+ helper: LEMMA
+     system |- G( x + vx >= -2 AND x + vx <= 2 AND vx >= -1 AND vx <= 1 );
+
  correct: THEOREM
      system |- G( -3 <= x AND x <= 3 );
+
+ wrong: THEOREM
+     system |- G( -2 <= x AND x <= 2 );
 END
 
 

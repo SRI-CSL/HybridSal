@@ -24,7 +24,6 @@ BEGIN
  plant: MODULE = 
  BEGIN
   OUTPUT x: REAL
-  LOCAL xdot: REAL
   INPUT u: REAL
   INITFORMULA -1 <= x AND x <= 1
   TRANSITION 
@@ -57,5 +56,8 @@ BEGIN
  % Model checking commands to use: sal-inf-bmc -i -d 2 PSatTimed stable
  stable: THEOREM
   system |- G( -2 <= x AND x <= 2 ) ;
+
+ wrong: THEOREM
+  system |- G( -1 <= x AND x <= 1 ) ;
 
 END
