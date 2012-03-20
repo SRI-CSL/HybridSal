@@ -1,0 +1,45 @@
+
+robot:CONTEXT = 
+BEGIN
+
+ plant: MODULE =
+ BEGIN
+ INPUT direction : BOOLEAN  % moving left/right
+ OUTPUT x, vx, y, vy : REAL
+ INITIALIZATION
+  x IN {z: REAL | -1 <= z AND z <= 1};
+  vx = 0; vy = 0; y = 0
+ TRANSITION
+ [  direction = TRUE AND x + vx >= -2 -->
+     xdot' = vx;  vxdot' = -1 - vx;
+     ydot' = vy;  vydot' = 1 - vy
+ [] direction = FALSE AND x + vx <= 2 -->
+     xdot' = vx;  vxdot' = 1 - vx;
+     ydot' = vy;  vydot' = 1 - vy
+ ]
+ END;
+ 
+ controller: MODULE =
+ BEGIN
+ OUTPUT direction: BOOLEAN
+ INPUT x, vx : REAL
+ % INITIALIZATION
+  % direction IN { TRUE, FALSE }
+ TRANSITION
+ [ direction = TRUE AND x + vx <= -2 -->
+     direction' = FALSE
+ [] direction = FALSE AND x + vx >= 2 -->
+     direction' = TRUE  
+ %[]	% sal-inf-bmc -i fails if ELSE clause included.
+ %ELSE -->
+ ]
+ END;
+
+ system: MODULE = plant || controller ;
+
+ correct: THEOREM
+     system |- G( -3 <= x AND x <= 3 );
+END
+
+
+
