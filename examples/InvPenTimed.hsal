@@ -7,7 +7,6 @@ BEGIN
  plant: MODULE = 
  BEGIN
   OUTPUT x, y: REAL
-  LOCAL xdot, ydot: REAL
   INPUT u: REAL
   INITFORMULA -1/2 <= x AND x <= 1/2 AND y = 0
   INVARIANT 16*x - y <= 11 AND 16*x - y >= -11 AND y <= 22/10 AND y >= -22/10
@@ -39,7 +38,6 @@ BEGIN
  plantTimed: MODULE = 
  BEGIN
   OUTPUT x, y: REAL
-  LOCAL xdot, ydot: REAL
   INPUT u: REAL
   INITFORMULA -1/2 <= x AND x <= 1/2 AND y = 0
   TRANSITION 

@@ -1,0 +1,33 @@
+Linear7: CONTEXT = 
+BEGIN
+
+control: MODULE =
+BEGIN
+LOCAL x,y,z,u,v,w:REAL
+LOCAL xdot,ydot,zdot,udot,vdot,wdot:REAL
+INITIALIZATION
+  x = 0; y = 0;
+  z IN {zz:REAL | 0 <= zz AND zz <= 1};
+  u IN {zz:REAL | 0 <= zz AND zz <= 1};
+  v IN {zz:REAL | 0 <= zz AND zz <= 1};
+  w IN {zz:REAL | 0 <= zz AND zz <= 1}
+TRANSITION
+[
+TRUE --> 
+  xdot' = 1 ;
+  ydot' = 2 ;
+  zdot' = 2 ;
+  udot' = 1 ;
+  vdot' = 2 ;
+  wdot' = 0 
+]
+END;
+
+% This is false.
+reach : THEOREM
+control |- G(y <= u);
+
+% This is true. Proved by k-induction with d=3.
+correct : THEOREM
+control |- G(x <= u);
+END

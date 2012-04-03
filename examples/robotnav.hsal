@@ -1,0 +1,79 @@
+% A robot moving in 2D space. 
+% Goal is to prove that the robot stays inside $|x| <= 1$.
+% It is controlled by a nondeterministic switching controller 
+% that switches between two modes: move NE, move NW
+% NOTE: The system is modeled using synchronous composition 
+% between controller and plant
+% This means, each step of the system consists of two microsteps: 
+% the robot moves as per the continuous dynamics, followed by
+% a controller action. 
+% Pros: We observe only states at the discrete transitions.
+% Pros: bmc requires less depth
+% Cons: We do not observe intermediate states where safety maybe violated
+% Solution: Added a Boolean flag. The last transition can observe
+% any reachable state.
+% There are two other seemingly useless controller transitions
+% These are there to make the system observe zero crossing for vx.
+% This helps in proving correctness.
+
+robotnav:CONTEXT = 
+BEGIN
+
+ INV(vx: REAL, vy: REAL): BOOLEAN = 
+  (vx <= 12/10 AND vx >= -12/10) AND (vy >= 0 AND vy <= 12/10) ;
+
+ % Model the dynamics of the robot in the two modes
+ plant: MODULE =
+ BEGIN
+ INPUT direction : BOOLEAN  % moving NE/NW
+ INPUT flag : BOOLEAN	% end
+ OUTPUT x, vx, y, vy : REAL
+ INITIALIZATION
+  x IN {z: REAL | -1 <= z AND z <= 1};
+  vx = 0; vy = 0; y = 0
+ TRANSITION
+ [  direction = TRUE AND INV(vx', vy') AND flag -->
+     xdot' = vx;  vxdot' = (-1 - vx)*12/10 + 1/10*(vy-1);
+     ydot' = vy;  vydot' = (1 - vy)*12/10 + 1/10*(vx+1)
+ [] direction = FALSE AND INV(vx', vy') AND flag -->
+     xdot' = vx;  vxdot' = (1 - vx)*12/10 + 1/10*(vy-1);
+     ydot' = vy;  vydot' = (1 - vy)*12/10 + 1/10*(vx-1)
+ ]
+ END;
+ 
+ controller: MODULE =
+ BEGIN
+ OUTPUT direction: BOOLEAN
+ OUTPUT flag: BOOLEAN
+ INPUT x, vx : REAL
+ INITIALIZATION flag = TRUE
+ TRANSITION
+ [ vx <= 0 AND vx' <= 0 AND x' <= -1 AND x' >= -3/2 -->
+     direction' = FALSE
+ [] vx >= 0 AND vx' >= 0 AND x' >= 1 AND x' <= 3/2 -->
+     direction' = TRUE  
+ [] vx > 0 AND vx' = 0 AND x' >= x -->
+ [] vx < 0 AND vx' = 0 AND x' <= x -->
+ [] (vx <= 0 AND vx' <= 0 AND x' <= x) OR (vx >= 0 AND vx' >= 0 AND x' >= x) -->
+     flag' = FALSE
+ ]
+ END;
+
+ system: MODULE = plant || controller ;
+
+ % sal-inf-bmc -i -d  4 robotnav correct
+ correct: THEOREM
+     system |- G( (direction AND x <= 3) OR (direction = FALSE AND x >= -3 ));
+
+ % sal-inf-bmc -i -d  4 robotnav correct gives a CE.
+ % This is wrong for a very interesting reason...due to the way we have modeled
+ wrong2: THEOREM
+     system |- G( x <= 3 AND x >= -3 );
+
+ % sal-inf-bmc -i -d  12 robotnav wrong
+ wrong: THEOREM
+     system |- G( (direction AND x <= 2) OR (direction = FALSE AND x >= -2 ));
+END
+
+
+
