@@ -56,7 +56,7 @@ def handleContext(ctxt):
     for mdecl in mdecls:
         basemodule = mdecl.getElementsByTagName("BASEMODULE")
         if (basemodule == None or len(basemodule) == 0):
-            print 'Not a basemodule, ignoring\n'
+            print 'Module compositions are being abstracted compositionally\n'
         else:
             ldecls = basemodule[0].getElementsByTagName("LOCALDECL")
             invardecl = basemodule[0].getElementsByTagName("INVARDECL")

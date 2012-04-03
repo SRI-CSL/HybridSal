@@ -80,7 +80,7 @@ def createNodeCX(c,x,flag):
 
 def createNodePaux(c,x,d,y,e,flag):
     "create node for c.x + d.y + e; with PRIME variables if flag"
-    print "createNodePaux entering"
+    #print "createNodePaux entering"
     node1 = createNodeCX(c,x,flag)
     node2 = createNodeCX(d,y,flag)
     if equal(e,0):

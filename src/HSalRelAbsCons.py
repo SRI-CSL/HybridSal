@@ -700,6 +700,8 @@ def absGuardedCommandAux(varlist,A,b,inputs):
             # Pick d' s.t. l d' = c' A2 or, d l = A2' c
             # Let p := (c'x+d'y+ (c'b1+d'b2)/l) THEN dp/dt = l p
         if len(vectors) > 1:
+            if equal(lamb, 0):	# multirate above gets all the relations...
+                continue
             # Test if vec0'x + c1* vec1'x + ci*veci'x + w'y+c is an eigenInv
             # (vec0'+ci*veci')(A1x+A2y+b1) + w'b2 = lamb*((ci*veci')x+w'y+c)
             # iff (vec0'+ci*veci')(A2y+b1) + w'b2 = lamb*(w'y+c)
@@ -861,9 +863,9 @@ def handleBasemodule(basemod, ctxt):
             if parentNode.localName == 'MULTICOMMAND':
                 if not(absGC == None):
                     parentNode.appendChild(absGC)
-                print "Parent is a multicommand"
+                # print "Parent is a multicommand"
             elif parentNode.localName == 'SOMECOMMANDS':
-                print "Parent is SOMECOMMANDS"
+                # print "Parent is SOMECOMMANDS"
                 newnode = ctxt.createElement("MULTICOMMAND")
                 oldChild = i.cloneNode(True)
                 newnode.appendChild(oldChild)
@@ -1024,8 +1026,8 @@ def main():
         xmlfilename = filename
     elif ext == '.hsal':
         xmlfilename = basename + ".hxml"
-        subprocess.call(["hybridsal2xml/hybridsal2xml", "-o", xmlfilename, filename])
-        if not(os.path.isfile(xmlfilename)):
+        retCode = subprocess.call(["hybridsal2xml/hybridsal2xml", "-o", xmlfilename, filename])
+        if retCode != 0 or not(os.path.isfile(xmlfilename)):
             print "hybridsal2xml failed to create XML file. Quitting."
             return 1
     else:
