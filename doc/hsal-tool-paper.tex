@@ -99,7 +99,7 @@ a function $F$ from $[0,t_1]$ to $\RR^n$ s.t.} \nonumber %\label{eqn:sem}
 \end{eqnarray}
 The concrete semantics is defined using the ``solution''
 $F$ of the system of differential equations.  As a result,
-it is difficult to work directly with it.
+it is difficult to directly work with it.
 
 The relational abstraction of a hybrid system 
 $(\XX, \rra_{cont}\cup\rra_{disc})$ 
@@ -303,7 +303,7 @@ Hence, all these expressions need to be equal, as stated in Step~(13).
 \end{proof}
 \endignore}
 
-By applying the above abstraction procedure on to the
+By applying the above abstraction procedure on the
 dynamics of each mode of a given hybrid system,
 the HybridSal relational abstracter constructs  a
 relational abstraction of a hybrid system.
@@ -392,11 +392,14 @@ is referred to~\cite{SAL-language} for details.
 HybridSal inherits all the language features of
 SAL.  Additionally, HybridSal allows 
 differential equations to appear in the model as follows:
-for each real-valued variable $x$, the user 
-defines a dummy variable $xdot$
-which represents $\frac{dx}{dt}$.  A differential
-equation can now be written by assigning to
-the $xdot$ variable.
+if $x$ is a real-valued variable, a differential equation
+$\frac{dx}{dt}=e$ can be written by assigning $e$ to the
+dummy identifier $xdot$.
+% for each real-valued variable $x$, the user 
+% defines a dummy variable $xdot$
+% which represents $\frac{dx}{dt}$.  A differential
+% equation can now be written by assigning to
+% the $xdot$ variable.
 Assuming two variables $x,y$, the syntax is as follows:
 \begin{quote}
 \begin{tt}
@@ -466,7 +469,7 @@ S\=impleEx: CONTEXT = BEGIN
 \\ \>
 S\=impleHS: MODULE = BEGIN
 \\ \> \>
-LOCAL x,y,xdot,ydot:REAL
+LOCAL x,y: REAL
 \\ \> \>
 I\=NITIALIZATION
 \\ \> \> \>
@@ -780,7 +783,8 @@ of verification of infinite state transition systems. %k-induction provers.
 %The scalability of verification is now strictly tied to the
 %scalability of SMT solving.
 
-We note that our tool is the first in its space and is still
+We note that our tool is the first relational abstracter
+for hybrid systems and is % still
 under active development.  We hope to
 enhance the tool in some of the following ways 
 % to address several of following shortcomings
@@ -790,12 +794,14 @@ in the future. % releases of the tool.
 (a) Relational abstraction generates verification 
 problem on a discrete, infinite state space system, which are difficult to
 verify automatically.  
-Nevertheless, dedicated methods for generating 
-invariants and for performing abstract interpretation can be developed
-that are tailored to analyzing relational abstractions.
-% There is a need to develop 
-% The use of k-induction can require the need for auxiliary lemmas.  
-% The SMT formulas generated can be very large.
+We currently use k-induction and inf-BMC, but run into scalability issues.
+An alternative is to develop 
+dedicated methods for generating 
+invariants and for performing abstract interpretation 
+that are tailored for relational abstractions.
+%Nevertheless, dedicated methods for generating 
+%invariants and for performing abstract interpretation can be developed
+%that are tailored to analyzing relational abstractions.
 (b) More precise relational abstractions can be potentially generated
 by using mode invariants.
 % Our tool does not use the mode invariants when creating
@@ -852,10 +858,12 @@ sensing and actuation delays, etc~\cite{ZST12:CAV}.% .  The theory of
 
 \bibliographystyle{abbrv}
 \bibliography{/homes/tiwari/ConfPapers/ashish/all}
+\end{document}
 
 %%\newpage %% For the on-line verification.
 %%\appendix{Proofs of Claims}
 %%\input{proofs}
+
 
 \appendix
 \section{Supplementary Material}
@@ -912,5 +920,5 @@ $$
 $$
 \qed
 \end{proof}
-\end{document}
+%\end{document}
 

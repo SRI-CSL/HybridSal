@@ -12,7 +12,7 @@ import sys
 #   From this file, you can safely use HSalPPContext; 
 #   For using other functions, need to set fp
 
-precedence = ['/', '*', '-', '+', '>', '>=', '<', '<=', '=', 'NOT', 'AND', 'OR', '=>']
+precedence = ['/', '*', '-', '+', '>', '>=', '<', '<=', '=', '/=', 'NOT', 'AND', 'OR', '=>']
 
 def valueOf(node):
     """return text value of node"""
@@ -147,6 +147,24 @@ def HSalPPConditional(node):
                 str0 += " ENDIF "
     return str0
 
+def HSalPPArrayLiteral(node):
+    '''<ARRAYLITERAL> <INDEXVARDECL><ID><SUBRANGE></INDEXVARDECL> <EXPR>
+       print [ [i:TYPE] Expr ] '''
+    lhs = getArg(node,1)
+    rhs = getArg(node,2)
+    str1 = HSalPPDecl(lhs)
+    str2 = HSalPPExpr(rhs)
+    return "[ ["+str1+"] "+str2+" ]"
+
+def HSalPPArraySelection(node):
+    '''<ARRAYSELECTION PLACE="122 46 122 55">
+         EXPR EXPR <ARRAYSELECTION> PRINT EXPR[EXPR]'''
+    lhs = getArg(node,1)
+    rhs = getArg(node,2)
+    str1 = HSalPPExpr(lhs)
+    str2 = HSalPPExpr(rhs)
+    return str1+"["+str2+"]"
+
 def HSalPPExpr(node, outerSymb=None):
     if (node == None) or not(node.nodeType == node.ELEMENT_NODE):
         return ""
@@ -162,6 +180,10 @@ def HSalPPExpr(node, outerSymb=None):
         return HSalPPSetPredExpr(node)
     elif node.localName == "CONDITIONAL":
         return HSalPPConditional(node)
+    elif node.localName == "ARRAYLITERAL":
+        return HSalPPArrayLiteral(node)
+    elif node.localName == "ARRAYSELECTION":
+        return HSalPPArraySelection(node)
     else:
         print node.toxml()
         print 'Node EXPR %s unknown. Missing code' % node.localName
@@ -411,6 +433,15 @@ def HSalPPSubrange(node):
     str1 = HSalPPExpr(lhs)
     str2 = HSalPPExpr(rhs)
     return "["+str1+" .. "+str2+"]"
+
+def HSalPPArrayType(node):
+    '''Print ARRAY A OF B given <ARRAYTYPE PLACE="46 7 46 51">
+        A B </ARRAYTYPE>'''
+    lhs = getArg(node,1)
+    rhs = getArg(node,2)
+    str1 = HSalPPType(lhs, '', '')
+    str2 = HSalPPType(rhs, '', '')
+    return "ARRAY "+str1+" OF "+str2
     
 def HSalPPType(node,str1,str2):
     if not(node.nodeType == node.ELEMENT_NODE):
@@ -426,6 +457,8 @@ def HSalPPType(node,str1,str2):
         str0 = HSalPPScalarType(node)
     elif node.localName == "SUBRANGE":
         str0 = HSalPPSubrange(node)
+    elif node.localName == "ARRAYTYPE":
+        str0 = HSalPPArrayType(node)
     else:
         print node.toxml()
         print 'Node TYPE %s not handled. Missing code' % node.localName
