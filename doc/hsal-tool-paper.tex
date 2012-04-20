@@ -6,9 +6,10 @@
 \pagestyle{plain}
 
 \title{HybridSAL Relational Abstracter}
-%  \thanks{Tiwari's work supported in part by DARPA under Contract No. FA8650-10-C-7078,
-%  NSF grants CSR-0917398 and SHF:CSR-1017483.}
-\author{Ashish Tiwari}
+\author{Ashish Tiwari%
+\thanks{Supported in part by DARPA under subcontract No. VA-DSR 21806-S4 
+under prime contract No. FA8650-10-C-7075, and
+NSF grants CSR-0917398 and SHF:CSR-1017483.}}
 \institute{SRI International, Menlo Park, CA.\ \url{ashish.tiwari@sri.com}}
 
 \newif\iftrversion\trversionfalse
@@ -317,17 +318,21 @@ First,
 the relational abstraction constructed by 
 procedure {\linODEabs} is a Boolean combination
 of linear {\em{and nonlinear}} expressions.
-The nonlinear expressions can be replaced by their
-conservative linear approximations.  The
-HybridSal relational abstracter performs this approximation
-by default.  It generates the (more precise)
+By default, HybridSal generates conservative linear
+approximations of these nonlinear relational invariants.
+% The nonlinear expressions can be replaced by their
+% conservative linear approximations.  The
+% HybridSal relational abstracter performs this approximation
+% by default.  
+HybridSal generates the (more precise)
 nonlinear abstraction (as described in Figure~\ref{fig:algo})
 when invoked using an appropriate command line flag.
-Both inf-BMC and k-induction
-provers rely on satisfiability modulo theory (SMT) solvers.
-Most SMT solvers can only reason % with Boolean combination of 
-about {\em{linear}} constraints, and hence, the ability to
-generate linear relational abstractions is important.
+Note that most inf-BMC tools can only handle linear constraints.
+% Both inf-BMC and k-induction
+% provers rely on satisfiability modulo theory (SMT) solvers.
+% Most SMT solvers can only reason % with Boolean combination of 
+% about {\em{linear}} constraints, and hence, the ability to
+% generate linear relational abstractions is important.
 However, there is significant research effort going on
 into extending SMT solvers to handle nonlinear expressions.
 HybridSal relational abstracter and SAL inf-BMC 
@@ -424,7 +429,7 @@ $\frac{dx}{dt}=-y+x$, $\frac{dy}{dt}=-y-x$ with mode
 invariant $y \geq 0$, and by a 
 discrete transition with guard % that resets the value of $x$ and $y$ when
 $y \leq 0$.
-The HybridSal file {\tt{SimpleHS.hsal}} also defines 
+The HybridSal file {\tt{SimpleEx.hsal}} also defines 
 two safety properties. The latter
 one says that $x$ is always non-negative.
 This model is analyzed by abstracting it 
@@ -728,14 +733,50 @@ and is therefore very fast.
 The bottleneck step in our tool chain
 is the inf-BMC and k-induction step,
 which is orders of magnitude slower than the abstraction step
-(we have not tried abstract interpretation yet).
-The performance of HybridSal matches the performance reported 
-in our earlier paper~\cite{ST11:CAVsmall} on the navigation
-benchmarks (which are included with the HybridSal distribution).
-In~\cite{ST11:CAVsmall} we had used many
-different techniques (not all completely automated at that time)
-to construct the relational abstraction.
+(Table~\ref{table}).
+% (we have not tried abstract interpretation yet).
+% The performance of HybridSal matches the performance reported 
+% in our earlier paper~\cite{ST11:CAVsmall} on the navigation
+% benchmarks (which are included with the HybridSal distribution).
+% In~\cite{ST11:CAVsmall} we had used many
+% different techniques (not all completely automated at that time)
+% to construct the relational abstraction.
 
+\begin{table}[t]
+\begin{center}
+\small{
+\begin{tabular}{||l|c|c|c|c|c|c|c|c|c|c|c||}
+\hline
+ nav & 1-5 & 6 & 7-8 & 9 & 10-11 & 12 & 13-15 & 16-18 & 19-21 & 22-24 & 25-27
+\\ \hline \hline
+modes & 9 & 9 & 16 & 16 & 25 & 25 & 42 & 81 & 144 & 225 & 400
+\\
+RA & 2 & 2 & 3 & 3 & 5 & 5 & 9 & 20 & 40 & 80 & 180
+\\
+d=4 & N0 & N0 & N1 & N1 & N1 & C1 & N1 & N2 & N4 & N6 & N20
+\\
+d=8 & N1 & C2 & C100 & C5 & C10 & C15 & N20 & N10 & N25 & N10 & N60
+\\
+d=12 & N5 & C3 & TO & C18 & C20 & C50 & C150 & N10 & TO & N40 & T0
+\\
+d=16 & N40 & C10 & TO & C50 & C50 & C180 & TO* & 240* & TO & TO & TO
+\\
+d=20 & N100 & C80 & TO & C160 & C80 & TO & TO & TO & TO & TO & TO
+\\
+\hline
+\end{tabular}
+}
+\end{center}
+\caption{Performance on the 27 navigation benchmarks~\cite{benchmarks}: The HybridSal
+models, on purpose, enumerate all modes explicitly so that it
+becomes clear that the time (RA) for constructing
+relational abstraction grows linearly with the number of modes (modes).
+Inf-bmc starts to time out (TO) at $5$ minutes at depth (d) 20 for
+examples with $\geq$ 25 modes. Ideally, one wants to perform inf-bmc
+with depth equal to number of modes. $N100$ means inf-bmc returned after
+100 seconds with no counter-examples and $C160$ means inf-bmc returned
+after 160 seconds with a counter-example.}\label{table}
+\end{table}
 
 
 %\section{Case Studies and Examples}
@@ -750,13 +791,16 @@ system verification consist of
 (a) tools that iteratively compute
 an overapproximation of the reachable states~\cite{SpaceExsmall},
 (b) tools that directly search for correctness certificates
-(such as inductive invariants or Lyapunov function)~\cite{sostools,ST11:ISSACsmall},
+(such as inductive invariants or Lyapunov function)~\cite{ST11:ISSACsmall},
 or
 (c) tools that compute an abstraction and then analyze
 the abstraction~\cite{HybridSALsmall,AlurDangIvancic03:TACASsmall,Clarke03:TACASsmall}.
 Our relational abstraction tool falls in category~(c), but unlike all
 other abstraction tools, it does
 not abstract the state space, but abstracts only the transition relation.
+In~\cite{ST11:CAVsmall} we had defined relational abstractions and proposed
+many different techniques (not all completely automated at that time)
+to construct the relational abstraction.
  
 The key benefit of relational abstraction
 is that it cleanly separates reasoning on continuous
@@ -764,16 +808,16 @@ dynamics (where we use control theory or systems theory)
 and
 reasoning on discrete state transition systems (where we use 
 formal methods.)
-% The former is used for constructing high quality relational abstractions
-% and the latter is used for verifying the abstract system.
-Concepts such as Lyapunov functions or inductive invariants
-(aka barrier certificates) for continuous systems are used
-to construct very precise relational abstractions, and
-formal methods is used to verify the abstracted system.
-In fact, for several classes of simple continuous dynamical systems, 
-lossless relational abstractions can be constructed, and hence
-all incompleteness in verification then comes from incompleteness
-of verification of infinite state transition systems. %k-induction provers.
+The former is used for constructing high quality relational abstractions
+and the latter is used for verifying the abstract system.
+%Concepts such as Lyapunov functions or inductive invariants
+%(aka barrier certificates) for continuous systems are used
+%to construct very precise relational abstractions, and
+%formal methods is used to verify the abstracted system.
+%In fact, for several classes of simple continuous dynamical systems, 
+%lossless relational abstractions can be constructed, and hence
+%all incompleteness in verification then comes from incompleteness
+%of verification of infinite state transition systems. %k-induction provers.
 
 %When the relational abstraction is analyzed using 
 %the k-induction prover or inf-BMC,
@@ -785,7 +829,13 @@ of verification of infinite state transition systems. %k-induction provers.
 
 We note that our tool is the first relational abstracter
 for hybrid systems and is % still
-under active development.  We hope to
+under active development.  
+We hope to enhance the tool by improving precision of the
+abstraction using mode invariants and other techniques,
+providing alternative to inf-bmc, and handling nonlinear
+differential equations.
+\ignore{
+We hope to
 enhance the tool in some of the following ways 
 % to address several of following shortcomings
 in the future. % releases of the tool.
@@ -827,6 +877,7 @@ sensing and actuation delays, etc~\cite{ZST12:CAV}.% .  The theory of
 %We note that this is the first version of the tool and we hope to
 %enhance the tool to address some of the above concerns in 
 %future releases of the tool.
+\endignore}
 
 
 
