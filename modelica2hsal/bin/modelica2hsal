@@ -1,0 +1,3 @@
+#! /bin/sh
+python  modelica2hsal/src/modelica2hsal.py $*
+

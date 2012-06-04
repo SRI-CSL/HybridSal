@@ -53,6 +53,9 @@ powertrain:  ${exhsal}/powertrain.hsal
 	python src/HSalPreProcess.py ${exhsal}/powertrain.hxml
 	bin/hsal2hasal ${exhsal}/powertrain.hxml
 
+RCEngine:  ${exhsal}/RCEngine.xml
+	bin/modelica2hsal $<
+
 PTimed: ${exhsal}/PTimed.hsal
 	echo "***************************************************************"
 	echo "******** Constructing timed abstraction with T=0.01************"

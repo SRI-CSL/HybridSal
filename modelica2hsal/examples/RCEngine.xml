@@ -1,0 +1,2765 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<dae xmlns:p1="http://www.w3.org/1998/Math/MathML"
+                                                xmlns:xlink="http://www.w3.org/1999/xlink"
+                                                xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+                                                xsi:noNamespaceSchemaLocation="http://home.dei.polimi.it/donida/Projects/AutoEdit/Images/DAE.xsd">
+<variables dimension="151">
+<orderedVariables dimension="23">
+<variablesList>
+<variable id="1" name="torque290.tau" variability="continuous" direction="input" type="Real" index="-1" fixed="false" flow="NonConnector" stream="NonStreamConnector" comment="Accelerating torque acting at flange (= -flange.tau)">
+<classesNames>
+<element>
+RCEngine
+</element>
+<element>
+Modelica.Mechanics.Rotational.Sources.Torque
+</element>
+<element>
+Modelica.Blocks.Interfaces.RealInput
+</element>
+</classesNames>
+</variable>
+<variable id="2" name="J_crank.a" variability="continuous" direction="none" type="Real" index="-1" fixed="false" flow="NonConnector" stream="NonStreamConnector" comment="Absolute angular acceleration of component (= der(w))">
+<classesNames>
+<element>
+RCEngine
+</element>
+<element>
+Modelica.Mechanics.Rotational.Components.Inertia
+</element>
+<element>
+Modelica.SIunits.AngularAcceleration
+</element>
+</classesNames>
+<attributesValues>
+<quantity string="AngularAcceleration">
+</quantity>
+<unit string="rad/s2">
+</unit>
+</attributesValues>
+</variable>
+<variable id="3" name="J_crank.phi" variability="continuousState" direction="none" type="Real" index="-1" fixed="false" flow="NonConnector" stream="NonStreamConnector" comment="Absolute rotation angle of component">
+<classesNames>
+<element>
+RCEngine
+</element>
+<element>
+Modelica.Mechanics.Rotational.Components.Inertia
+</element>
+<element>
+Modelica.SIunits.Angle
+</element>
+</classesNames>
+<attributesValues>
+<quantity string="Angle">
+</quantity>
+<unit string="rad">
+</unit>
+<displayUnit string="deg">
+</displayUnit>
+<stateSelect>
+Default
+</stateSelect>
+</attributesValues>
+</variable>
+<variable id="4" name="J_crank.w" variability="continuousState" direction="none" type="Real" index="-1" fixed="true" flow="NonConnector" stream="NonStreamConnector" comment="Absolute angular velocity of component (= der(phi))">
+<classesNames>
+<element>
+RCEngine
+</element>
+<element>
+Modelica.Mechanics.Rotational.Components.Inertia
+</element>
+<element>
+Modelica.SIunits.AngularVelocity
+</element>
+</classesNames>
+<attributesValues>
+<quantity string="AngularVelocity">
+</quantity>
+<unit string="rad/s">
+</unit>
+<stateSelect>
+Default
+</stateSelect>
+<initialValue string="500.0">
+</initialValue>
+<fixed string="true">
+</fixed>
+</attributesValues>
+</variable>
+<variable id="5" name="Friction_crank.flange_a.tau" variability="continuous" direction="none" type="Real" index="-1" fixed="false" flow="Flow" stream="NonStream" comment="Cut torque in the flange">
+<classesNames>
+<element>
+RCEngine
+</element>
+<element>
+Modelica.Mechanics.Rotational.Components.BearingFriction
+</element>
+<element>
+Modelica.Mechanics.Rotational.Interfaces.Flange_a
+</element>
+<element>
+Modelica.SIunits.Torque
+</element>
+</classesNames>
+<attributesValues>
+<quantity string="Torque">
+</quantity>
+<unit string="N.m">
+</unit>
+</attributesValues>
+</variable>
+<variable id="6" name="Friction_crank.sa" variability="continuous" direction="none" type="Real" index="-1" fixed="false" flow="NonConnector" stream="NonStreamConnector" comment="Path parameter of friction characteristic tau = f(a_relfric)">
+<classesNames>
+<element>
+RCEngine
+</element>
+<element>
+Modelica.Mechanics.Rotational.Components.BearingFriction
+</element>
+<element>
+Real
+</element>
+</classesNames>
+<attributesValues>
+<unit string="1">
+</unit>
+</attributesValues>
+</variable>
+<variable id="7" name="Friction_crank.startForward" variability="discrete" direction="none" type="Boolean" index="-1" fixed="true" flow="NonConnector" stream="NonStreamConnector" comment="true, if w_rel=0 and start of forward sliding">
+<classesNames>
+<element>
+RCEngine
+</element>
+<element>
+Modelica.Mechanics.Rotational.Components.BearingFriction
+</element>
+<element>
+Boolean
+</element>
+</classesNames>
+<attributesValues>
+<initialValue string="false">
+</initialValue>
+<fixed string="true">
+</fixed>
+</attributesValues>
+</variable>
+<variable id="8" name="Friction_crank.startBackward" variability="discrete" direction="none" type="Boolean" index="-1" fixed="true" flow="NonConnector" stream="NonStreamConnector" comment="true, if w_rel=0 and start of backward sliding">
+<classesNames>
+<element>
+RCEngine
+</element>
+<element>
+Modelica.Mechanics.Rotational.Components.BearingFriction
+</element>
+<element>
+Boolean
+</element>
+</classesNames>
+<attributesValues>
+<initialValue string="false">
+</initialValue>
+<fixed string="true">
+</fixed>
+</attributesValues>
+</variable>
+<variable id="9" name="Friction_crank.locked" variability="discrete" direction="none" type="Boolean" index="-1" fixed="false" flow="NonConnector" stream="NonStreamConnector" comment="true, if w_rel=0 and not sliding">
+<classesNames>
+<element>
+RCEngine
+</element>
+<element>
+Modelica.Mechanics.Rotational.Components.BearingFriction
+</element>
+<element>
+Boolean
+</element>
+</classesNames>
+<attributesValues>
+<initialValue string="false">
+</initialValue>
+</attributesValues>
+</variable>
+<variable id="10" name="Friction_crank.phi" variability="continuousState" direction="none" type="Real" index="-1" fixed="false" flow="NonConnector" stream="NonStreamConnector" comment="Angle between shaft flanges (flange_a, flange_b) and support">
+<classesNames>
+<element>
+RCEngine
+</element>
+<element>
+Modelica.Mechanics.Rotational.Components.BearingFriction
+</element>
+<element>
+Modelica.SIunits.Angle
+</element>
+</classesNames>
+<attributesValues>
+<quantity string="Angle">
+</quantity>
+<unit string="rad">
+</unit>
+<displayUnit string="deg">
+</displayUnit>
+</attributesValues>
+</variable>
+<variable id="11" name="Friction_crank.tau" variability="continuous" direction="none" type="Real" index="-1" fixed="false" flow="NonConnector" stream="NonStreamConnector" comment="Friction torque">
+<classesNames>
+<element>
+RCEngine
+</element>
+<element>
+Modelica.Mechanics.Rotational.Components.BearingFriction
+</element>
+<element>
+Modelica.SIunits.Torque
+</element>
+</classesNames>
+<attributesValues>
+<quantity string="Torque">
+</quantity>
+<unit string="N.m">
+</unit>
+</attributesValues>
+</variable>
+<variable id="12" name="Friction_crank.w" variability="continuousState" direction="none" type="Real" index="-1" fixed="false" flow="NonConnector" stream="NonStreamConnector" comment="Absolute angular velocity of flange_a and flange_b">
+<classesNames>
+<element>
+RCEngine
+</element>
+<element>
+Modelica.Mechanics.Rotational.Components.BearingFriction
+</element>
+<element>
+Modelica.SIunits.AngularVelocity
+</element>
+</classesNames>
+<attributesValues>
+<quantity string="AngularVelocity">
+</quantity>
+<unit string="rad/s">
+</unit>
+</attributesValues>
+</variable>
+<variable id="13" name="Friction_crank.a" variability="continuous" direction="none" type="Real" index="-1" fixed="false" flow="NonConnector" stream="NonStreamConnector" comment="Absolute angular acceleration of flange_a and flange_b">
+<classesNames>
+<element>
+RCEngine
+</element>
+<element>
+Modelica.Mechanics.Rotational.Components.BearingFriction
+</element>
+<element>
+Modelica.SIunits.AngularAcceleration
+</element>
+</classesNames>
+<attributesValues>
+<quantity string="AngularAcceleration">
+</quantity>
+<unit string="rad/s2">
+</unit>
+</attributesValues>
+</variable>
+<variable id="14" name="Friction_crank.mode" variability="discrete" direction="none" type="Integer" index="-1" fixed="true" flow="NonConnector" stream="NonStreamConnector">
+<classesNames>
+<element>
+RCEngine
+</element>
+<element>
+Modelica.Mechanics.Rotational.Components.BearingFriction
+</element>
+<element>
+Integer
+</element>
+</classesNames>
+<attributesValues>
+<minValue string="-1">
+</minValue>
+<maxValue string="3">
+</maxValue>
+<initialValue string="3">
+</initialValue>
+<fixed string="true">
+</fixed>
+</attributesValues>
+</variable>
+<variable id="15" name="feedback.u1" variability="continuous" direction="input" type="Real" index="-1" fixed="false" flow="NonConnector" stream="NonStreamConnector">
+<classesNames>
+<element>
+RCEngine
+</element>
+<element>
+Modelica.Blocks.Math.Feedback
+</element>
+<element>
+Modelica.Blocks.Interfaces.RealInput
+</element>
+</classesNames>
+</variable>
+<variable id="16" name="feedback.y" variability="continuous" direction="output" type="Real" index="-1" fixed="false" flow="NonConnector" stream="NonStreamConnector">
+<classesNames>
+<element>
+RCEngine
+</element>
+<element>
+Modelica.Blocks.Math.Feedback
+</element>
+<element>
+Modelica.Blocks.Interfaces.RealOutput
+</element>
+</classesNames>
+</variable>
+<variable id="17" name="product.u1" variability="continuous" direction="input" type="Real" index="-1" fixed="false" flow="NonConnector" stream="NonStreamConnector" comment="Connector of Real input signal 1">
+<classesNames>
+<element>
+RCEngine
+</element>
+<element>
+Modelica.Blocks.Math.Product
+</element>
+<element>
+Modelica.Blocks.Interfaces.RealInput
+</element>
+</classesNames>
+</variable>
+<variable id="18" name="limiter.u" variability="continuous" direction="input" type="Real" index="-1" fixed="false" flow="NonConnector" stream="NonStreamConnector" comment="Connector of Real input signal">
+<classesNames>
+<element>
+RCEngine
+</element>
+<element>
+Modelica.Blocks.Nonlinear.Limiter
+</element>
+<element>
+Modelica.Blocks.Interfaces.RealInput
+</element>
+</classesNames>
+</variable>
+<variable id="19" name="MaxTorque.tableID" variability="discrete" direction="none" type="Integer" index="-1" fixed="false" flow="NonConnector" stream="NonStreamConnector">
+<classesNames>
+<element>
+RCEngine
+</element>
+<element>
+Modelica.Blocks.Tables.CombiTable1D
+</element>
+<element>
+Integer
+</element>
+</classesNames>
+</variable>
+<variable id="20" name="MaxTorque.y[1]" variability="continuous" direction="output" type="Real" index="-1" fixed="false" flow="NonConnector" stream="NonStreamConnector" comment="Connector of Real output signals">
+<classesNames>
+<element>
+RCEngine
+</element>
+<element>
+Modelica.Blocks.Tables.CombiTable1D
+</element>
+<element>
+Modelica.Blocks.Interfaces.RealOutput
+</element>
+</classesNames>
+</variable>
+<variable id="21" name="speedSensor.flange.phi" variability="continuousState" direction="none" type="Real" index="-1" fixed="false" flow="NonFlow" stream="NonStream" comment="Absolute rotation angle of flange">
+<classesNames>
+<element>
+RCEngine
+</element>
+<element>
+Modelica.Mechanics.Rotational.Sensors.SpeedSensor
+</element>
+<element>
+Modelica.Mechanics.Rotational.Interfaces.Flange_a
+</element>
+<element>
+Modelica.SIunits.Angle
+</element>
+</classesNames>
+<attributesValues>
+<quantity string="Angle">
+</quantity>
+<unit string="rad">
+</unit>
+<displayUnit string="deg">
+</displayUnit>
+</attributesValues>
+</variable>
+<variable id="22" name="crank_speed" variability="continuous" direction="output" type="Real" index="-1" fixed="false" flow="NonConnector" stream="NonStreamConnector">
+<classesNames>
+<element>
+RCEngine
+</element>
+<element>
+Modelica.Blocks.Interfaces.RealOutput
+</element>
+</classesNames>
+</variable>
+<variable id="23" name="Idle_Redline.u" variability="continuous" direction="input" type="Real" index="-1" fixed="false" flow="NonConnector" stream="NonStreamConnector" comment="Connector of Real input signal">
+<classesNames>
+<element>
+RCEngine
+</element>
+<element>
+Modelica.Blocks.Nonlinear.Limiter
+</element>
+<element>
+Modelica.Blocks.Interfaces.RealInput
+</element>
+</classesNames>
+</variable>
+</variablesList>
+</orderedVariables>
+<knownVariables dimension="128">
+<variablesList>
+<variable id="1" name="Idle_Redline.uMin" variability="parameter" direction="none" type="Real" index="-1" fixed="true" flow="NonConnector" stream="NonStreamConnector" comment="Lower limits of input signals">
+<bindValueExpression>
+<bindExpression string="500.0">
+</bindExpression>
+</bindValueExpression>
+<classesNames>
+<element>
+RCEngine
+</element>
+<element>
+Modelica.Blocks.Nonlinear.Limiter
+</element>
+<element>
+Real
+</element>
+</classesNames>
+</variable>
+<variable id="2" name="Idle_Redline.limitsAtInit" variability="parameter" direction="none" type="Boolean" index="-1" fixed="true" flow="NonConnector" stream="NonStreamConnector" comment="= false, if limits are ignored during initializiation (i.e., y=u)">
+<bindValueExpression>
+<bindExpression string="true">
+</bindExpression>
+</bindValueExpression>
+<classesNames>
+<element>
+RCEngine
+</element>
+<element>
+Modelica.Blocks.Nonlinear.Limiter
+</element>
+<element>
+Boolean
+</element>
+</classesNames>
+</variable>
+<variable id="3" name="Idle_Redline.uMax" variability="parameter" direction="none" type="Real" index="-1" fixed="true" flow="NonConnector" stream="NonStreamConnector" comment="Upper limits of input signals">
+<bindValueExpression>
+<bindExpression string="1600.0">
+</bindExpression>
+</bindValueExpression>
+<classesNames>
+<element>
+RCEngine
+</element>
+<element>
+Modelica.Blocks.Nonlinear.Limiter
+</element>
+<element>
+Real
+</element>
+</classesNames>
+<attributesValues>
+<initialValue string="1.0">
+</initialValue>
+</attributesValues>
+</variable>
+<variable id="4" name="MaxTorque.n" variability="parameter" direction="none" type="Integer" index="-1" fixed="true" flow="NonConnector" stream="NonStreamConnector" comment="Number of inputs (= number of outputs)">
+<bindValueExpression>
+<bindExpression string="1">
+</bindExpression>
+</bindValueExpression>
+<classesNames>
+<element>
+RCEngine
+</element>
+<element>
+Modelica.Blocks.Tables.CombiTable1D
+</element>
+<element>
+Integer
+</element>
+</classesNames>
+</variable>
+<variable id="5" name="MaxTorque.columns[1]" variability="parameter" direction="none" type="Integer" index="-1" fixed="true" flow="NonConnector" stream="NonStreamConnector" comment="columns of table to be interpolated">
+<bindValueExpression>
+<bindExpression string="2">
+</bindExpression>
+</bindValueExpression>
+<classesNames>
+<element>
+RCEngine
+</element>
+<element>
+Modelica.Blocks.Tables.CombiTable1D
+</element>
+<element>
+Integer
+</element>
+</classesNames>
+</variable>
+<variable id="6" name="MaxTorque.smoothness" variability="parameter" direction="none" type="enumeration(LinearSegments, ContinuousDerivative)" index="-1" fixed="true" flow="NonConnector" stream="NonStreamConnector" comment="smoothness of table interpolation">
+<bindValueExpression>
+<bindExpression string="Modelica.Blocks.Types.Smoothness.LinearSegments">
+</bindExpression>
+</bindValueExpression>
+<classesNames>
+<element>
+RCEngine
+</element>
+<element>
+Modelica.Blocks.Tables.CombiTable1D
+</element>
+<element>
+Modelica.Blocks.Types.Smoothness
+</element>
+</classesNames>
+<attributesValues>
+<minValue string="Modelica.Blocks.Types.Smoothness.LinearSegments">
+</minValue>
+<maxValue string="Modelica.Blocks.Types.Smoothness.ContinuousDerivative">
+</maxValue>
+</attributesValues>
+</variable>
+<variable id="7" name="MaxTorque.fileName" variability="parameter" direction="none" type="String" index="-1" fixed="true" flow="NonConnector" stream="NonStreamConnector" comment="file where matrix is stored">
+<bindValueExpression>
+<bindExpression string="NoName">
+</bindExpression>
+</bindValueExpression>
+<classesNames>
+<element>
+RCEngine
+</element>
+<element>
+Modelica.Blocks.Tables.CombiTable1D
+</element>
+<element>
+String
+</element>
+</classesNames>
+</variable>
+<variable id="8" name="MaxTorque.tableName" variability="parameter" direction="none" type="String" index="-1" fixed="true" flow="NonConnector" stream="NonStreamConnector" comment="table name on file or in function usertab (see docu)">
+<bindValueExpression>
+<bindExpression string="NoName">
+</bindExpression>
+</bindValueExpression>
+<classesNames>
+<element>
+RCEngine
+</element>
+<element>
+Modelica.Blocks.Tables.CombiTable1D
+</element>
+<element>
+String
+</element>
+</classesNames>
+</variable>
+<variable id="9" name="MaxTorque.table[45,2]" variability="parameter" direction="none" type="Real" index="-1" fixed="true" flow="NonConnector" stream="NonStreamConnector" comment="table matrix (grid = first column; e.g., table=[0,2])">
+<bindValueExpression>
+<bindExpression string="0.992073874">
+</bindExpression>
+</bindValueExpression>
+<classesNames>
+<element>
+RCEngine
+</element>
+<element>
+Modelica.Blocks.Tables.CombiTable1D
+</element>
+<element>
+Real
+</element>
+</classesNames>
+</variable>
+<variable id="10" name="MaxTorque.table[45,1]" variability="parameter" direction="none" type="Real" index="-1" fixed="true" flow="NonConnector" stream="NonStreamConnector" comment="table matrix (grid = first column; e.g., table=[0,2])">
+<bindValueExpression>
+<bindExpression string="1600.0">
+</bindExpression>
+</bindValueExpression>
+<classesNames>
+<element>
+RCEngine
+</element>
+<element>
+Modelica.Blocks.Tables.CombiTable1D
+</element>
+<element>
+Real
+</element>
+</classesNames>
+</variable>
+<variable id="11" name="MaxTorque.table[44,2]" variability="parameter" direction="none" type="Real" index="-1" fixed="true" flow="NonConnector" stream="NonStreamConnector" comment="table matrix (grid = first column; e.g., table=[0,2])">
+<bindValueExpression>
+<bindExpression string="1.056887282">
+</bindExpression>
+</bindValueExpression>
+<classesNames>
+<element>
+RCEngine
+</element>
+<element>
+Modelica.Blocks.Tables.CombiTable1D
+</element>
+<element>
+Real
+</element>
+</classesNames>
+</variable>
+<variable id="12" name="MaxTorque.table[44,1]" variability="parameter" direction="none" type="Real" index="-1" fixed="true" flow="NonConnector" stream="NonStreamConnector" comment="table matrix (grid = first column; e.g., table=[0,2])">
+<bindValueExpression>
+<bindExpression string="1575.0">
+</bindExpression>
+</bindValueExpression>
+<classesNames>
+<element>
+RCEngine
+</element>
+<element>
+Modelica.Blocks.Tables.CombiTable1D
+</element>
+<element>
+Real
+</element>
+</classesNames>
+</variable>
+<variable id="13" name="MaxTorque.table[43,2]" variability="parameter" direction="none" type="Real" index="-1" fixed="true" flow="NonConnector" stream="NonStreamConnector" comment="table matrix (grid = first column; e.g., table=[0,2])">
+<bindValueExpression>
+<bindExpression string="1.120341316">
+</bindExpression>
+</bindValueExpression>
+<classesNames>
+<element>
+RCEngine
+</element>
+<element>
+Modelica.Blocks.Tables.CombiTable1D
+</element>
+<element>
+Real
+</element>
+</classesNames>
+</variable>
+<variable id="14" name="MaxTorque.table[43,1]" variability="parameter" direction="none" type="Real" index="-1" fixed="true" flow="NonConnector" stream="NonStreamConnector" comment="table matrix (grid = first column; e.g., table=[0,2])">
+<bindValueExpression>
+<bindExpression string="1550.0">
+</bindExpression>
+</bindValueExpression>
+<classesNames>
+<element>
+RCEngine
+</element>
+<element>
+Modelica.Blocks.Tables.CombiTable1D
+</element>
+<element>
+Real
+</element>
+</classesNames>
+</variable>
+<variable id="15" name="MaxTorque.table[42,2]" variability="parameter" direction="none" type="Real" index="-1" fixed="true" flow="NonConnector" stream="NonStreamConnector" comment="table matrix (grid = first column; e.g., table=[0,2])">
+<bindValueExpression>
+<bindExpression string="1.182219987">
+</bindExpression>
+</bindValueExpression>
+<classesNames>
+<element>
+RCEngine
+</element>
+<element>
+Modelica.Blocks.Tables.CombiTable1D
+</element>
+<element>
+Real
+</element>
+</classesNames>
+</variable>
+<variable id="16" name="MaxTorque.table[42,1]" variability="parameter" direction="none" type="Real" index="-1" fixed="true" flow="NonConnector" stream="NonStreamConnector" comment="table matrix (grid = first column; e.g., table=[0,2])">
+<bindValueExpression>
+<bindExpression string="1525.0">
+</bindExpression>
+</bindValueExpression>
+<classesNames>
+<element>
+RCEngine
+</element>
+<element>
+Modelica.Blocks.Tables.CombiTable1D
+</element>
+<element>
+Real
+</element>
+</classesNames>
+</variable>
+<variable id="17" name="MaxTorque.table[41,2]" variability="parameter" direction="none" type="Real" index="-1" fixed="true" flow="NonConnector" stream="NonStreamConnector" comment="table matrix (grid = first column; e.g., table=[0,2])">
+<bindValueExpression>
+<bindExpression string="1.242317492">
+</bindExpression>
+</bindValueExpression>
+<classesNames>
+<element>
+RCEngine
+</element>
+<element>
+Modelica.Blocks.Tables.CombiTable1D
+</element>
+<element>
+Real
+</element>
+</classesNames>
+</variable>
+<variable id="18" name="MaxTorque.table[41,1]" variability="parameter" direction="none" type="Real" index="-1" fixed="true" flow="NonConnector" stream="NonStreamConnector" comment="table matrix (grid = first column; e.g., table=[0,2])">
+<bindValueExpression>
+<bindExpression string="1500.0">
+</bindExpression>
+</bindValueExpression>
+<classesNames>
+<element>
+RCEngine
+</element>
+<element>
+Modelica.Blocks.Tables.CombiTable1D
+</element>
+<element>
+Real
+</element>
+</classesNames>
+</variable>
+<variable id="19" name="MaxTorque.table[40,2]" variability="parameter" direction="none" type="Real" index="-1" fixed="true" flow="NonConnector" stream="NonStreamConnector" comment="table matrix (grid = first column; e.g., table=[0,2])">
+<bindValueExpression>
+<bindExpression string="1.300438215">
+</bindExpression>
+</bindValueExpression>
+<classesNames>
+<element>
+RCEngine
+</element>
+<element>
+Modelica.Blocks.Tables.CombiTable1D
+</element>
+<element>
+Real
+</element>
+</classesNames>
+</variable>
+<variable id="20" name="MaxTorque.table[40,1]" variability="parameter" direction="none" type="Real" index="-1" fixed="true" flow="NonConnector" stream="NonStreamConnector" comment="table matrix (grid = first column; e.g., table=[0,2])">
+<bindValueExpression>
+<bindExpression string="1475.0">
+</bindExpression>
+</bindValueExpression>
+<classesNames>
+<element>
+RCEngine
+</element>
+<element>
+Modelica.Blocks.Tables.CombiTable1D
+</element>
+<element>
+Real
+</element>
+</classesNames>
+</variable>
+<variable id="21" name="MaxTorque.table[39,2]" variability="parameter" direction="none" type="Real" index="-1" fixed="true" flow="NonConnector" stream="NonStreamConnector" comment="table matrix (grid = first column; e.g., table=[0,2])">
+<bindValueExpression>
+<bindExpression string="1.356396721">
+</bindExpression>
+</bindValueExpression>
+<classesNames>
+<element>
+RCEngine
+</element>
+<element>
+Modelica.Blocks.Tables.CombiTable1D
+</element>
+<element>
+Real
+</element>
+</classesNames>
+</variable>
+<variable id="22" name="MaxTorque.table[39,1]" variability="parameter" direction="none" type="Real" index="-1" fixed="true" flow="NonConnector" stream="NonStreamConnector" comment="table matrix (grid = first column; e.g., table=[0,2])">
+<bindValueExpression>
+<bindExpression string="1450.0">
+</bindExpression>
+</bindValueExpression>
+<classesNames>
+<element>
+RCEngine
+</element>
+<element>
+Modelica.Blocks.Tables.CombiTable1D
+</element>
+<element>
+Real
+</element>
+</classesNames>
+</variable>
+<variable id="23" name="MaxTorque.table[38,2]" variability="parameter" direction="none" type="Real" index="-1" fixed="true" flow="NonConnector" stream="NonStreamConnector" comment="table matrix (grid = first column; e.g., table=[0,2])">
+<bindValueExpression>
+<bindExpression string="1.410017763">
+</bindExpression>
+</bindValueExpression>
+<classesNames>
+<element>
+RCEngine
+</element>
+<element>
+Modelica.Blocks.Tables.CombiTable1D
+</element>
+<element>
+Real
+</element>
+</classesNames>
+</variable>
+<variable id="24" name="MaxTorque.table[38,1]" variability="parameter" direction="none" type="Real" index="-1" fixed="true" flow="NonConnector" stream="NonStreamConnector" comment="table matrix (grid = first column; e.g., table=[0,2])">
+<bindValueExpression>
+<bindExpression string="1425.0">
+</bindExpression>
+</bindValueExpression>
+<classesNames>
+<element>
+RCEngine
+</element>
+<element>
+Modelica.Blocks.Tables.CombiTable1D
+</element>
+<element>
+Real
+</element>
+</classesNames>
+</variable>
+<variable id="25" name="MaxTorque.table[37,2]" variability="parameter" direction="none" type="Real" index="-1" fixed="true" flow="NonConnector" stream="NonStreamConnector" comment="table matrix (grid = first column; e.g., table=[0,2])">
+<bindValueExpression>
+<bindExpression string="1.461136277">
+</bindExpression>
+</bindValueExpression>
+<classesNames>
+<element>
+RCEngine
+</element>
+<element>
+Modelica.Blocks.Tables.CombiTable1D
+</element>
+<element>
+Real
+</element>
+</classesNames>
+</variable>
+<variable id="26" name="MaxTorque.table[37,1]" variability="parameter" direction="none" type="Real" index="-1" fixed="true" flow="NonConnector" stream="NonStreamConnector" comment="table matrix (grid = first column; e.g., table=[0,2])">
+<bindValueExpression>
+<bindExpression string="1400.0">
+</bindExpression>
+</bindValueExpression>
+<classesNames>
+<element>
+RCEngine
+</element>
+<element>
+Modelica.Blocks.Tables.CombiTable1D
+</element>
+<element>
+Real
+</element>
+</classesNames>
+</variable>
+<variable id="27" name="MaxTorque.table[36,2]" variability="parameter" direction="none" type="Real" index="-1" fixed="true" flow="NonConnector" stream="NonStreamConnector" comment="table matrix (grid = first column; e.g., table=[0,2])">
+<bindValueExpression>
+<bindExpression string="1.509597383">
+</bindExpression>
+</bindValueExpression>
+<classesNames>
+<element>
+RCEngine
+</element>
+<element>
+Modelica.Blocks.Tables.CombiTable1D
+</element>
+<element>
+Real
+</element>
+</classesNames>
+</variable>
+<variable id="28" name="MaxTorque.table[36,1]" variability="parameter" direction="none" type="Real" index="-1" fixed="true" flow="NonConnector" stream="NonStreamConnector" comment="table matrix (grid = first column; e.g., table=[0,2])">
+<bindValueExpression>
+<bindExpression string="1375.0">
+</bindExpression>
+</bindValueExpression>
+<classesNames>
+<element>
+RCEngine
+</element>
+<element>
+Modelica.Blocks.Tables.CombiTable1D
+</element>
+<element>
+Real
+</element>
+</classesNames>
+</variable>
+<variable id="29" name="MaxTorque.table[35,2]" variability="parameter" direction="none" type="Real" index="-1" fixed="true" flow="NonConnector" stream="NonStreamConnector" comment="table matrix (grid = first column; e.g., table=[0,2])">
+<bindValueExpression>
+<bindExpression string="1.555256387">
+</bindExpression>
+</bindValueExpression>
+<classesNames>
+<element>
+RCEngine
+</element>
+<element>
+Modelica.Blocks.Tables.CombiTable1D
+</element>
+<element>
+Real
+</element>
+</classesNames>
+</variable>
+<variable id="30" name="MaxTorque.table[35,1]" variability="parameter" direction="none" type="Real" index="-1" fixed="true" flow="NonConnector" stream="NonStreamConnector" comment="table matrix (grid = first column; e.g., table=[0,2])">
+<bindValueExpression>
+<bindExpression string="1350.0">
+</bindExpression>
+</bindValueExpression>
+<classesNames>
+<element>
+RCEngine
+</element>
+<element>
+Modelica.Blocks.Tables.CombiTable1D
+</element>
+<element>
+Real
+</element>
+</classesNames>
+</variable>
+<variable id="31" name="MaxTorque.table[34,2]" variability="parameter" direction="none" type="Real" index="-1" fixed="true" flow="NonConnector" stream="NonStreamConnector" comment="table matrix (grid = first column; e.g., table=[0,2])">
+<bindValueExpression>
+<bindExpression string="1.597978781">
+</bindExpression>
+</bindValueExpression>
+<classesNames>
+<element>
+RCEngine
+</element>
+<element>
+Modelica.Blocks.Tables.CombiTable1D
+</element>
+<element>
+Real
+</element>
+</classesNames>
+</variable>
+<variable id="32" name="MaxTorque.table[34,1]" variability="parameter" direction="none" type="Real" index="-1" fixed="true" flow="NonConnector" stream="NonStreamConnector" comment="table matrix (grid = first column; e.g., table=[0,2])">
+<bindValueExpression>
+<bindExpression string="1325.0">
+</bindExpression>
+</bindValueExpression>
+<classesNames>
+<element>
+RCEngine
+</element>
+<element>
+Modelica.Blocks.Tables.CombiTable1D
+</element>
+<element>
+Real
+</element>
+</classesNames>
+</variable>
+<variable id="33" name="MaxTorque.table[33,2]" variability="parameter" direction="none" type="Real" index="-1" fixed="true" flow="NonConnector" stream="NonStreamConnector" comment="table matrix (grid = first column; e.g., table=[0,2])">
+<bindValueExpression>
+<bindExpression string="1.637640238">
+</bindExpression>
+</bindValueExpression>
+<classesNames>
+<element>
+RCEngine
+</element>
+<element>
+Modelica.Blocks.Tables.CombiTable1D
+</element>
+<element>
+Real
+</element>
+</classesNames>
+</variable>
+<variable id="34" name="MaxTorque.table[33,1]" variability="parameter" direction="none" type="Real" index="-1" fixed="true" flow="NonConnector" stream="NonStreamConnector" comment="table matrix (grid = first column; e.g., table=[0,2])">
+<bindValueExpression>
+<bindExpression string="1300.0">
+</bindExpression>
+</bindValueExpression>
+<classesNames>
+<element>
+RCEngine
+</element>
+<element>
+Modelica.Blocks.Tables.CombiTable1D
+</element>
+<element>
+Real
+</element>
+</classesNames>
+</variable>
+<variable id="35" name="MaxTorque.table[32,2]" variability="parameter" direction="none" type="Real" index="-1" fixed="true" flow="NonConnector" stream="NonStreamConnector" comment="table matrix (grid = first column; e.g., table=[0,2])">
+<bindValueExpression>
+<bindExpression string="1.67412662">
+</bindExpression>
+</bindValueExpression>
+<classesNames>
+<element>
+RCEngine
+</element>
+<element>
+Modelica.Blocks.Tables.CombiTable1D
+</element>
+<element>
+Real
+</element>
+</classesNames>
+</variable>
+<variable id="36" name="MaxTorque.table[32,1]" variability="parameter" direction="none" type="Real" index="-1" fixed="true" flow="NonConnector" stream="NonStreamConnector" comment="table matrix (grid = first column; e.g., table=[0,2])">
+<bindValueExpression>
+<bindExpression string="1275.0">
+</bindExpression>
+</bindValueExpression>
+<classesNames>
+<element>
+RCEngine
+</element>
+<element>
+Modelica.Blocks.Tables.CombiTable1D
+</element>
+<element>
+Real
+</element>
+</classesNames>
+</variable>
+<variable id="37" name="MaxTorque.table[31,2]" variability="parameter" direction="none" type="Real" index="-1" fixed="true" flow="NonConnector" stream="NonStreamConnector" comment="table matrix (grid = first column; e.g., table=[0,2])">
+<bindValueExpression>
+<bindExpression string="1.70733397">
+</bindExpression>
+</bindValueExpression>
+<classesNames>
+<element>
+RCEngine
+</element>
+<element>
+Modelica.Blocks.Tables.CombiTable1D
+</element>
+<element>
+Real
+</element>
+</classesNames>
+</variable>
+<variable id="38" name="MaxTorque.table[31,1]" variability="parameter" direction="none" type="Real" index="-1" fixed="true" flow="NonConnector" stream="NonStreamConnector" comment="table matrix (grid = first column; e.g., table=[0,2])">
+<bindValueExpression>
+<bindExpression string="1250.0">
+</bindExpression>
+</bindValueExpression>
+<classesNames>
+<element>
+RCEngine
+</element>
+<element>
+Modelica.Blocks.Tables.CombiTable1D
+</element>
+<element>
+Real
+</element>
+</classesNames>
+</variable>
+<variable id="39" name="MaxTorque.table[30,2]" variability="parameter" direction="none" type="Real" index="-1" fixed="true" flow="NonConnector" stream="NonStreamConnector" comment="table matrix (grid = first column; e.g., table=[0,2])">
+<bindValueExpression>
+<bindExpression string="1.737168518">
+</bindExpression>
+</bindValueExpression>
+<classesNames>
+<element>
+RCEngine
+</element>
+<element>
+Modelica.Blocks.Tables.CombiTable1D
+</element>
+<element>
+Real
+</element>
+</classesNames>
+</variable>
+<variable id="40" name="MaxTorque.table[30,1]" variability="parameter" direction="none" type="Real" index="-1" fixed="true" flow="NonConnector" stream="NonStreamConnector" comment="table matrix (grid = first column; e.g., table=[0,2])">
+<bindValueExpression>
+<bindExpression string="1225.0">
+</bindExpression>
+</bindValueExpression>
+<classesNames>
+<element>
+RCEngine
+</element>
+<element>
+Modelica.Blocks.Tables.CombiTable1D
+</element>
+<element>
+Real
+</element>
+</classesNames>
+</variable>
+<variable id="41" name="MaxTorque.table[29,2]" variability="parameter" direction="none" type="Real" index="-1" fixed="true" flow="NonConnector" stream="NonStreamConnector" comment="table matrix (grid = first column; e.g., table=[0,2])">
+<bindValueExpression>
+<bindExpression string="1.763546678">
+</bindExpression>
+</bindValueExpression>
+<classesNames>
+<element>
+RCEngine
+</element>
+<element>
+Modelica.Blocks.Tables.CombiTable1D
+</element>
+<element>
+Real
+</element>
+</classesNames>
+</variable>
+<variable id="42" name="MaxTorque.table[29,1]" variability="parameter" direction="none" type="Real" index="-1" fixed="true" flow="NonConnector" stream="NonStreamConnector" comment="table matrix (grid = first column; e.g., table=[0,2])">
+<bindValueExpression>
+<bindExpression string="1200.0">
+</bindExpression>
+</bindValueExpression>
+<classesNames>
+<element>
+RCEngine
+</element>
+<element>
+Modelica.Blocks.Tables.CombiTable1D
+</element>
+<element>
+Real
+</element>
+</classesNames>
+</variable>
+<variable id="43" name="MaxTorque.table[28,2]" variability="parameter" direction="none" type="Real" index="-1" fixed="true" flow="NonConnector" stream="NonStreamConnector" comment="table matrix (grid = first column; e.g., table=[0,2])">
+<bindValueExpression>
+<bindExpression string="1.78639505">
+</bindExpression>
+</bindValueExpression>
+<classesNames>
+<element>
+RCEngine
+</element>
+<element>
+Modelica.Blocks.Tables.CombiTable1D
+</element>
+<element>
+Real
+</element>
+</classesNames>
+</variable>
+<variable id="44" name="MaxTorque.table[28,1]" variability="parameter" direction="none" type="Real" index="-1" fixed="true" flow="NonConnector" stream="NonStreamConnector" comment="table matrix (grid = first column; e.g., table=[0,2])">
+<bindValueExpression>
+<bindExpression string="1175.0">
+</bindExpression>
+</bindValueExpression>
+<classesNames>
+<element>
+RCEngine
+</element>
+<element>
+Modelica.Blocks.Tables.CombiTable1D
+</element>
+<element>
+Real
+</element>
+</classesNames>
+</variable>
+<variable id="45" name="MaxTorque.table[27,2]" variability="parameter" direction="none" type="Real" index="-1" fixed="true" flow="NonConnector" stream="NonStreamConnector" comment="table matrix (grid = first column; e.g., table=[0,2])">
+<bindValueExpression>
+<bindExpression string="1.805650415">
+</bindExpression>
+</bindValueExpression>
+<classesNames>
+<element>
+RCEngine
+</element>
+<element>
+Modelica.Blocks.Tables.CombiTable1D
+</element>
+<element>
+Real
+</element>
+</classesNames>
+</variable>
+<variable id="46" name="MaxTorque.table[27,1]" variability="parameter" direction="none" type="Real" index="-1" fixed="true" flow="NonConnector" stream="NonStreamConnector" comment="table matrix (grid = first column; e.g., table=[0,2])">
+<bindValueExpression>
+<bindExpression string="1150.0">
+</bindExpression>
+</bindValueExpression>
+<classesNames>
+<element>
+RCEngine
+</element>
+<element>
+Modelica.Blocks.Tables.CombiTable1D
+</element>
+<element>
+Real
+</element>
+</classesNames>
+</variable>
+<variable id="47" name="MaxTorque.table[26,2]" variability="parameter" direction="none" type="Real" index="-1" fixed="true" flow="NonConnector" stream="NonStreamConnector" comment="table matrix (grid = first column; e.g., table=[0,2])">
+<bindValueExpression>
+<bindExpression string="1.821259744">
+</bindExpression>
+</bindValueExpression>
+<classesNames>
+<element>
+RCEngine
+</element>
+<element>
+Modelica.Blocks.Tables.CombiTable1D
+</element>
+<element>
+Real
+</element>
+</classesNames>
+</variable>
+<variable id="48" name="MaxTorque.table[26,1]" variability="parameter" direction="none" type="Real" index="-1" fixed="true" flow="NonConnector" stream="NonStreamConnector" comment="table matrix (grid = first column; e.g., table=[0,2])">
+<bindValueExpression>
+<bindExpression string="1125.0">
+</bindExpression>
+</bindValueExpression>
+<classesNames>
+<element>
+RCEngine
+</element>
+<element>
+Modelica.Blocks.Tables.CombiTable1D
+</element>
+<element>
+Real
+</element>
+</classesNames>
+</variable>
+<variable id="49" name="MaxTorque.table[25,2]" variability="parameter" direction="none" type="Real" index="-1" fixed="true" flow="NonConnector" stream="NonStreamConnector" comment="table matrix (grid = first column; e.g., table=[0,2])">
+<bindValueExpression>
+<bindExpression string="1.833180189">
+</bindExpression>
+</bindValueExpression>
+<classesNames>
+<element>
+RCEngine
+</element>
+<element>
+Modelica.Blocks.Tables.CombiTable1D
+</element>
+<element>
+Real
+</element>
+</classesNames>
+</variable>
+<variable id="50" name="MaxTorque.table[25,1]" variability="parameter" direction="none" type="Real" index="-1" fixed="true" flow="NonConnector" stream="NonStreamConnector" comment="table matrix (grid = first column; e.g., table=[0,2])">
+<bindValueExpression>
+<bindExpression string="1100.0">
+</bindExpression>
+</bindValueExpression>
+<classesNames>
+<element>
+RCEngine
+</element>
+<element>
+Modelica.Blocks.Tables.CombiTable1D
+</element>
+<element>
+Real
+</element>
+</classesNames>
+</variable>
+<variable id="51" name="MaxTorque.table[24,2]" variability="parameter" direction="none" type="Real" index="-1" fixed="true" flow="NonConnector" stream="NonStreamConnector" comment="table matrix (grid = first column; e.g., table=[0,2])">
+<bindValueExpression>
+<bindExpression string="1.841379087">
+</bindExpression>
+</bindValueExpression>
+<classesNames>
+<element>
+RCEngine
+</element>
+<element>
+Modelica.Blocks.Tables.CombiTable1D
+</element>
+<element>
+Real
+</element>
+</classesNames>
+</variable>
+<variable id="52" name="MaxTorque.table[24,1]" variability="parameter" direction="none" type="Real" index="-1" fixed="true" flow="NonConnector" stream="NonStreamConnector" comment="table matrix (grid = first column; e.g., table=[0,2])">
+<bindValueExpression>
+<bindExpression string="1075.0">
+</bindExpression>
+</bindValueExpression>
+<classesNames>
+<element>
+RCEngine
+</element>
+<element>
+Modelica.Blocks.Tables.CombiTable1D
+</element>
+<element>
+Real
+</element>
+</classesNames>
+</variable>
+<variable id="53" name="MaxTorque.table[23,2]" variability="parameter" direction="none" type="Real" index="-1" fixed="true" flow="NonConnector" stream="NonStreamConnector" comment="table matrix (grid = first column; e.g., table=[0,2])">
+<bindValueExpression>
+<bindExpression string="1.845833961">
+</bindExpression>
+</bindValueExpression>
+<classesNames>
+<element>
+RCEngine
+</element>
+<element>
+Modelica.Blocks.Tables.CombiTable1D
+</element>
+<element>
+Real
+</element>
+</classesNames>
+</variable>
+<variable id="54" name="MaxTorque.table[23,1]" variability="parameter" direction="none" type="Real" index="-1" fixed="true" flow="NonConnector" stream="NonStreamConnector" comment="table matrix (grid = first column; e.g., table=[0,2])">
+<bindValueExpression>
+<bindExpression string="1050.0">
+</bindExpression>
+</bindValueExpression>
+<classesNames>
+<element>
+RCEngine
+</element>
+<element>
+Modelica.Blocks.Tables.CombiTable1D
+</element>
+<element>
+Real
+</element>
+</classesNames>
+</variable>
+<variable id="55" name="MaxTorque.table[22,2]" variability="parameter" direction="none" type="Real" index="-1" fixed="true" flow="NonConnector" stream="NonStreamConnector" comment="table matrix (grid = first column; e.g., table=[0,2])">
+<bindValueExpression>
+<bindExpression string="1.846532519">
+</bindExpression>
+</bindValueExpression>
+<classesNames>
+<element>
+RCEngine
+</element>
+<element>
+Modelica.Blocks.Tables.CombiTable1D
+</element>
+<element>
+Real
+</element>
+</classesNames>
+</variable>
+<variable id="56" name="MaxTorque.table[22,1]" variability="parameter" direction="none" type="Real" index="-1" fixed="true" flow="NonConnector" stream="NonStreamConnector" comment="table matrix (grid = first column; e.g., table=[0,2])">
+<bindValueExpression>
+<bindExpression string="1025.0">
+</bindExpression>
+</bindValueExpression>
+<classesNames>
+<element>
+RCEngine
+</element>
+<element>
+Modelica.Blocks.Tables.CombiTable1D
+</element>
+<element>
+Real
+</element>
+</classesNames>
+</variable>
+<variable id="57" name="MaxTorque.table[21,2]" variability="parameter" direction="none" type="Real" index="-1" fixed="true" flow="NonConnector" stream="NonStreamConnector" comment="table matrix (grid = first column; e.g., table=[0,2])">
+<bindValueExpression>
+<bindExpression string="1.843472651">
+</bindExpression>
+</bindValueExpression>
+<classesNames>
+<element>
+RCEngine
+</element>
+<element>
+Modelica.Blocks.Tables.CombiTable1D
+</element>
+<element>
+Real
+</element>
+</classesNames>
+</variable>
+<variable id="58" name="MaxTorque.table[21,1]" variability="parameter" direction="none" type="Real" index="-1" fixed="true" flow="NonConnector" stream="NonStreamConnector" comment="table matrix (grid = first column; e.g., table=[0,2])">
+<bindValueExpression>
+<bindExpression string="1000.0">
+</bindExpression>
+</bindValueExpression>
+<classesNames>
+<element>
+RCEngine
+</element>
+<element>
+Modelica.Blocks.Tables.CombiTable1D
+</element>
+<element>
+Real
+</element>
+</classesNames>
+</variable>
+<variable id="59" name="MaxTorque.table[20,2]" variability="parameter" direction="none" type="Real" index="-1" fixed="true" flow="NonConnector" stream="NonStreamConnector" comment="table matrix (grid = first column; e.g., table=[0,2])">
+<bindValueExpression>
+<bindExpression string="1.836662435">
+</bindExpression>
+</bindValueExpression>
+<classesNames>
+<element>
+RCEngine
+</element>
+<element>
+Modelica.Blocks.Tables.CombiTable1D
+</element>
+<element>
+Real
+</element>
+</classesNames>
+</variable>
+<variable id="60" name="MaxTorque.table[20,1]" variability="parameter" direction="none" type="Real" index="-1" fixed="true" flow="NonConnector" stream="NonStreamConnector" comment="table matrix (grid = first column; e.g., table=[0,2])">
+<bindValueExpression>
+<bindExpression string="975.0">
+</bindExpression>
+</bindValueExpression>
+<classesNames>
+<element>
+RCEngine
+</element>
+<element>
+Modelica.Blocks.Tables.CombiTable1D
+</element>
+<element>
+Real
+</element>
+</classesNames>
+</variable>
+<variable id="61" name="MaxTorque.table[19,2]" variability="parameter" direction="none" type="Real" index="-1" fixed="true" flow="NonConnector" stream="NonStreamConnector" comment="table matrix (grid = first column; e.g., table=[0,2])">
+<bindValueExpression>
+<bindExpression string="1.826120133">
+</bindExpression>
+</bindValueExpression>
+<classesNames>
+<element>
+RCEngine
+</element>
+<element>
+Modelica.Blocks.Tables.CombiTable1D
+</element>
+<element>
+Real
+</element>
+</classesNames>
+</variable>
+<variable id="62" name="MaxTorque.table[19,1]" variability="parameter" direction="none" type="Real" index="-1" fixed="true" flow="NonConnector" stream="NonStreamConnector" comment="table matrix (grid = first column; e.g., table=[0,2])">
+<bindValueExpression>
+<bindExpression string="950.0">
+</bindExpression>
+</bindValueExpression>
+<classesNames>
+<element>
+RCEngine
+</element>
+<element>
+Modelica.Blocks.Tables.CombiTable1D
+</element>
+<element>
+Real
+</element>
+</classesNames>
+</variable>
+<variable id="63" name="MaxTorque.table[18,2]" variability="parameter" direction="none" type="Real" index="-1" fixed="true" flow="NonConnector" stream="NonStreamConnector" comment="table matrix (grid = first column; e.g., table=[0,2])">
+<bindValueExpression>
+<bindExpression string="1.81187419">
+</bindExpression>
+</bindValueExpression>
+<classesNames>
+<element>
+RCEngine
+</element>
+<element>
+Modelica.Blocks.Tables.CombiTable1D
+</element>
+<element>
+Real
+</element>
+</classesNames>
+</variable>
+<variable id="64" name="MaxTorque.table[18,1]" variability="parameter" direction="none" type="Real" index="-1" fixed="true" flow="NonConnector" stream="NonStreamConnector" comment="table matrix (grid = first column; e.g., table=[0,2])">
+<bindValueExpression>
+<bindExpression string="925.0">
+</bindExpression>
+</bindValueExpression>
+<classesNames>
+<element>
+RCEngine
+</element>
+<element>
+Modelica.Blocks.Tables.CombiTable1D
+</element>
+<element>
+Real
+</element>
+</classesNames>
+</variable>
+<variable id="65" name="MaxTorque.table[17,2]" variability="parameter" direction="none" type="Real" index="-1" fixed="true" flow="NonConnector" stream="NonStreamConnector" comment="table matrix (grid = first column; e.g., table=[0,2])">
+<bindValueExpression>
+<bindExpression string="1.793963237">
+</bindExpression>
+</bindValueExpression>
+<classesNames>
+<element>
+RCEngine
+</element>
+<element>
+Modelica.Blocks.Tables.CombiTable1D
+</element>
+<element>
+Real
+</element>
+</classesNames>
+</variable>
+<variable id="66" name="MaxTorque.table[17,1]" variability="parameter" direction="none" type="Real" index="-1" fixed="true" flow="NonConnector" stream="NonStreamConnector" comment="table matrix (grid = first column; e.g., table=[0,2])">
+<bindValueExpression>
+<bindExpression string="900.0">
+</bindExpression>
+</bindValueExpression>
+<classesNames>
+<element>
+RCEngine
+</element>
+<element>
+Modelica.Blocks.Tables.CombiTable1D
+</element>
+<element>
+Real
+</element>
+</classesNames>
+</variable>
+<variable id="67" name="MaxTorque.table[16,2]" variability="parameter" direction="none" type="Real" index="-1" fixed="true" flow="NonConnector" stream="NonStreamConnector" comment="table matrix (grid = first column; e.g., table=[0,2])">
+<bindValueExpression>
+<bindExpression string="1.772436089">
+</bindExpression>
+</bindValueExpression>
+<classesNames>
+<element>
+RCEngine
+</element>
+<element>
+Modelica.Blocks.Tables.CombiTable1D
+</element>
+<element>
+Real
+</element>
+</classesNames>
+</variable>
+<variable id="68" name="MaxTorque.table[16,1]" variability="parameter" direction="none" type="Real" index="-1" fixed="true" flow="NonConnector" stream="NonStreamConnector" comment="table matrix (grid = first column; e.g., table=[0,2])">
+<bindValueExpression>
+<bindExpression string="875.0">
+</bindExpression>
+</bindValueExpression>
+<classesNames>
+<element>
+RCEngine
+</element>
+<element>
+Modelica.Blocks.Tables.CombiTable1D
+</element>
+<element>
+Real
+</element>
+</classesNames>
+</variable>
+<variable id="69" name="MaxTorque.table[15,2]" variability="parameter" direction="none" type="Real" index="-1" fixed="true" flow="NonConnector" stream="NonStreamConnector" comment="table matrix (grid = first column; e.g., table=[0,2])">
+<bindValueExpression>
+<bindExpression string="1.747351747">
+</bindExpression>
+</bindValueExpression>
+<classesNames>
+<element>
+RCEngine
+</element>
+<element>
+Modelica.Blocks.Tables.CombiTable1D
+</element>
+<element>
+Real
+</element>
+</classesNames>
+</variable>
+<variable id="70" name="MaxTorque.table[15,1]" variability="parameter" direction="none" type="Real" index="-1" fixed="true" flow="NonConnector" stream="NonStreamConnector" comment="table matrix (grid = first column; e.g., table=[0,2])">
+<bindValueExpression>
+<bindExpression string="850.0">
+</bindExpression>
+</bindValueExpression>
+<classesNames>
+<element>
+RCEngine
+</element>
+<element>
+Modelica.Blocks.Tables.CombiTable1D
+</element>
+<element>
+Real
+</element>
+</classesNames>
+</variable>
+<variable id="71" name="MaxTorque.table[14,2]" variability="parameter" direction="none" type="Real" index="-1" fixed="true" flow="NonConnector" stream="NonStreamConnector" comment="table matrix (grid = first column; e.g., table=[0,2])">
+<bindValueExpression>
+<bindExpression string="1.718779397">
+</bindExpression>
+</bindValueExpression>
+<classesNames>
+<element>
+RCEngine
+</element>
+<element>
+Modelica.Blocks.Tables.CombiTable1D
+</element>
+<element>
+Real
+</element>
+</classesNames>
+</variable>
+<variable id="72" name="MaxTorque.table[14,1]" variability="parameter" direction="none" type="Real" index="-1" fixed="true" flow="NonConnector" stream="NonStreamConnector" comment="table matrix (grid = first column; e.g., table=[0,2])">
+<bindValueExpression>
+<bindExpression string="825.0">
+</bindExpression>
+</bindValueExpression>
+<classesNames>
+<element>
+RCEngine
+</element>
+<element>
+Modelica.Blocks.Tables.CombiTable1D
+</element>
+<element>
+Real
+</element>
+</classesNames>
+</variable>
+<variable id="73" name="MaxTorque.table[13,2]" variability="parameter" direction="none" type="Real" index="-1" fixed="true" flow="NonConnector" stream="NonStreamConnector" comment="table matrix (grid = first column; e.g., table=[0,2])">
+<bindValueExpression>
+<bindExpression string="1.686798407">
+</bindExpression>
+</bindValueExpression>
+<classesNames>
+<element>
+RCEngine
+</element>
+<element>
+Modelica.Blocks.Tables.CombiTable1D
+</element>
+<element>
+Real
+</element>
+</classesNames>
+</variable>
+<variable id="74" name="MaxTorque.table[13,1]" variability="parameter" direction="none" type="Real" index="-1" fixed="true" flow="NonConnector" stream="NonStreamConnector" comment="table matrix (grid = first column; e.g., table=[0,2])">
+<bindValueExpression>
+<bindExpression string="800.0">
+</bindExpression>
+</bindValueExpression>
+<classesNames>
+<element>
+RCEngine
+</element>
+<element>
+Modelica.Blocks.Tables.CombiTable1D
+</element>
+<element>
+Real
+</element>
+</classesNames>
+</variable>
+<variable id="75" name="MaxTorque.table[12,2]" variability="parameter" direction="none" type="Real" index="-1" fixed="true" flow="NonConnector" stream="NonStreamConnector" comment="table matrix (grid = first column; e.g., table=[0,2])">
+<bindValueExpression>
+<bindExpression string="1.651498332">
+</bindExpression>
+</bindValueExpression>
+<classesNames>
+<element>
+RCEngine
+</element>
+<element>
+Modelica.Blocks.Tables.CombiTable1D
+</element>
+<element>
+Real
+</element>
+</classesNames>
+</variable>
+<variable id="76" name="MaxTorque.table[12,1]" variability="parameter" direction="none" type="Real" index="-1" fixed="true" flow="NonConnector" stream="NonStreamConnector" comment="table matrix (grid = first column; e.g., table=[0,2])">
+<bindValueExpression>
+<bindExpression string="775.0">
+</bindExpression>
+</bindValueExpression>
+<classesNames>
+<element>
+RCEngine
+</element>
+<element>
+Modelica.Blocks.Tables.CombiTable1D
+</element>
+<element>
+Real
+</element>
+</classesNames>
+</variable>
+<variable id="77" name="MaxTorque.table[11,2]" variability="parameter" direction="none" type="Real" index="-1" fixed="true" flow="NonConnector" stream="NonStreamConnector" comment="table matrix (grid = first column; e.g., table=[0,2])">
+<bindValueExpression>
+<bindExpression string="1.612978911">
+</bindExpression>
+</bindValueExpression>
+<classesNames>
+<element>
+RCEngine
+</element>
+<element>
+Modelica.Blocks.Tables.CombiTable1D
+</element>
+<element>
+Real
+</element>
+</classesNames>
+</variable>
+<variable id="78" name="MaxTorque.table[11,1]" variability="parameter" direction="none" type="Real" index="-1" fixed="true" flow="NonConnector" stream="NonStreamConnector" comment="table matrix (grid = first column; e.g., table=[0,2])">
+<bindValueExpression>
+<bindExpression string="750.0">
+</bindExpression>
+</bindValueExpression>
+<classesNames>
+<element>
+RCEngine
+</element>
+<element>
+Modelica.Blocks.Tables.CombiTable1D
+</element>
+<element>
+Real
+</element>
+</classesNames>
+</variable>
+<variable id="79" name="MaxTorque.table[10,2]" variability="parameter" direction="none" type="Real" index="-1" fixed="true" flow="NonConnector" stream="NonStreamConnector" comment="table matrix (grid = first column; e.g., table=[0,2])">
+<bindValueExpression>
+<bindExpression string="1.571350068">
+</bindExpression>
+</bindValueExpression>
+<classesNames>
+<element>
+RCEngine
+</element>
+<element>
+Modelica.Blocks.Tables.CombiTable1D
+</element>
+<element>
+Real
+</element>
+</classesNames>
+</variable>
+<variable id="80" name="MaxTorque.table[10,1]" variability="parameter" direction="none" type="Real" index="-1" fixed="true" flow="NonConnector" stream="NonStreamConnector" comment="table matrix (grid = first column; e.g., table=[0,2])">
+<bindValueExpression>
+<bindExpression string="725.0">
+</bindExpression>
+</bindValueExpression>
+<classesNames>
+<element>
+RCEngine
+</element>
+<element>
+Modelica.Blocks.Tables.CombiTable1D
+</element>
+<element>
+Real
+</element>
+</classesNames>
+</variable>
+<variable id="81" name="MaxTorque.table[9,2]" variability="parameter" direction="none" type="Real" index="-1" fixed="true" flow="NonConnector" stream="NonStreamConnector" comment="table matrix (grid = first column; e.g., table=[0,2])">
+<bindValueExpression>
+<bindExpression string="1.526731912">
+</bindExpression>
+</bindValueExpression>
+<classesNames>
+<element>
+RCEngine
+</element>
+<element>
+Modelica.Blocks.Tables.CombiTable1D
+</element>
+<element>
+Real
+</element>
+</classesNames>
+</variable>
+<variable id="82" name="MaxTorque.table[9,1]" variability="parameter" direction="none" type="Real" index="-1" fixed="true" flow="NonConnector" stream="NonStreamConnector" comment="table matrix (grid = first column; e.g., table=[0,2])">
+<bindValueExpression>
+<bindExpression string="700.0">
+</bindExpression>
+</bindValueExpression>
+<classesNames>
+<element>
+RCEngine
+</element>
+<element>
+Modelica.Blocks.Tables.CombiTable1D
+</element>
+<element>
+Real
+</element>
+</classesNames>
+</variable>
+<variable id="83" name="MaxTorque.table[8,2]" variability="parameter" direction="none" type="Real" index="-1" fixed="true" flow="NonConnector" stream="NonStreamConnector" comment="table matrix (grid = first column; e.g., table=[0,2])">
+<bindValueExpression>
+<bindExpression string="1.479254737">
+</bindExpression>
+</bindValueExpression>
+<classesNames>
+<element>
+RCEngine
+</element>
+<element>
+Modelica.Blocks.Tables.CombiTable1D
+</element>
+<element>
+Real
+</element>
+</classesNames>
+</variable>
+<variable id="84" name="MaxTorque.table[8,1]" variability="parameter" direction="none" type="Real" index="-1" fixed="true" flow="NonConnector" stream="NonStreamConnector" comment="table matrix (grid = first column; e.g., table=[0,2])">
+<bindValueExpression>
+<bindExpression string="675.0">
+</bindExpression>
+</bindValueExpression>
+<classesNames>
+<element>
+RCEngine
+</element>
+<element>
+Modelica.Blocks.Tables.CombiTable1D
+</element>
+<element>
+Real
+</element>
+</classesNames>
+</variable>
+<variable id="85" name="MaxTorque.table[7,2]" variability="parameter" direction="none" type="Real" index="-1" fixed="true" flow="NonConnector" stream="NonStreamConnector" comment="table matrix (grid = first column; e.g., table=[0,2])">
+<bindValueExpression>
+<bindExpression string="1.429059019">
+</bindExpression>
+</bindValueExpression>
+<classesNames>
+<element>
+RCEngine
+</element>
+<element>
+Modelica.Blocks.Tables.CombiTable1D
+</element>
+<element>
+Real
+</element>
+</classesNames>
+</variable>
+<variable id="86" name="MaxTorque.table[7,1]" variability="parameter" direction="none" type="Real" index="-1" fixed="true" flow="NonConnector" stream="NonStreamConnector" comment="table matrix (grid = first column; e.g., table=[0,2])">
+<bindValueExpression>
+<bindExpression string="650.0">
+</bindExpression>
+</bindValueExpression>
+<classesNames>
+<element>
+RCEngine
+</element>
+<element>
+Modelica.Blocks.Tables.CombiTable1D
+</element>
+<element>
+Real
+</element>
+</classesNames>
+</variable>
+<variable id="87" name="MaxTorque.table[6,2]" variability="parameter" direction="none" type="Real" index="-1" fixed="true" flow="NonConnector" stream="NonStreamConnector" comment="table matrix (grid = first column; e.g., table=[0,2])">
+<bindValueExpression>
+<bindExpression string="1.376295423">
+</bindExpression>
+</bindValueExpression>
+<classesNames>
+<element>
+RCEngine
+</element>
+<element>
+Modelica.Blocks.Tables.CombiTable1D
+</element>
+<element>
+Real
+</element>
+</classesNames>
+</variable>
+<variable id="88" name="MaxTorque.table[6,1]" variability="parameter" direction="none" type="Real" index="-1" fixed="true" flow="NonConnector" stream="NonStreamConnector" comment="table matrix (grid = first column; e.g., table=[0,2])">
+<bindValueExpression>
+<bindExpression string="625.0">
+</bindExpression>
+</bindValueExpression>
+<classesNames>
+<element>
+RCEngine
+</element>
+<element>
+Modelica.Blocks.Tables.CombiTable1D
+</element>
+<element>
+Real
+</element>
+</classesNames>
+</variable>
+<variable id="89" name="MaxTorque.table[5,2]" variability="parameter" direction="none" type="Real" index="-1" fixed="true" flow="NonConnector" stream="NonStreamConnector" comment="table matrix (grid = first column; e.g., table=[0,2])">
+<bindValueExpression>
+<bindExpression string="1.321124795">
+</bindExpression>
+</bindValueExpression>
+<classesNames>
+<element>
+RCEngine
+</element>
+<element>
+Modelica.Blocks.Tables.CombiTable1D
+</element>
+<element>
+Real
+</element>
+</classesNames>
+</variable>
+<variable id="90" name="MaxTorque.table[5,1]" variability="parameter" direction="none" type="Real" index="-1" fixed="true" flow="NonConnector" stream="NonStreamConnector" comment="table matrix (grid = first column; e.g., table=[0,2])">
+<bindValueExpression>
+<bindExpression string="600.0">
+</bindExpression>
+</bindValueExpression>
+<classesNames>
+<element>
+RCEngine
+</element>
+<element>
+Modelica.Blocks.Tables.CombiTable1D
+</element>
+<element>
+Real
+</element>
+</classesNames>
+</variable>
+<variable id="91" name="MaxTorque.table[4,2]" variability="parameter" direction="none" type="Real" index="-1" fixed="true" flow="NonConnector" stream="NonStreamConnector" comment="table matrix (grid = first column; e.g., table=[0,2])">
+<bindValueExpression>
+<bindExpression string="1.263718168">
+</bindExpression>
+</bindValueExpression>
+<classesNames>
+<element>
+RCEngine
+</element>
+<element>
+Modelica.Blocks.Tables.CombiTable1D
+</element>
+<element>
+Real
+</element>
+</classesNames>
+</variable>
+<variable id="92" name="MaxTorque.table[4,1]" variability="parameter" direction="none" type="Real" index="-1" fixed="true" flow="NonConnector" stream="NonStreamConnector" comment="table matrix (grid = first column; e.g., table=[0,2])">
+<bindValueExpression>
+<bindExpression string="575.0">
+</bindExpression>
+</bindValueExpression>
+<classesNames>
+<element>
+RCEngine
+</element>
+<element>
+Modelica.Blocks.Tables.CombiTable1D
+</element>
+<element>
+Real
+</element>
+</classesNames>
+</variable>
+<variable id="93" name="MaxTorque.table[3,2]" variability="parameter" direction="none" type="Real" index="-1" fixed="true" flow="NonConnector" stream="NonStreamConnector" comment="table matrix (grid = first column; e.g., table=[0,2])">
+<bindValueExpression>
+<bindExpression string="1.204256759">
+</bindExpression>
+</bindValueExpression>
+<classesNames>
+<element>
+RCEngine
+</element>
+<element>
+Modelica.Blocks.Tables.CombiTable1D
+</element>
+<element>
+Real
+</element>
+</classesNames>
+</variable>
+<variable id="94" name="MaxTorque.table[3,1]" variability="parameter" direction="none" type="Real" index="-1" fixed="true" flow="NonConnector" stream="NonStreamConnector" comment="table matrix (grid = first column; e.g., table=[0,2])">
+<bindValueExpression>
+<bindExpression string="550.0">
+</bindExpression>
+</bindValueExpression>
+<classesNames>
+<element>
+RCEngine
+</element>
+<element>
+Modelica.Blocks.Tables.CombiTable1D
+</element>
+<element>
+Real
+</element>
+</classesNames>
+</variable>
+<variable id="95" name="MaxTorque.table[2,2]" variability="parameter" direction="none" type="Real" index="-1" fixed="true" flow="NonConnector" stream="NonStreamConnector" comment="table matrix (grid = first column; e.g., table=[0,2])">
+<bindValueExpression>
+<bindExpression string="1.142931969">
+</bindExpression>
+</bindValueExpression>
+<classesNames>
+<element>
+RCEngine
+</element>
+<element>
+Modelica.Blocks.Tables.CombiTable1D
+</element>
+<element>
+Real
+</element>
+</classesNames>
+</variable>
+<variable id="96" name="MaxTorque.table[2,1]" variability="parameter" direction="none" type="Real" index="-1" fixed="true" flow="NonConnector" stream="NonStreamConnector" comment="table matrix (grid = first column; e.g., table=[0,2])">
+<bindValueExpression>
+<bindExpression string="525.0">
+</bindExpression>
+</bindValueExpression>
+<classesNames>
+<element>
+RCEngine
+</element>
+<element>
+Modelica.Blocks.Tables.CombiTable1D
+</element>
+<element>
+Real
+</element>
+</classesNames>
+</variable>
+<variable id="97" name="MaxTorque.table[1,2]" variability="parameter" direction="none" type="Real" index="-1" fixed="true" flow="NonConnector" stream="NonStreamConnector" comment="table matrix (grid = first column; e.g., table=[0,2])">
+<bindValueExpression>
+<bindExpression string="1.079945386">
+</bindExpression>
+</bindValueExpression>
+<classesNames>
+<element>
+RCEngine
+</element>
+<element>
+Modelica.Blocks.Tables.CombiTable1D
+</element>
+<element>
+Real
+</element>
+</classesNames>
+</variable>
+<variable id="98" name="MaxTorque.table[1,1]" variability="parameter" direction="none" type="Real" index="-1" fixed="true" flow="NonConnector" stream="NonStreamConnector" comment="table matrix (grid = first column; e.g., table=[0,2])">
+<bindValueExpression>
+<bindExpression string="500.0">
+</bindExpression>
+</bindValueExpression>
+<classesNames>
+<element>
+RCEngine
+</element>
+<element>
+Modelica.Blocks.Tables.CombiTable1D
+</element>
+<element>
+Real
+</element>
+</classesNames>
+</variable>
+<variable id="99" name="MaxTorque.tableOnFile" variability="parameter" direction="none" type="Boolean" index="-1" fixed="true" flow="NonConnector" stream="NonStreamConnector" comment="true, if table is defined on file or in function usertab">
+<bindValueExpression>
+<bindExpression string="false">
+</bindExpression>
+</bindValueExpression>
+<classesNames>
+<element>
+RCEngine
+</element>
+<element>
+Modelica.Blocks.Tables.CombiTable1D
+</element>
+<element>
+Boolean
+</element>
+</classesNames>
+</variable>
+<variable id="100" name="limiter.uMin" variability="parameter" direction="none" type="Real" index="-1" fixed="true" flow="NonConnector" stream="NonStreamConnector" comment="Lower limits of input signals">
+<bindValueExpression>
+<bindExpression string="0.0">
+</bindExpression>
+</bindValueExpression>
+<classesNames>
+<element>
+RCEngine
+</element>
+<element>
+Modelica.Blocks.Nonlinear.Limiter
+</element>
+<element>
+Real
+</element>
+</classesNames>
+</variable>
+<variable id="101" name="limiter.limitsAtInit" variability="parameter" direction="none" type="Boolean" index="-1" fixed="true" flow="NonConnector" stream="NonStreamConnector" comment="= false, if limits are ignored during initializiation (i.e., y=u)">
+<bindValueExpression>
+<bindExpression string="true">
+</bindExpression>
+</bindValueExpression>
+<classesNames>
+<element>
+RCEngine
+</element>
+<element>
+Modelica.Blocks.Nonlinear.Limiter
+</element>
+<element>
+Boolean
+</element>
+</classesNames>
+</variable>
+<variable id="102" name="limiter.uMax" variability="parameter" direction="none" type="Real" index="-1" fixed="true" flow="NonConnector" stream="NonStreamConnector" comment="Upper limits of input signals">
+<bindValueExpression>
+<bindExpression string="1.0">
+</bindExpression>
+</bindValueExpression>
+<classesNames>
+<element>
+RCEngine
+</element>
+<element>
+Modelica.Blocks.Nonlinear.Limiter
+</element>
+<element>
+Real
+</element>
+</classesNames>
+<attributesValues>
+<initialValue string="1.0">
+</initialValue>
+</attributesValues>
+</variable>
+<variable id="103" name="Scaling.k" variability="parameter" direction="none" type="Real" index="-1" fixed="true" flow="NonConnector" stream="NonStreamConnector" comment="Constant output value">
+<bindValueExpression>
+<bindExpression string="1.0">
+</bindExpression>
+</bindValueExpression>
+<classesNames>
+<element>
+RCEngine
+</element>
+<element>
+Modelica.Blocks.Sources.Constant
+</element>
+<element>
+Real
+</element>
+</classesNames>
+<attributesValues>
+<initialValue string="1.0">
+</initialValue>
+</attributesValues>
+</variable>
+<variable id="104" name="u" variability="continuous" direction="input" type="Real" index="-1" fixed="false" flow="NonConnector" stream="NonStreamConnector">
+<classesNames>
+<element>
+RCEngine
+</element>
+<element>
+Modelica.Blocks.Interfaces.RealInput
+</element>
+</classesNames>
+</variable>
+<variable id="105" name="Friction_crank.peak" variability="parameter" direction="none" type="Real" index="-1" fixed="true" flow="NonConnector" stream="NonStreamConnector" comment="peak*tau_pos[1,2] = Maximum friction torque for w==0">
+<bindValueExpression>
+<bindExpression string="1.0">
+</bindExpression>
+</bindValueExpression>
+<classesNames>
+<element>
+RCEngine
+</element>
+<element>
+Modelica.Mechanics.Rotational.Components.BearingFriction
+</element>
+<element>
+Real
+</element>
+</classesNames>
+<attributesValues>
+<minValue string="1.0">
+</minValue>
+</attributesValues>
+</variable>
+<variable id="106" name="Friction_crank.tau_pos[2,2]" variability="parameter" direction="none" type="Real" index="-1" fixed="true" flow="NonConnector" stream="NonStreamConnector" comment="[w,tau] Positive sliding friction characteristic (w&gt;=0)">
+<bindValueExpression>
+<bindExpression string="0.05">
+</bindExpression>
+</bindValueExpression>
+<classesNames>
+<element>
+RCEngine
+</element>
+<element>
+Modelica.Mechanics.Rotational.Components.BearingFriction
+</element>
+<element>
+Real
+</element>
+</classesNames>
+</variable>
+<variable id="107" name="Friction_crank.tau_pos[2,1]" variability="parameter" direction="none" type="Real" index="-1" fixed="true" flow="NonConnector" stream="NonStreamConnector" comment="[w,tau] Positive sliding friction characteristic (w&gt;=0)">
+<bindValueExpression>
+<bindExpression string="1600.0">
+</bindExpression>
+</bindValueExpression>
+<classesNames>
+<element>
+RCEngine
+</element>
+<element>
+Modelica.Mechanics.Rotational.Components.BearingFriction
+</element>
+<element>
+Real
+</element>
+</classesNames>
+</variable>
+<variable id="108" name="Friction_crank.tau_pos[1,2]" variability="parameter" direction="none" type="Real" index="-1" fixed="true" flow="NonConnector" stream="NonStreamConnector" comment="[w,tau] Positive sliding friction characteristic (w&gt;=0)">
+<bindValueExpression>
+<bindExpression string="0.05">
+</bindExpression>
+</bindValueExpression>
+<classesNames>
+<element>
+RCEngine
+</element>
+<element>
+Modelica.Mechanics.Rotational.Components.BearingFriction
+</element>
+<element>
+Real
+</element>
+</classesNames>
+</variable>
+<variable id="109" name="Friction_crank.tau_pos[1,1]" variability="parameter" direction="none" type="Real" index="-1" fixed="true" flow="NonConnector" stream="NonStreamConnector" comment="[w,tau] Positive sliding friction characteristic (w&gt;=0)">
+<bindValueExpression>
+<bindExpression string="500.0">
+</bindExpression>
+</bindValueExpression>
+<classesNames>
+<element>
+RCEngine
+</element>
+<element>
+Modelica.Mechanics.Rotational.Components.BearingFriction
+</element>
+<element>
+Real
+</element>
+</classesNames>
+</variable>
+<variable id="110" name="Friction_crank.unitTorque" variability="constant" direction="none" type="Real" index="-1" fixed="false" flow="NonConnector" stream="NonStreamConnector">
+<bindValueExpression>
+<bindExpression string="1.0">
+</bindExpression>
+</bindValueExpression>
+<classesNames>
+<element>
+RCEngine
+</element>
+<element>
+Modelica.Mechanics.Rotational.Components.BearingFriction
+</element>
+<element>
+Modelica.SIunits.Torque
+</element>
+</classesNames>
+<attributesValues>
+<quantity string="Torque">
+</quantity>
+<unit string="N.m">
+</unit>
+</attributesValues>
+</variable>
+<variable id="111" name="Friction_crank.unitAngularAcceleration" variability="constant" direction="none" type="Real" index="-1" fixed="false" flow="NonConnector" stream="NonStreamConnector">
+<bindValueExpression>
+<bindExpression string="1.0">
+</bindExpression>
+</bindValueExpression>
+<classesNames>
+<element>
+RCEngine
+</element>
+<element>
+Modelica.Mechanics.Rotational.Components.BearingFriction
+</element>
+<element>
+Modelica.SIunits.AngularAcceleration
+</element>
+</classesNames>
+<attributesValues>
+<quantity string="AngularAcceleration">
+</quantity>
+<unit string="rad/s2">
+</unit>
+</attributesValues>
+</variable>
+<variable id="112" name="Friction_crank.Backward" variability="constant" direction="none" type="Integer" index="-1" fixed="false" flow="NonConnector" stream="NonStreamConnector" comment="w_rel &lt; 0 (backward sliding)">
+<bindValueExpression>
+<bindExpression string="-1">
+</bindExpression>
+</bindValueExpression>
+<classesNames>
+<element>
+RCEngine
+</element>
+<element>
+Modelica.Mechanics.Rotational.Components.BearingFriction
+</element>
+<element>
+Integer
+</element>
+</classesNames>
+</variable>
+<variable id="113" name="Friction_crank.Stuck" variability="constant" direction="none" type="Integer" index="-1" fixed="false" flow="NonConnector" stream="NonStreamConnector" comment="w_rel = 0 (forward sliding, locked or backward sliding)">
+<bindValueExpression>
+<bindExpression string="0">
+</bindExpression>
+</bindValueExpression>
+<classesNames>
+<element>
+RCEngine
+</element>
+<element>
+Modelica.Mechanics.Rotational.Components.BearingFriction
+</element>
+<element>
+Integer
+</element>
+</classesNames>
+</variable>
+<variable id="114" name="Friction_crank.Forward" variability="constant" direction="none" type="Integer" index="-1" fixed="false" flow="NonConnector" stream="NonStreamConnector" comment="w_rel &gt; 0 (forward sliding)">
+<bindValueExpression>
+<bindExpression string="1">
+</bindExpression>
+</bindValueExpression>
+<classesNames>
+<element>
+RCEngine
+</element>
+<element>
+Modelica.Mechanics.Rotational.Components.BearingFriction
+</element>
+<element>
+Integer
+</element>
+</classesNames>
+</variable>
+<variable id="115" name="Friction_crank.Free" variability="constant" direction="none" type="Integer" index="-1" fixed="false" flow="NonConnector" stream="NonStreamConnector" comment="Element is not active">
+<bindValueExpression>
+<bindExpression string="2">
+</bindExpression>
+</bindValueExpression>
+<classesNames>
+<element>
+RCEngine
+</element>
+<element>
+Modelica.Mechanics.Rotational.Components.BearingFriction
+</element>
+<element>
+Integer
+</element>
+</classesNames>
+</variable>
+<variable id="116" name="Friction_crank.Unknown" variability="constant" direction="none" type="Integer" index="-1" fixed="false" flow="NonConnector" stream="NonStreamConnector" comment="Value of mode is not known">
+<bindValueExpression>
+<bindExpression string="3">
+</bindExpression>
+</bindValueExpression>
+<classesNames>
+<element>
+RCEngine
+</element>
+<element>
+Modelica.Mechanics.Rotational.Components.BearingFriction
+</element>
+<element>
+Integer
+</element>
+</classesNames>
+</variable>
+<variable id="117" name="Friction_crank.w_small" variability="parameter" direction="none" type="Real" index="-1" fixed="true" flow="NonConnector" stream="NonStreamConnector" comment="Relative angular velocity near to zero if jumps due to a reinit(..) of the velocity can occur (set to low value only if such impulses can occur)">
+<bindValueExpression>
+<bindExpression string="10000000000.0">
+</bindExpression>
+</bindValueExpression>
+<classesNames>
+<element>
+RCEngine
+</element>
+<element>
+Modelica.Mechanics.Rotational.Components.BearingFriction
+</element>
+<element>
+Modelica.SIunits.AngularVelocity
+</element>
+</classesNames>
+<attributesValues>
+<quantity string="AngularVelocity">
+</quantity>
+<unit string="rad/s">
+</unit>
+</attributesValues>
+</variable>
+<variable id="118" name="Friction_crank.useSupport" variability="parameter" direction="none" type="Boolean" index="-1" fixed="true" flow="NonConnector" stream="NonStreamConnector" comment="= true, if support flange enabled, otherwise implicitly grounded">
+<bindValueExpression>
+<bindExpression string="false">
+</bindExpression>
+</bindValueExpression>
+<classesNames>
+<element>
+RCEngine
+</element>
+<element>
+Modelica.Mechanics.Rotational.Components.BearingFriction
+</element>
+<element>
+Boolean
+</element>
+</classesNames>
+</variable>
+<variable id="119" name="J_crank.stateSelect" variability="parameter" direction="none" type="enumeration(never, avoid, default, prefer, always)" index="-1" fixed="true" flow="NonConnector" stream="NonStreamConnector" comment="Priority to use phi and w as states">
+<bindValueExpression>
+<bindExpression string="StateSelect.default">
+</bindExpression>
+</bindValueExpression>
+<classesNames>
+<element>
+RCEngine
+</element>
+<element>
+Modelica.Mechanics.Rotational.Components.Inertia
+</element>
+<element>
+StateSelect
+</element>
+</classesNames>
+<attributesValues>
+<minValue string="StateSelect.never">
+</minValue>
+<maxValue string="StateSelect.always">
+</maxValue>
+</attributesValues>
+</variable>
+<variable id="120" name="J_crank.J" variability="parameter" direction="none" type="Real" index="-1" fixed="true" flow="NonConnector" stream="NonStreamConnector" comment="Moment of inertia">
+<bindValueExpression>
+<bindExpression string="0.000003">
+</bindExpression>
+</bindValueExpression>
+<classesNames>
+<element>
+RCEngine
+</element>
+<element>
+Modelica.Mechanics.Rotational.Components.Inertia
+</element>
+<element>
+Modelica.SIunits.Inertia
+</element>
+</classesNames>
+<attributesValues>
+<quantity string="MomentOfInertia">
+</quantity>
+<unit string="kg.m2">
+</unit>
+<minValue string="0.0">
+</minValue>
+<initialValue string="1.0">
+</initialValue>
+</attributesValues>
+</variable>
+<variable id="121" name="torque290.useSupport" variability="parameter" direction="none" type="Boolean" index="-1" fixed="true" flow="NonConnector" stream="NonStreamConnector" comment="= true, if support flange enabled, otherwise implicitly grounded">
+<bindValueExpression>
+<bindExpression string="false">
+</bindExpression>
+</bindValueExpression>
+<classesNames>
+<element>
+RCEngine
+</element>
+<element>
+Modelica.Mechanics.Rotational.Sources.Torque
+</element>
+<element>
+Boolean
+</element>
+</classesNames>
+</variable>
+<variable id="122" name="Friction_crank.tau0" variability="continuous" direction="none" type="Real" index="-1" fixed="false" flow="NonConnector" stream="NonStreamConnector" comment="Friction torque for w=0 and forward sliding">
+<bindValueExpression>
+<bindExpression string="Modelica.Math.tempInterpol1(0.0,{{Friction_crank.tau_pos[1,1],Friction_crank.tau_pos[1,2]},{Friction_crank.tau_pos[2,1],Friction_crank.tau_pos[2,2]}},2)">
+</bindExpression>
+</bindValueExpression>
+<classesNames>
+<element>
+RCEngine
+</element>
+<element>
+Modelica.Mechanics.Rotational.Components.BearingFriction
+</element>
+<element>
+Modelica.SIunits.Torque
+</element>
+</classesNames>
+<attributesValues>
+<quantity string="Torque">
+</quantity>
+<unit string="N.m">
+</unit>
+</attributesValues>
+</variable>
+<variable id="123" name="Friction_crank.tau0_max" variability="continuous" direction="none" type="Real" index="-1" fixed="false" flow="NonConnector" stream="NonStreamConnector" comment="Maximum friction torque for w=0 and locked">
+<bindValueExpression>
+<bindExpression string="Friction_crank.peak * Friction_crank.tau0">
+</bindExpression>
+</bindValueExpression>
+<classesNames>
+<element>
+RCEngine
+</element>
+<element>
+Modelica.Mechanics.Rotational.Components.BearingFriction
+</element>
+<element>
+Modelica.SIunits.Torque
+</element>
+</classesNames>
+<attributesValues>
+<quantity string="Torque">
+</quantity>
+<unit string="N.m">
+</unit>
+</attributesValues>
+</variable>
+<variable id="124" name="Friction_crank.free" variability="discrete" direction="none" type="Boolean" index="-1" fixed="false" flow="NonConnector" stream="NonStreamConnector" comment="true, if frictional element is not active">
+<bindValueExpression>
+<bindExpression string="false">
+</bindExpression>
+<bindValue string="false">
+</bindValue>
+</bindValueExpression>
+<classesNames>
+<element>
+RCEngine
+</element>
+<element>
+Modelica.Mechanics.Rotational.Components.BearingFriction
+</element>
+<element>
+Boolean
+</element>
+</classesNames>
+<attributesValues>
+<initialValue string="false">
+</initialValue>
+</attributesValues>
+</variable>
+<variable id="125" name="Friction_crank.phi_support" variability="continuous" direction="none" type="Real" index="-1" fixed="false" flow="NonConnector" stream="NonStreamConnector" comment="Absolute angle of support flange">
+<bindValueExpression>
+<bindExpression string="0.0">
+</bindExpression>
+<bindValue string="0.0">
+</bindValue>
+</bindValueExpression>
+<classesNames>
+<element>
+RCEngine
+</element>
+<element>
+Modelica.Mechanics.Rotational.Components.BearingFriction
+</element>
+<element>
+Modelica.SIunits.Angle
+</element>
+</classesNames>
+<attributesValues>
+<quantity string="Angle">
+</quantity>
+<unit string="rad">
+</unit>
+<displayUnit string="deg">
+</displayUnit>
+<initialValue string="0.0">
+</initialValue>
+</attributesValues>
+</variable>
+<variable id="126" name="speedSensor.flange.tau" variability="continuous" direction="none" type="Real" index="-1" fixed="false" flow="Flow" stream="NonStream" comment="Cut torque in the flange">
+<bindValueExpression>
+<bindExpression string="0.0">
+</bindExpression>
+<bindValue string="0.0">
+</bindValue>
+</bindValueExpression>
+<classesNames>
+<element>
+RCEngine
+</element>
+<element>
+Modelica.Mechanics.Rotational.Sensors.SpeedSensor
+</element>
+<element>
+Modelica.Mechanics.Rotational.Interfaces.Flange_a
+</element>
+<element>
+Modelica.SIunits.Torque
+</element>
+</classesNames>
+<attributesValues>
+<quantity string="Torque">
+</quantity>
+<unit string="N.m">
+</unit>
+<initialValue string="0.0">
+</initialValue>
+</attributesValues>
+</variable>
+<variable id="127" name="flange_b.tau" variability="continuous" direction="none" type="Real" index="-1" fixed="false" flow="Flow" stream="NonStream" comment="Cut torque in the flange">
+<bindValueExpression>
+<bindExpression string="0.0">
+</bindExpression>
+<bindValue string="0.0">
+</bindValue>
+</bindValueExpression>
+<classesNames>
+<element>
+RCEngine
+</element>
+<element>
+Modelica.Mechanics.Rotational.Interfaces.Flange_b
+</element>
+<element>
+Modelica.SIunits.Torque
+</element>
+</classesNames>
+<attributesValues>
+<quantity string="Torque">
+</quantity>
+<unit string="N.m">
+</unit>
+<initialValue string="0.0">
+</initialValue>
+</attributesValues>
+</variable>
+<variable id="128" name="torque290.phi_support" variability="continuous" direction="none" type="Real" index="-1" fixed="false" flow="NonConnector" stream="NonStreamConnector" comment="Absolute angle of support flange">
+<bindValueExpression>
+<bindExpression string="0.0">
+</bindExpression>
+<bindValue string="0.0">
+</bindValue>
+</bindValueExpression>
+<classesNames>
+<element>
+RCEngine
+</element>
+<element>
+Modelica.Mechanics.Rotational.Sources.Torque
+</element>
+<element>
+Modelica.SIunits.Angle
+</element>
+</classesNames>
+<attributesValues>
+<quantity string="Angle">
+</quantity>
+<unit string="rad">
+</unit>
+<displayUnit string="deg">
+</displayUnit>
+<initialValue string="0.0">
+</initialValue>
+</attributesValues>
+</variable>
+</variablesList>
+</knownVariables>
+</variables>
+<equations dimension="23">
+<equation id="1">J_crank.J * J_crank.a = torque290.tau - Friction_crank.flange_a.tau
+</equation>
+<equation id="2">Friction_crank.phi = speedSensor.flange.phi
+</equation>
+<equation id="3">Friction_crank.flange_a.tau - Friction_crank.tau = 0.0
+</equation>
+<equation id="4">Friction_crank.tau = if Friction_crank.locked then Friction_crank.sa else if Friction_crank.startForward then Modelica.Math.tempInterpol1(Friction_crank.w,{{Friction_crank.tau_pos[1,1],Friction_crank.tau_pos[1,2]},{Friction_crank.tau_pos[2,1],Friction_crank.tau_pos[2,2]}},2) else if Friction_crank.startBackward then -Modelica.Math.tempInterpol1(-Friction_crank.w,{{Friction_crank.tau_pos[1,1],Friction_crank.tau_pos[1,2]},{Friction_crank.tau_pos[2,1],Friction_crank.tau_pos[2,2]}},2) else if pre(Friction_crank.mode) == 1 then Modelica.Math.tempInterpol1(Friction_crank.w,{{Friction_crank.tau_pos[1,1],Friction_crank.tau_pos[1,2]},{Friction_crank.tau_pos[2,1],Friction_crank.tau_pos[2,2]}},2) else -Modelica.Math.tempInterpol1(-Friction_crank.w,{{Friction_crank.tau_pos[1,1],Friction_crank.tau_pos[1,2]},{Friction_crank.tau_pos[2,1],Friction_crank.tau_pos[2,2]}},2)
+</equation>
+<equation id="5">Friction_crank.startForward = pre(Friction_crank.mode) == 0 and (Friction_crank.sa &gt; Friction_crank.tau0_max or pre(Friction_crank.startForward) and Friction_crank.sa &gt; Friction_crank.tau0) or pre(Friction_crank.mode) == -1 and Friction_crank.w &gt; Friction_crank.w_small or initial() and Friction_crank.w &gt; 0.0
+</equation>
+<equation id="6">Friction_crank.startBackward = pre(Friction_crank.mode) == 0 and (Friction_crank.sa &lt; -Friction_crank.tau0_max or pre(Friction_crank.startBackward) and Friction_crank.sa &lt; -Friction_crank.tau0) or pre(Friction_crank.mode) == 1 and Friction_crank.w &lt; -Friction_crank.w_small or initial() and Friction_crank.w &lt; 0.0
+</equation>
+<equation id="7">Friction_crank.locked = not (pre(Friction_crank.mode) == 1 or Friction_crank.startForward or pre(Friction_crank.mode) == -1 or Friction_crank.startBackward)
+</equation>
+<equation id="8">Friction_crank.a = if Friction_crank.locked then 0.0 else if Friction_crank.startForward then Friction_crank.sa - Friction_crank.tau0_max else if Friction_crank.startBackward then Friction_crank.sa + Friction_crank.tau0_max else if pre(Friction_crank.mode) == 1 then Friction_crank.sa - Friction_crank.tau0_max else Friction_crank.sa + Friction_crank.tau0_max
+</equation>
+<equation id="9">Friction_crank.mode = if (pre(Friction_crank.mode) == 1 or pre(Friction_crank.mode) == 2 or Friction_crank.startForward) and Friction_crank.w &gt; 0.0 then 1 else if (pre(Friction_crank.mode) == -1 or pre(Friction_crank.mode) == 2 or Friction_crank.startBackward) and Friction_crank.w &lt; 0.0 then -1 else 0
+</equation>
+<equation id="10">feedback.y = feedback.u1 - crank_speed
+</equation>
+<equation id="11">limiter.u = feedback.y / Scaling.k
+</equation>
+<equation id="12">torque290.tau = product.u1 * MaxTorque.y[1]
+</equation>
+<equation id="13">0.0 = if initial() and not limiter.limitsAtInit then product.u1 - limiter.u else product.u1 - (if limiter.u &gt; limiter.uMax then limiter.uMax else if limiter.u &lt; limiter.uMin then limiter.uMin else limiter.u)
+</equation>
+<equation id="14">MaxTorque.y[1] = Modelica.Blocks.Tables.CombiTable1D.tableIpo(MaxTorque.tableID,MaxTorque.columns[1],crank_speed)
+</equation>
+<equation id="15">0.0 = if initial() and not Idle_Redline.limitsAtInit then feedback.u1 - Idle_Redline.u else feedback.u1 - (if Idle_Redline.u &gt; Idle_Redline.uMax then Idle_Redline.uMax else if Idle_Redline.u &lt; Idle_Redline.uMin then Idle_Redline.uMin else Idle_Redline.u)
+</equation>
+<equation id="16">speedSensor.flange.phi = J_crank.phi
+</equation>
+<equation id="17">Idle_Redline.u = u
+</equation>
+<whenEquation id="18">MaxTorque.tableID := Modelica.Blocks.Tables.CombiTable1D.tableInit(if MaxTorque.tableOnFile then MaxTorque.tableName else "NoName",if MaxTorque.tableOnFile then MaxTorque.fileName else "NoName",{{MaxTorque.table[1,1],MaxTorque.table[1,2]},{MaxTorque.table[2,1],MaxTorque.table[2,2]},{MaxTorque.table[3,1],MaxTorque.table[3,2]},{MaxTorque.table[4,1],MaxTorque.table[4,2]},{MaxTorque.table[5,1],MaxTorque.table[5,2]},{MaxTorque.table[6,1],MaxTorque.table[6,2]},{MaxTorque.table[7,1],MaxTorque.table[7,2]},{MaxTorque.table[8,1],MaxTorque.table[8,2]},{MaxTorque.table[9,1],MaxTorque.table[9,2]},{MaxTorque.table[10,1],MaxTorque.table[10,2]},{MaxTorque.table[11,1],MaxTorque.table[11,2]},{MaxTorque.table[12,1],MaxTorque.table[12,2]},{MaxTorque.table[13,1],MaxTorque.table[13,2]},{MaxTorque.table[14,1],MaxTorque.table[14,2]},{MaxTorque.table[15,1],MaxTorque.table[15,2]},{MaxTorque.table[16,1],MaxTorque.table[16,2]},{MaxTorque.table[17,1],MaxTorque.table[17,2]},{MaxTorque.table[18,1],MaxTorque.table[18,2]},{MaxTorque.table[19,1],MaxTorque.table[19,2]},{MaxTorque.table[20,1],MaxTorque.table[20,2]},{MaxTorque.table[21,1],MaxTorque.table[21,2]},{MaxTorque.table[22,1],MaxTorque.table[22,2]},{MaxTorque.table[23,1],MaxTorque.table[23,2]},{MaxTorque.table[24,1],MaxTorque.table[24,2]},{MaxTorque.table[25,1],MaxTorque.table[25,2]},{MaxTorque.table[26,1],MaxTorque.table[26,2]},{MaxTorque.table[27,1],MaxTorque.table[27,2]},{MaxTorque.table[28,1],MaxTorque.table[28,2]},{MaxTorque.table[29,1],MaxTorque.table[29,2]},{MaxTorque.table[30,1],MaxTorque.table[30,2]},{MaxTorque.table[31,1],MaxTorque.table[31,2]},{MaxTorque.table[32,1],MaxTorque.table[32,2]},{MaxTorque.table[33,1],MaxTorque.table[33,2]},{MaxTorque.table[34,1],MaxTorque.table[34,2]},{MaxTorque.table[35,1],MaxTorque.table[35,2]},{MaxTorque.table[36,1],MaxTorque.table[36,2]},{MaxTorque.table[37,1],MaxTorque.table[37,2]},{MaxTorque.table[38,1],MaxTorque.table[38,2]},{MaxTorque.table[39,1],MaxTorque.table[39,2]},{MaxTorque.table[40,1],MaxTorque.table[40,2]},{MaxTorque.table[41,1],MaxTorque.table[41,2]},{MaxTorque.table[42,1],MaxTorque.table[42,2]},{MaxTorque.table[43,1],MaxTorque.table[43,2]},{MaxTorque.table[44,1],MaxTorque.table[44,2]},{MaxTorque.table[45,1],MaxTorque.table[45,2]}},MaxTorque.smoothness)
+<whenEquationId>
+0
+</whenEquationId>
+</whenEquation>
+<equation id="19">J_crank.w = der(J_crank.phi)
+</equation>
+<equation id="20">J_crank.a = der(J_crank.w)
+</equation>
+<equation id="21">Friction_crank.w = der(Friction_crank.phi)
+</equation>
+<equation id="22">Friction_crank.a = der(Friction_crank.w)
+</equation>
+<equation id="23">crank_speed = der(speedSensor.flange.phi)
+</equation>
+</equations>
+<zeroCrossingList dimension="12">
+</zeroCrossingList>
+<algorithms dimension="3">
+</algorithms>
+<functions>
+</functions>
+</dae>

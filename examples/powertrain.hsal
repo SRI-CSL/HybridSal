@@ -77,7 +77,8 @@ BEGIN
  OUTPUT gear: [0 .. 2]
  LOCAL dynamic_mode: TRANSMODE
  INITIALIZATION
-  tps = 70;  % tps IN {z: REAL | 0 <= z AND z <= 100};
+  % tps = 70;  
+  tps IN {z: REAL | 0 <= z AND z <= 100};
   grade IN {z: REAL | 0 <= z AND z <= 0.05};
   dynamic_mode = FIRST; gear = 1; wt = 0; wcr = 0; pc2_filter = 0; veh_speed = 0; Ts = 0
  TRANSITION
