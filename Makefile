@@ -49,9 +49,7 @@ sal2xml: $(HXMLS)
 	if [ -s ${exhsal}/${example1}.hxml ] ; then echo "hybridsal2xml installation successfully tested" ; fi
 
 powertrain:  ${exhsal}/powertrain.hsal
-	hybridsal2xml/hybridsal2xml -o ${exhsal}/powertrain.hxml $<
-	python src/HSalPreProcess.py ${exhsal}/powertrain.hxml
-	bin/hsal2hasal ${exhsal}/powertrain.hxml
+	bin/hsal2hasal $<
 
 RCEngine:  ${exhsal}/RCEngine.xml
 	bin/modelica2hsal $<
