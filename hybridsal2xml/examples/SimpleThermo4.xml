@@ -66,25 +66,27 @@
         <TRANSDECL PLACE="14 2 32 26">
           <SOMECOMMANDS PLACE="16 2 32 26">
             <GUARDEDCOMMAND PLACE="16 2 17 17">
-              <APPLICATION PLACE="16 2 16 26" INFIX="YES">
-                <NAMEEXPR PLACE="16 15 16 18">AND</NAMEEXPR>
-                <TUPLELITERAL PLACE="16 2 16 26">
-                  <APPLICATION PLACE="16 2 16 14" INFIX="YES">
-                    <NAMEEXPR PLACE="16 8 16 9">=</NAMEEXPR>
-                    <TUPLELITERAL PLACE="16 2 16 14">
-                      <NAMEEXPR PLACE="16 2 16 7">state</NAMEEXPR>
-                      <NAMEEXPR PLACE="16 10 16 14">TRUE</NAMEEXPR>
-                    </TUPLELITERAL>
-                  </APPLICATION>
-                  <APPLICATION PLACE="16 19 16 26" INFIX="YES">
-                    <NAMEEXPR PLACE="16 21 16 23">&gt;=</NAMEEXPR>
-                    <TUPLELITERAL PLACE="16 19 16 26">
-                      <NAMEEXPR PLACE="16 19 16 20">x</NAMEEXPR>
-                      <NUMERAL PLACE="16 24 16 26">80</NUMERAL>
-                    </TUPLELITERAL>
-                  </APPLICATION>
-                </TUPLELITERAL>
-              </APPLICATION>
+              <GUARD PLACE="16 2 16 26">
+                <APPLICATION PLACE="16 2 16 26" INFIX="YES">
+                  <NAMEEXPR PLACE="16 15 16 18">AND</NAMEEXPR>
+                  <TUPLELITERAL PLACE="16 2 16 26">
+                    <APPLICATION PLACE="16 2 16 14" INFIX="YES">
+                      <NAMEEXPR PLACE="16 8 16 9">=</NAMEEXPR>
+                      <TUPLELITERAL PLACE="16 2 16 14">
+                        <NAMEEXPR PLACE="16 2 16 7">state</NAMEEXPR>
+                        <NAMEEXPR PLACE="16 10 16 14">TRUE</NAMEEXPR>
+                      </TUPLELITERAL>
+                    </APPLICATION>
+                    <APPLICATION PLACE="16 19 16 26" INFIX="YES">
+                      <NAMEEXPR PLACE="16 21 16 23">&gt;=</NAMEEXPR>
+                      <TUPLELITERAL PLACE="16 19 16 26">
+                        <NAMEEXPR PLACE="16 19 16 20">x</NAMEEXPR>
+                        <NUMERAL PLACE="16 24 16 26">80</NUMERAL>
+                      </TUPLELITERAL>
+                    </APPLICATION>
+                  </TUPLELITERAL>
+                </APPLICATION>
+              </GUARD>
               <ASSIGNMENTS PLACE="17 3 17 17">
                 <SIMPLEDEFINITION PLACE="17 3 17 17">
                   <NEXTOPERATOR PLACE="17 3 17 9">
@@ -97,25 +99,27 @@
               </ASSIGNMENTS>
             </GUARDEDCOMMAND>
             <GUARDEDCOMMAND PLACE="19 2 20 16">
-              <APPLICATION PLACE="19 2 19 27" INFIX="YES">
-                <NAMEEXPR PLACE="19 16 19 19">AND</NAMEEXPR>
-                <TUPLELITERAL PLACE="19 2 19 27">
-                  <APPLICATION PLACE="19 2 19 15" INFIX="YES">
-                    <NAMEEXPR PLACE="19 8 19 9">=</NAMEEXPR>
-                    <TUPLELITERAL PLACE="19 2 19 15">
-                      <NAMEEXPR PLACE="19 2 19 7">state</NAMEEXPR>
-                      <NAMEEXPR PLACE="19 10 19 15">FALSE</NAMEEXPR>
-                    </TUPLELITERAL>
-                  </APPLICATION>
-                  <APPLICATION PLACE="19 20 19 27" INFIX="YES">
-                    <NAMEEXPR PLACE="19 22 19 24">&lt;=</NAMEEXPR>
-                    <TUPLELITERAL PLACE="19 20 19 27">
-                      <NAMEEXPR PLACE="19 20 19 21">x</NAMEEXPR>
-                      <NUMERAL PLACE="19 25 19 27">70</NUMERAL>
-                    </TUPLELITERAL>
-                  </APPLICATION>
-                </TUPLELITERAL>
-              </APPLICATION>
+              <GUARD PLACE="19 2 19 27">
+                <APPLICATION PLACE="19 2 19 27" INFIX="YES">
+                  <NAMEEXPR PLACE="19 16 19 19">AND</NAMEEXPR>
+                  <TUPLELITERAL PLACE="19 2 19 27">
+                    <APPLICATION PLACE="19 2 19 15" INFIX="YES">
+                      <NAMEEXPR PLACE="19 8 19 9">=</NAMEEXPR>
+                      <TUPLELITERAL PLACE="19 2 19 15">
+                        <NAMEEXPR PLACE="19 2 19 7">state</NAMEEXPR>
+                        <NAMEEXPR PLACE="19 10 19 15">FALSE</NAMEEXPR>
+                      </TUPLELITERAL>
+                    </APPLICATION>
+                    <APPLICATION PLACE="19 20 19 27" INFIX="YES">
+                      <NAMEEXPR PLACE="19 22 19 24">&lt;=</NAMEEXPR>
+                      <TUPLELITERAL PLACE="19 20 19 27">
+                        <NAMEEXPR PLACE="19 20 19 21">x</NAMEEXPR>
+                        <NUMERAL PLACE="19 25 19 27">70</NUMERAL>
+                      </TUPLELITERAL>
+                    </APPLICATION>
+                  </TUPLELITERAL>
+                </APPLICATION>
+              </GUARD>
               <ASSIGNMENTS PLACE="20 3 20 16">
                 <SIMPLEDEFINITION PLACE="20 3 20 16">
                   <NEXTOPERATOR PLACE="20 3 20 9">
@@ -129,25 +133,27 @@
             </GUARDEDCOMMAND>
             <MULTICOMMAND PLACE="22 4 26 26">
               <GUARDEDCOMMAND PLACE="22 4 23 20">
-                <APPLICATION PLACE="22 4 22 27" INFIX="YES">
-                  <NAMEEXPR PLACE="22 17 22 20">AND</NAMEEXPR>
-                  <TUPLELITERAL PLACE="22 4 22 27">
-                    <APPLICATION PLACE="22 4 22 16" INFIX="YES">
-                      <NAMEEXPR PLACE="22 10 22 11">=</NAMEEXPR>
-                      <TUPLELITERAL PLACE="22 4 22 16">
-                        <NAMEEXPR PLACE="22 4 22 9">state</NAMEEXPR>
-                        <NAMEEXPR PLACE="22 12 22 16">TRUE</NAMEEXPR>
-                      </TUPLELITERAL>
-                    </APPLICATION>
-                    <APPLICATION PLACE="22 21 22 27" INFIX="YES">
-                      <NAMEEXPR PLACE="22 23 22 24">&lt;</NAMEEXPR>
-                      <TUPLELITERAL PLACE="22 21 22 27">
-                        <NAMEEXPR PLACE="22 21 22 22">x</NAMEEXPR>
-                        <NUMERAL PLACE="22 25 22 27">80</NUMERAL>
-                      </TUPLELITERAL>
-                    </APPLICATION>
-                  </TUPLELITERAL>
-                </APPLICATION>
+                <GUARD PLACE="22 4 22 27">
+                  <APPLICATION PLACE="22 4 22 27" INFIX="YES">
+                    <NAMEEXPR PLACE="22 17 22 20">AND</NAMEEXPR>
+                    <TUPLELITERAL PLACE="22 4 22 27">
+                      <APPLICATION PLACE="22 4 22 16" INFIX="YES">
+                        <NAMEEXPR PLACE="22 10 22 11">=</NAMEEXPR>
+                        <TUPLELITERAL PLACE="22 4 22 16">
+                          <NAMEEXPR PLACE="22 4 22 9">state</NAMEEXPR>
+                          <NAMEEXPR PLACE="22 12 22 16">TRUE</NAMEEXPR>
+                        </TUPLELITERAL>
+                      </APPLICATION>
+                      <APPLICATION PLACE="22 21 22 27" INFIX="YES">
+                        <NAMEEXPR PLACE="22 23 22 24">&lt;</NAMEEXPR>
+                        <TUPLELITERAL PLACE="22 21 22 27">
+                          <NAMEEXPR PLACE="22 21 22 22">x</NAMEEXPR>
+                          <NUMERAL PLACE="22 25 22 27">80</NUMERAL>
+                        </TUPLELITERAL>
+                      </APPLICATION>
+                    </TUPLELITERAL>
+                  </APPLICATION>
+                </GUARD>
                 <ASSIGNMENTS PLACE="23 3 23 20">
                   <SIMPLEDEFINITION PLACE="23 3 23 20">
                     <NEXTOPERATOR PLACE="23 3 23 8">
@@ -166,39 +172,41 @@
                 </ASSIGNMENTS>
               </GUARDEDCOMMAND>
               <GUARDEDCOMMAND PLACE="25 2 26 26">
-                <APPLICATION PLACE="25 2 25 37" INFIX="YES">
-                  <NAMEEXPR PLACE="25 26 25 29">AND</NAMEEXPR>
-                  <TUPLELITERAL PLACE="25 2 25 37">
-                    <APPLICATION PLACE="25 2 25 25" INFIX="YES">
-                      <NAMEEXPR PLACE="25 15 25 18">AND</NAMEEXPR>
-                      <TUPLELITERAL PLACE="25 2 25 25">
-                        <APPLICATION PLACE="25 2 25 14" INFIX="YES">
-                          <NAMEEXPR PLACE="25 8 25 9">=</NAMEEXPR>
-                          <TUPLELITERAL PLACE="25 2 25 14">
-                            <NAMEEXPR PLACE="25 2 25 7">state</NAMEEXPR>
-                            <NAMEEXPR PLACE="25 10 25 14">TRUE</NAMEEXPR>
-                          </TUPLELITERAL>
-                        </APPLICATION>
-                        <APPLICATION PLACE="25 19 25 25" INFIX="YES">
-                          <NAMEEXPR PLACE="25 21 25 22">&lt;</NAMEEXPR>
-                          <TUPLELITERAL PLACE="25 19 25 25">
-                            <NAMEEXPR PLACE="25 19 25 20">x</NAMEEXPR>
-                            <NUMERAL PLACE="25 23 25 25">80</NUMERAL>
-                          </TUPLELITERAL>
-                        </APPLICATION>
-                      </TUPLELITERAL>
-                    </APPLICATION>
-                    <APPLICATION PLACE="25 30 25 37" INFIX="YES">
-                      <NAMEEXPR PLACE="25 33 25 34">&lt;</NAMEEXPR>
-                      <TUPLELITERAL PLACE="25 30 25 37">
-                        <NEXTOPERATOR PLACE="25 30 25 32">
-                          <NAMEEXPR PLACE="25 30 25 31">x</NAMEEXPR>
-                        </NEXTOPERATOR>
-                        <NUMERAL PLACE="25 35 25 37">80</NUMERAL>
-                      </TUPLELITERAL>
-                    </APPLICATION>
-                  </TUPLELITERAL>
-                </APPLICATION>
+                <GUARD PLACE="25 2 25 37">
+                  <APPLICATION PLACE="25 2 25 37" INFIX="YES">
+                    <NAMEEXPR PLACE="25 26 25 29">AND</NAMEEXPR>
+                    <TUPLELITERAL PLACE="25 2 25 37">
+                      <APPLICATION PLACE="25 2 25 25" INFIX="YES">
+                        <NAMEEXPR PLACE="25 15 25 18">AND</NAMEEXPR>
+                        <TUPLELITERAL PLACE="25 2 25 25">
+                          <APPLICATION PLACE="25 2 25 14" INFIX="YES">
+                            <NAMEEXPR PLACE="25 8 25 9">=</NAMEEXPR>
+                            <TUPLELITERAL PLACE="25 2 25 14">
+                              <NAMEEXPR PLACE="25 2 25 7">state</NAMEEXPR>
+                              <NAMEEXPR PLACE="25 10 25 14">TRUE</NAMEEXPR>
+                            </TUPLELITERAL>
+                          </APPLICATION>
+                          <APPLICATION PLACE="25 19 25 25" INFIX="YES">
+                            <NAMEEXPR PLACE="25 21 25 22">&lt;</NAMEEXPR>
+                            <TUPLELITERAL PLACE="25 19 25 25">
+                              <NAMEEXPR PLACE="25 19 25 20">x</NAMEEXPR>
+                              <NUMERAL PLACE="25 23 25 25">80</NUMERAL>
+                            </TUPLELITERAL>
+                          </APPLICATION>
+                        </TUPLELITERAL>
+                      </APPLICATION>
+                      <APPLICATION PLACE="25 30 25 37" INFIX="YES">
+                        <NAMEEXPR PLACE="25 33 25 34">&lt;</NAMEEXPR>
+                        <TUPLELITERAL PLACE="25 30 25 37">
+                          <NEXTOPERATOR PLACE="25 30 25 32">
+                            <NAMEEXPR PLACE="25 30 25 31">x</NAMEEXPR>
+                          </NEXTOPERATOR>
+                          <NUMERAL PLACE="25 35 25 37">80</NUMERAL>
+                        </TUPLELITERAL>
+                      </APPLICATION>
+                    </TUPLELITERAL>
+                  </APPLICATION>
+                </GUARD>
                 <ASSIGNMENTS PLACE="26 3 26 26">
                   <SIMPLEDEFINITION PLACE="26 3 26 26">
                     <NEXTOPERATOR PLACE="26 3 26 5">
@@ -223,25 +231,27 @@
             </MULTICOMMAND>
             <MULTICOMMAND PLACE="28 4 32 26">
               <GUARDEDCOMMAND PLACE="28 4 29 16">
-                <APPLICATION PLACE="28 4 28 28" INFIX="YES">
-                  <NAMEEXPR PLACE="28 18 28 21">AND</NAMEEXPR>
-                  <TUPLELITERAL PLACE="28 4 28 28">
-                    <APPLICATION PLACE="28 4 28 17" INFIX="YES">
-                      <NAMEEXPR PLACE="28 10 28 11">=</NAMEEXPR>
-                      <TUPLELITERAL PLACE="28 4 28 17">
-                        <NAMEEXPR PLACE="28 4 28 9">state</NAMEEXPR>
-                        <NAMEEXPR PLACE="28 12 28 17">FALSE</NAMEEXPR>
-                      </TUPLELITERAL>
-                    </APPLICATION>
-                    <APPLICATION PLACE="28 22 28 28" INFIX="YES">
-                      <NAMEEXPR PLACE="28 24 28 25">&gt;</NAMEEXPR>
-                      <TUPLELITERAL PLACE="28 22 28 28">
-                        <NAMEEXPR PLACE="28 22 28 23">x</NAMEEXPR>
-                        <NUMERAL PLACE="28 26 28 28">70</NUMERAL>
-                      </TUPLELITERAL>
-                    </APPLICATION>
-                  </TUPLELITERAL>
-                </APPLICATION>
+                <GUARD PLACE="28 4 28 28">
+                  <APPLICATION PLACE="28 4 28 28" INFIX="YES">
+                    <NAMEEXPR PLACE="28 18 28 21">AND</NAMEEXPR>
+                    <TUPLELITERAL PLACE="28 4 28 28">
+                      <APPLICATION PLACE="28 4 28 17" INFIX="YES">
+                        <NAMEEXPR PLACE="28 10 28 11">=</NAMEEXPR>
+                        <TUPLELITERAL PLACE="28 4 28 17">
+                          <NAMEEXPR PLACE="28 4 28 9">state</NAMEEXPR>
+                          <NAMEEXPR PLACE="28 12 28 17">FALSE</NAMEEXPR>
+                        </TUPLELITERAL>
+                      </APPLICATION>
+                      <APPLICATION PLACE="28 22 28 28" INFIX="YES">
+                        <NAMEEXPR PLACE="28 24 28 25">&gt;</NAMEEXPR>
+                        <TUPLELITERAL PLACE="28 22 28 28">
+                          <NAMEEXPR PLACE="28 22 28 23">x</NAMEEXPR>
+                          <NUMERAL PLACE="28 26 28 28">70</NUMERAL>
+                        </TUPLELITERAL>
+                      </APPLICATION>
+                    </TUPLELITERAL>
+                  </APPLICATION>
+                </GUARD>
                 <ASSIGNMENTS PLACE="29 3 29 16">
                   <SIMPLEDEFINITION PLACE="29 3 29 16">
                     <NEXTOPERATOR PLACE="29 3 29 8">
@@ -260,39 +270,41 @@
                 </ASSIGNMENTS>
               </GUARDEDCOMMAND>
               <GUARDEDCOMMAND PLACE="31 2 32 26">
-                <APPLICATION PLACE="31 2 31 38" INFIX="YES">
-                  <NAMEEXPR PLACE="31 27 31 30">AND</NAMEEXPR>
-                  <TUPLELITERAL PLACE="31 2 31 38">
-                    <APPLICATION PLACE="31 2 31 26" INFIX="YES">
-                      <NAMEEXPR PLACE="31 16 31 19">AND</NAMEEXPR>
-                      <TUPLELITERAL PLACE="31 2 31 26">
-                        <APPLICATION PLACE="31 2 31 15" INFIX="YES">
-                          <NAMEEXPR PLACE="31 8 31 9">=</NAMEEXPR>
-                          <TUPLELITERAL PLACE="31 2 31 15">
-                            <NAMEEXPR PLACE="31 2 31 7">state</NAMEEXPR>
-                            <NAMEEXPR PLACE="31 10 31 15">FALSE</NAMEEXPR>
-                          </TUPLELITERAL>
-                        </APPLICATION>
-                        <APPLICATION PLACE="31 20 31 26" INFIX="YES">
-                          <NAMEEXPR PLACE="31 22 31 23">&gt;</NAMEEXPR>
-                          <TUPLELITERAL PLACE="31 20 31 26">
-                            <NAMEEXPR PLACE="31 20 31 21">x</NAMEEXPR>
-                            <NUMERAL PLACE="31 24 31 26">70</NUMERAL>
-                          </TUPLELITERAL>
-                        </APPLICATION>
-                      </TUPLELITERAL>
-                    </APPLICATION>
-                    <APPLICATION PLACE="31 31 31 38" INFIX="YES">
-                      <NAMEEXPR PLACE="31 34 31 35">&gt;</NAMEEXPR>
-                      <TUPLELITERAL PLACE="31 31 31 38">
-                        <NEXTOPERATOR PLACE="31 31 31 33">
-                          <NAMEEXPR PLACE="31 31 31 32">x</NAMEEXPR>
-                        </NEXTOPERATOR>
-                        <NUMERAL PLACE="31 36 31 38">70</NUMERAL>
-                      </TUPLELITERAL>
-                    </APPLICATION>
-                  </TUPLELITERAL>
-                </APPLICATION>
+                <GUARD PLACE="31 2 31 38">
+                  <APPLICATION PLACE="31 2 31 38" INFIX="YES">
+                    <NAMEEXPR PLACE="31 27 31 30">AND</NAMEEXPR>
+                    <TUPLELITERAL PLACE="31 2 31 38">
+                      <APPLICATION PLACE="31 2 31 26" INFIX="YES">
+                        <NAMEEXPR PLACE="31 16 31 19">AND</NAMEEXPR>
+                        <TUPLELITERAL PLACE="31 2 31 26">
+                          <APPLICATION PLACE="31 2 31 15" INFIX="YES">
+                            <NAMEEXPR PLACE="31 8 31 9">=</NAMEEXPR>
+                            <TUPLELITERAL PLACE="31 2 31 15">
+                              <NAMEEXPR PLACE="31 2 31 7">state</NAMEEXPR>
+                              <NAMEEXPR PLACE="31 10 31 15">FALSE</NAMEEXPR>
+                            </TUPLELITERAL>
+                          </APPLICATION>
+                          <APPLICATION PLACE="31 20 31 26" INFIX="YES">
+                            <NAMEEXPR PLACE="31 22 31 23">&gt;</NAMEEXPR>
+                            <TUPLELITERAL PLACE="31 20 31 26">
+                              <NAMEEXPR PLACE="31 20 31 21">x</NAMEEXPR>
+                              <NUMERAL PLACE="31 24 31 26">70</NUMERAL>
+                            </TUPLELITERAL>
+                          </APPLICATION>
+                        </TUPLELITERAL>
+                      </APPLICATION>
+                      <APPLICATION PLACE="31 31 31 38" INFIX="YES">
+                        <NAMEEXPR PLACE="31 34 31 35">&gt;</NAMEEXPR>
+                        <TUPLELITERAL PLACE="31 31 31 38">
+                          <NEXTOPERATOR PLACE="31 31 31 33">
+                            <NAMEEXPR PLACE="31 31 31 32">x</NAMEEXPR>
+                          </NEXTOPERATOR>
+                          <NUMERAL PLACE="31 36 31 38">70</NUMERAL>
+                        </TUPLELITERAL>
+                      </APPLICATION>
+                    </TUPLELITERAL>
+                  </APPLICATION>
+                </GUARD>
                 <ASSIGNMENTS PLACE="32 3 32 26">
                   <SIMPLEDEFINITION PLACE="32 3 32 26">
                     <NEXTOPERATOR PLACE="32 3 32 5">

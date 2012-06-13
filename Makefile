@@ -51,8 +51,8 @@ sal2xml: $(HXMLS)
 powertrain:  ${exhsal}/powertrain.hsal
 	bin/hsal2hasal $<
 
-RCEngine:  ${exhsal}/RCEngine.xml
-	bin/modelica2hsal $<
+RCEngine:  modelica2hsal/${exhsal}/RCEngine.xml
+	modelica2hsal/bin/modelica2hsal $<
 
 PTimed: ${exhsal}/PTimed.hsal
 	echo "***************************************************************"
