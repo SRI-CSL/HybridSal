@@ -12,7 +12,7 @@ import sys
 #   From this file, you can safely use HSalPPContext; 
 #   For using other functions, need to set fp
 
-precedence = ['/', '*', '-', '+', '>', '>=', '<', '<=', '=', '/=', 'NOT', 'AND', 'OR', '=>']
+precedence = ['/', '*', '-', '+', '>', '>=', '<', '<=', '=', '/=', 'NOT', 'AND', 'OR', 'XOR', '=>', '<=>']
 
 def valueOf(node):
     """return text value of node"""

@@ -34,7 +34,7 @@ clear
 
 tps = 70;
 % grade = 0.1745;
-grade = 0.1;
+grade = 0.2;
 %tps = 80;
 %grade = 0.2;
 
@@ -42,8 +42,8 @@ N = 6;
 
 Tfinal = 60;
 T0 = 0;
-step = 0.0015;
-% step = 0.001;
+% step = 0.0015;
+step = 0.001;
 
 t = [T0: step: Tfinal]';
 x0 = zeros(N,1);
