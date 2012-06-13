@@ -48,11 +48,15 @@ Installation instructions for HybridSAL Relational Abstractor:
 
 (4) Run 
 
-    make 
+    make test
 
     This will test if the relational abstraction is installed properly.
-    Running make will automatically create abstractions of the
-    files in examples/*.hsal
+    Running make test will automatically create abstraction of the
+    file examples/Linear1.hsal.  You can run relational abstraction tool
+    on other models as follows:
+  	bin/hsal2hasal examples/<filename>.hsal
+    For help, run
+	bin/hsal2hasal -h
 
 
 Additional notes for Macs.

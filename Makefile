@@ -23,6 +23,9 @@ all: $(SALS) src/HSalRelAbsCons.py
 install: install.py
 	python install.py
 
+test: 
+	bin/hsal2hasal examples/Linear1.hsal
+
 %.sal: %.hxml
 	bin/hsal2hasal $<
 
