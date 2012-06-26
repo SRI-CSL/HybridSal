@@ -161,7 +161,7 @@ def findState(Eqn, cstate, dstate, var_details):
             if name1 == name:
                 return i
         print 'ERROR: Unknown variable found! Can not handle.'
-        assert False, "Variable {0} not found".format(name)
+        assert False, "Model Error: Variable {0} is not declared".format(name)
         return None
     ids = Eqn.getElementsByTagName('identifier')
     bools, reals, integers = [], [], []
@@ -701,7 +701,13 @@ Usage: python daexml2hsal <daexml_file> <modelica_xmlfile>
 def daexml2hsal(dom1, dom2, filename):
     global dom
     dom = dom1
-    hsalstr = convert2hsal(dom1, dom2)
+    try:
+        hsalstr = convert2hsal(dom1, dom2)
+    except AssertionError, e:
+        # print 'Assertion Violation Found'
+        print e
+        print 'Unable to handle such models...quitting'
+        sys.exit(-1)
     create_output_file(filename, hsalstr)
 
 def main():

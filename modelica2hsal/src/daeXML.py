@@ -477,6 +477,10 @@ def simplifyITE(node):
     done = True
     sas = node.getElementsByTagName('BAPP')
     for parentnode in sas:
+        if parentnode.parentNode == None:
+            # this node was removed in a previous iteration of this loop; 
+            # so ignore this node
+            continue
         arg0 = getArg(parentnode, 1)
         arg1 = getArg(parentnode, 2)
         arg2 = getArg(parentnode, 3)
@@ -933,14 +937,20 @@ def SimplifyEqnsPhase4(dom, cstate, dstate):
             mapping = {}
             i = varvals[0]
             var = getArg(i,1)
+            varname = valueOf(var).strip()
             if var.tagName != 'identifier':
                 newknownvars.removeChild( i )
                 i.tagName = 'equation'
                 neweqns.appendChild( i )
+            elif varname in cstate or varname in dstate:
+                print 'knownVar {0} cannot be a state variable'.format(varname)
+                print 'WARNING:potential algebraic equation; may fail later'
+                newknownvars.removeChild( i )
+                i.tagName = 'equation'
+                neweqns.appendChild( i )
             else:
-                varname = valueOf(var).strip()
-                assert varname not in cstate, 'knownVar cant be in cstate'
-                assert varname not in dstate, 'knownVar cant be in dstate'
+                assert varname not in cstate, 'knownVar {0} cant be in cstate'.format(varname)
+                assert varname not in dstate, 'knownVar {0} cant be in dstate'.format(varname)
                 val = getArg(i,2)
                 mapping[varname] = val
                 newknownvars.removeChild( i )

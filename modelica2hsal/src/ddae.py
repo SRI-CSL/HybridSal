@@ -14,7 +14,7 @@
 # >>> x = f.read()
 # >>> y = Parser().parse(x)    # y is now a dparser.ParsedStructure instance
 
-from dparser import Parser
+from dparser import Parser, SyntaxError
 from xml.dom.minidom import getDOMImplementation
 import sys
 import os.path
@@ -311,9 +311,20 @@ def dae2daexml(filename):
     global dom
     impl = getDOMImplementation()
     dom = impl.createDocument(None, "daexml", None)
-    f = open(filename, 'r')
-    x = f.read()
-    y = Parser().parse(x)    # y is now a dparser.ParsedStructure instance
+    with open(filename, 'r') as f:
+        x = f.read()
+    try:
+        y = Parser().parse(x)    # y is now a dparser.ParsedStructure instance
+    # except Exception, e:
+    except SyntaxError, e:
+        print e
+        # print sys.exc_info()[0]
+        print 'DAE Parse Error: Unable to handle this model currently'
+        sys.exit(-1)
+    except Exception, e:
+        print e
+        print 'DAE Parser Unknown Error: Unable to handle this model currently'
+        sys.exit(-1)
     z = y.getStructure()
     create_output_file(filename, z)
     return (dom,z)

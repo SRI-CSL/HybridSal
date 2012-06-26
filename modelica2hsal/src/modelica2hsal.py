@@ -41,7 +41,16 @@ def main():
 
 def modelica2hsal(filename):
     basename,ext = os.path.splitext(filename)
-    dom = xml.dom.minidom.parse(filename)
+    try:
+        dom = xml.dom.minidom.parse(filename)
+    except xml.parsers.expat.ExpatError, e:
+        print 'Syntax Error: Input XML ', e 
+        print 'Error: Input XML file is not well-formed...Quitting.'
+        return -1
+    except:
+        print 'Error: Input XML file is not well-formed'
+        print 'Quitting', sys.exc_info()[0]
+        return -1
     dom2 = dom	# will be used later by daexml2hsal for variable information
     daefilename = basename + '.dae'
     moveIfExists(daefilename)
@@ -54,7 +63,11 @@ def modelica2hsal(filename):
     daexmlfilename = basename + '.daexml'
     print >> sys.stderr, 'Created file {0}'.format(daexmlfilename)
     print >> sys.stderr, 'Trying to simplify the Modelica model...'
-    dom1 = xml.dom.minidom.parse(daexmlfilename)
+    try:
+        dom1 = xml.dom.minidom.parse(daexmlfilename)
+    except:
+        print 'Model not supported: Unable to handle some expressions currently'
+        sys.exit(-1)
     dom1 = daeXML.simplifydaexml(dom1,daexmlfilename)
     print >> sys.stderr, 'Finished simplification steps.'
     print >> sys.stderr, 'Creating HybridSal model....'
