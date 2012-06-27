@@ -621,20 +621,22 @@ def createEventsFromPreds(preds, reals, inputs):
             
 
 # -----------------------------------------------------------------
-def convert2hsal(dom1, dom2):
-    "dom1: DAE XML; dom2: original modelica XML; return HSal as string"
-    def alpha_rename_aux(ans, bools):
+def convert2hsal(dom1, dom2, dom3 = None):
+    '''dom1: DAE XML; dom2: original modelica XML; dom3: property XML
+     return (HSal,PropHSal) as strings'''
+    def alpha_rename_aux(ans, ans2, bools):
         for i in bools:
             if i.find('.') is not -1:
                 j = i.replace('.','_')
                 ans = ans.replace(i, j)
-        return ans
-    def alpha_rename(ans, state):
+                ans2 = ans2.replace(i, j)
+        return (ans, ans2)
+    def alpha_rename(ans, ans2, state):
         (bools,reals,ints,inputs,nonstates,vmap) = state
-        ans = alpha_rename_aux(ans, bools)
-        ans = alpha_rename_aux(ans, ints)
-        ans = alpha_rename_aux(ans, reals)
-        return ans
+        (ans, ans2) = alpha_rename_aux(ans, ans2, bools)
+        (ans, ans2) = alpha_rename_aux(ans, ans2, ints)
+        (ans, ans2) = alpha_rename_aux(ans, ans2, reals)
+        return (ans, ans2)
     # decide later if creating hsal XML or hsal string
     cstate = getIdentifiersIn(dom1,'continuousState')
     dstate = getIdentifiersIn(dom1,'discreteState')
@@ -664,52 +666,34 @@ def convert2hsal(dom1, dom2):
     ans2 = createPlant(state, contEqns, oEqns, dom1)
     # replace varname.var -> varname_var
     ans = ans1 + ans2
-    ans = alpha_rename(ans, state)
-    return ans
+    propStr = createProperty(dom3)
+    (ans, propStr) = alpha_rename(ans, propStr, state)
+    return (ans, propStr)
 
-def mkG(dom3, arg1):
-    implopstr = dom3.createTextNode('G')
-    implop = dom3.createElement('NAMEEXPR')
-    implop.appendChild(implopstr)
-    arg = dom3.createElement('TUPLELITERAL')
-    arg.appendChild(arg1)
-    impl = dom3.createElement('APPLICATION')
-    impl.appendChild(implop)
-    impl.appendChild(arg)
-    return impl
-
-def mkImpl(dom3, arg1, arg2):
-    impl = dom3.createElement('APPLICATION')
-    impl.setAttribute('INFIX', 'YES')
-    impl.setAttribute('PARENS', '1')
-    implop = dom3.createElement('NAMEEXPR')
-    implopstr = dom3.createTextNode('=>')
-    implop.appendChild(implopstr)
-    arg = dom3.createElement('TUPLELITERAL')
-    arg.appendChild(arg1)
-    arg.appendChild(arg2)
-    impl.appendChild(implop)
-    impl.appendChild(arg)
-    return impl
-
-def create_output_file(filename, hsalstr, dom3 = None):
-    "dom3: context_property.xml"
-    def moveIfExists(filename):
-        import shutil
-        if os.path.isfile(filename):
-            print >> sys.stderr, "Output file {0} exists.".format(filename),
-            print >> sys.stderr, "Renaming old file to {0}.".format(filename+"~")
-            shutil.move(filename, filename + "~")
-    basename,ext = os.path.splitext(filename)
-    basename += "Model"
-    outfile = basename + ".hsal"
-    moveIfExists(outfile)
-    (dirname,basefilename) = os.path.split(basename)
-    ansBEGIN = basefilename
-    ansBEGIN += ": CONTEXT ="
-    ansBEGIN += "\nBEGIN"
-    ansEND = "\nEND"
-    system = "\n\n system: MODULE = control || plant ;"
+def createProperty(dom3):
+    def mkG(dom3, arg1):
+        implopstr = dom3.createTextNode('G')
+        implop = dom3.createElement('NAMEEXPR')
+        implop.appendChild(implopstr)
+        arg = dom3.createElement('TUPLELITERAL')
+        arg.appendChild(arg1)
+        impl = dom3.createElement('APPLICATION')
+        impl.appendChild(implop)
+        impl.appendChild(arg)
+        return impl
+    def mkImpl(dom3, arg1, arg2):
+        impl = dom3.createElement('APPLICATION')
+        impl.setAttribute('INFIX', 'YES')
+        impl.setAttribute('PARENS', '1')
+        implop = dom3.createElement('NAMEEXPR')
+        implopstr = dom3.createTextNode('=>')
+        implop.appendChild(implopstr)
+        arg = dom3.createElement('TUPLELITERAL')
+        arg.appendChild(arg1)
+        arg.appendChild(arg2)
+        impl.appendChild(implop)
+        impl.appendChild(arg)
+        return impl
     propStr = ''
     if dom3 != None:
         ccl = dom3.getElementsByTagName('CONTEXT')
@@ -759,6 +743,26 @@ def create_output_file(filename, hsalstr, dom3 = None):
         else:
             propStr = ''
     # propStr is the desired property; 
+    return propStr
+
+def create_output_file(filename, hsalstr, propStr = ''):
+    "dom3: context_property.xml"
+    def moveIfExists(filename):
+        import shutil
+        if os.path.isfile(filename):
+            print >> sys.stderr, "Output file {0} exists.".format(filename),
+            print >> sys.stderr, "Renaming old file to {0}.".format(filename+"~")
+            shutil.move(filename, filename + "~")
+    basename,ext = os.path.splitext(filename)
+    basename += "Model"
+    outfile = basename + ".hsal"
+    moveIfExists(outfile)
+    (dirname,basefilename) = os.path.split(basename)
+    ansBEGIN = basefilename
+    ansBEGIN += ": CONTEXT ="
+    ansBEGIN += "\nBEGIN"
+    ansEND = "\nEND"
+    system = "\n\n system: MODULE = control || plant ;"
     with open(outfile, "w") as fp:
         print >> fp, '% Generated automatically by daexml2hsal'
         print >> fp, ansBEGIN
@@ -781,13 +785,13 @@ def daexml2hsal(dom1, dom2, filename, dom3):
     global dom
     dom = dom1
     try:
-        hsalstr = convert2hsal(dom1, dom2)
+        (hsalstr, propStr) = convert2hsal(dom1, dom2, dom3)
     except AssertionError, e:
         # print 'Assertion Violation Found'
         print e
         print 'Unable to handle such models...quitting'
         sys.exit(-1)
-    create_output_file(filename, hsalstr, dom3)
+    create_output_file(filename, hsalstr, propStr)
 
 def main():
     global dom

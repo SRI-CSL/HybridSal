@@ -1,0 +1,37 @@
+<CONTEXTPROPERTY>
+<CONTEXT>
+        <APPLICATION INFIX="YES">
+          <NAMEEXPR>AND</NAMEEXPR>
+          <TUPLELITERAL>
+                <APPLICATION INFIX="YES" PARENS="1">
+                  <NAMEEXPR>&gt;</NAMEEXPR>
+                  <TUPLELITERAL>
+                    <NAMEEXPR>u</NAMEEXPR>
+                    <NUMERAL>500</NUMERAL>
+                  </TUPLELITERAL>
+                </APPLICATION>
+                <APPLICATION INFIX="YES" PARENS="1">
+                  <NAMEEXPR>&lt;</NAMEEXPR>
+                  <TUPLELITERAL>
+                    <NAMEEXPR>u</NAMEEXPR>
+                    <NUMERAL>1000</NUMERAL>
+                  </TUPLELITERAL>
+                </APPLICATION>
+          </TUPLELITERAL>
+        </APPLICATION>
+</CONTEXT>
+<PROPERTY>
+        <APPLICATION>
+          <LTLOP>G</LTLOP>
+          <TUPLELITERAL>
+                <APPLICATION INFIX="YES" PARENS="1">
+                  <NAMEEXPR>&lt;</NAMEEXPR>
+                  <TUPLELITERAL>
+                    <NAMEEXPR>J_crank.w</NAMEEXPR>
+                    <NUMERAL>2000</NUMERAL>
+                  </TUPLELITERAL>
+                </APPLICATION>
+          </TUPLELITERAL>
+        </APPLICATION>
+</PROPERTY>
+</CONTEXTPROPERTY>
