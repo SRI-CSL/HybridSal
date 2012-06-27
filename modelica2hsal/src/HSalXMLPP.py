@@ -1,8 +1,18 @@
+# Pretty Printer for HSal XML
+# Reads salfile.xml and outputs salfile.sal
+
+# TODO:
+# INITDECL not handled yet -- initfordecl should be changed too.
+
 import xml.dom.minidom
-import xml.parsers.expat
 import sys
 
-precedence = ['/', '*', '-', '+', '>', '>=', '<', '<=', '=', 'NOT', 'AND', 'OR', '=>']
+# Caveat1: Some functions return a string, others print >> fp
+# Caveat2: global fp is used as a file pointer; 
+#   From this file, you can safely use HSalPPContext; 
+#   For using other functions, need to set fp
+
+precedence = ['/', '*', '-', '+', '>', '>=', '<', '<=', '=', '/=', 'NOT', 'AND', 'OR', 'XOR', '=>', '<=>']
 
 def valueOf(node):
     """return text value of node"""
@@ -13,18 +23,12 @@ def valueOf(node):
 def getNameTag(node, tag):
     nodes = node.getElementsByTagName(tag)
     if (len(nodes) < 1):
-        print >> sys.stderr, node.toxml()
+        print node.toxml()
     childnode = nodes[0]
     return(valueOf(childnode))
 
 def getName(node):
     return getNameTag(node, "IDENTIFIER")
-
-def getChildByTagName(node,tag):
-    for i in node.childNodes:
-        if i.nodeType == i.ELEMENT_NODE and i.tagName == tag:
-            return i
-    return None
 
 def HSalPPDecl(node):
     return getName(node)+HSalPPType(getArg(node,2), ":", "")
@@ -76,8 +80,8 @@ def higherPrec(op1, op2):
     elif op1 == None:
         return False
     else:
-        print >> sys.stderr, "EITHER Op not found %s" % op1 
-        print >> sys.stderr, "OR Op not found %s" % op2 
+        print "EITHER Op not found %s" % op1 
+        print "OR Op not found %s" % op2 
         return True
 
 def HSalPPInfixApp(node,outerSymb=None):
@@ -143,6 +147,24 @@ def HSalPPConditional(node):
                 str0 += " ENDIF "
     return str0
 
+def HSalPPArrayLiteral(node):
+    '''<ARRAYLITERAL> <INDEXVARDECL><ID><SUBRANGE></INDEXVARDECL> <EXPR>
+       print [ [i:TYPE] Expr ] '''
+    lhs = getArg(node,1)
+    rhs = getArg(node,2)
+    str1 = HSalPPDecl(lhs)
+    str2 = HSalPPExpr(rhs)
+    return "[ ["+str1+"] "+str2+" ]"
+
+def HSalPPArraySelection(node):
+    '''<ARRAYSELECTION PLACE="122 46 122 55">
+         EXPR EXPR <ARRAYSELECTION> PRINT EXPR[EXPR]'''
+    lhs = getArg(node,1)
+    rhs = getArg(node,2)
+    str1 = HSalPPExpr(lhs)
+    str2 = HSalPPExpr(rhs)
+    return str1+"["+str2+"]"
+
 def HSalPPExpr(node, outerSymb=None):
     if (node == None) or not(node.nodeType == node.ELEMENT_NODE):
         return ""
@@ -158,9 +180,13 @@ def HSalPPExpr(node, outerSymb=None):
         return HSalPPSetPredExpr(node)
     elif node.localName == "CONDITIONAL":
         return HSalPPConditional(node)
+    elif node.localName == "ARRAYLITERAL":
+        return HSalPPArrayLiteral(node)
+    elif node.localName == "ARRAYSELECTION":
+        return HSalPPArraySelection(node)
     else:
-        print >> sys.stderr, node.toxml()
-        print >> sys.stderr, 'Node EXPR %s unknown. Missing code' % node.localName
+        print node.toxml()
+        print 'Node EXPR %s unknown. Missing code' % node.localName
     return None
 
 def HSalPPExprs(nodes):
@@ -407,6 +433,15 @@ def HSalPPSubrange(node):
     str1 = HSalPPExpr(lhs)
     str2 = HSalPPExpr(rhs)
     return "["+str1+" .. "+str2+"]"
+
+def HSalPPArrayType(node):
+    '''Print ARRAY A OF B given <ARRAYTYPE PLACE="46 7 46 51">
+        A B </ARRAYTYPE>'''
+    lhs = getArg(node,1)
+    rhs = getArg(node,2)
+    str1 = HSalPPType(lhs, '', '')
+    str2 = HSalPPType(rhs, '', '')
+    return "ARRAY "+str1+" OF "+str2
     
 def HSalPPType(node,str1,str2):
     if not(node.nodeType == node.ELEMENT_NODE):
@@ -422,6 +457,8 @@ def HSalPPType(node,str1,str2):
         str0 = HSalPPScalarType(node)
     elif node.localName == "SUBRANGE":
         str0 = HSalPPSubrange(node)
+    elif node.localName == "ARRAYTYPE":
+        str0 = HSalPPArrayType(node)
     else:
         print node.toxml()
         print 'Node TYPE %s not handled. Missing code' % node.localName
@@ -465,109 +502,14 @@ def HSalPPContextBody(ctxtbody):
     for i in ctxtbody.childNodes:
         HSalPPNode(i)
 
-def getVariableValue(var):
-    "return value of the variable by looking at different places"
-    tags = [ 'bindExpression', 'initialValue' ]
-    for i in tags:
-        val = var.getElementsByTagName(i)
-        if val != None and len(val) > 0:
-            value = val[0].getAttribute('string')
-            return value
-    #print >> sys.stderr, 'Note: value for variable {0} not fixed'.format(var.getAttribute('name'))
-    return None
-
-def printFixedParameters(varList, varTypeList):
-    ans = []
-    for i in varList:
-        # fixed = i.getAttribute('fixed')
-        param = i.getAttribute('variability')
-        inout = i.getAttribute('direction')
-        if param in varTypeList and inout != 'input':
-            value = getVariableValue(i)
-            name = i.getAttribute('name')
-            if value != None:
-                print >> fp, '{0} = {1}'.format(name, value)
-            else:
-                ans.append(name)
-    return ans
-
-def HSalPPContext(dom, filepointer=sys.stdout):
+def HSalPPContext(ctxt, filepointer=sys.stdout):
     global fp 
     fp = filepointer
-    ctxt = dom.getElementsByTagName('dae')[0]
-    #print ctxt.tagName
-    variables = getChildByTagName(ctxt, 'variables')
-    equations = getChildByTagName(ctxt, 'equations')
-    zeroCrossing = getChildByTagName(ctxt, 'zeroCrossingList')
-    arrayOfEqns = getChildByTagName(ctxt, 'arrayOfEquations')
-    algorithms = getChildByTagName(ctxt, 'algorithms')
-    functions = getChildByTagName(ctxt, 'functions')
-    assert variables != None, 'Variables not found in input XML file!'
-    # Now start printing .dae file
-    tmp = getChildByTagName(variables, 'orderedVariables')
-    ovars = tmp.getElementsByTagName('variable') if tmp != None else []
-    tmp = getChildByTagName(variables, 'knownVariables')
-    kvars = tmp.getElementsByTagName('variable') if tmp != None else []
-    #
-    print >> fp, '#####{0}'.format('continuousState')
-    for i in ovars:
-        if i.getAttribute('variability') == 'continuousState':
-            print >> fp, i.getAttribute('name')
-    print >> fp, '#####{0}'.format('discreteState')
-    for i in ovars:
-        if i.getAttribute('variability') == 'discrete':
-            print >> fp, i.getAttribute('name')
-    # print constants or parameters with their values
-    print >> fp, '#####{0}'.format('knownVariables')
-    leftOutVars1 = printFixedParameters(kvars, ['parameter', 'constant', 'discrete'])
-    assert len(leftOutVars1) == 0, 'ERROR: Some fixed param  equation missed'
-    leftOutVars1  = printFixedParameters(kvars, ['continuous'])
-    assert len(leftOutVars1) == 0, 'ERROR: Some fixed cont equation missed {0}'.format(leftOutVars1)
-    leftOutVars  = printFixedParameters(ovars, ['continuous'])
-    leftOutVars.extend(leftOutVars1)
-    # 
-    assert equations != None, 'No Equations found in input XML file!!'
-    equationL = equations.getElementsByTagName('equation')
-    eqns = []
-    for i in equationL:
-        eqni = valueOf(i)
-        eq_index = eqni.index('=')
-        lhs = eqni[0:eq_index].strip()
-        if lhs in leftOutVars:
-            #print >> sys.stderr, 'Note: Found value for {0} in equations'.format(lhs)
-            print >> fp, eqni.strip() 
-        else:
-            eqns.append(eqni)
-    equationL = equations.getElementsByTagName('whenEquation')
-    for i in equationL:
-        eqni = valueOf(i)
-        eq_index = eqni.index(':=')
-        lhs = eqni[0:eq_index].strip()
-        rhs = eqni[eq_index+1:].strip()
-        eqns.append(lhs + rhs)
-    print >> fp, '#####equations'
-    for i in eqns:
-        print >> fp, i.strip()
-
-def start_element(name, attrs):
-    if name == 'bindExpression':
-        print >> fp, name, attrs
-        attrs['string'] = ''
-
-def attlistdeclhandler(elname, attname, typeN ):
-    print elname, attname, typeN
-    if elname == 'bindExpression':
-        print elname, attname, typeN
-
-def elmtdeclhandle(name,model):
-    print name
+    print >> fp, "%s: CONTEXT = " % getName(ctxt)
+    print >> fp, "BEGIN" 
+    HSalPPContextBody(ctxt.getElementsByTagName("CONTEXTBODY")[0])
+    print >> fp, "END"
 
 if __name__ == "__main__":
-    #xmlparser = xml.parsers.expat.ParserCreate()
     dom = xml.dom.minidom.parse(sys.argv[1])
-    #xmlparser.StartElementHandler = start_element
-    #xmlparser.ElementDeclHandler = elmtdeclhandle
-    #xmlparser.AttlistDeclHandler = attlistdeclhandler
-    #fp = open(sys.argv[1])
-    #dom = xmlparser.ParseFile(fp)
     HSalPPContext(dom)

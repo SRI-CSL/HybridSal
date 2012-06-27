@@ -6,12 +6,14 @@ import sys
 import os.path
 import daexmlPP
 import ddae
+import HSalXMLPP
 
 def valueOf(node):
     """return text value of node"""
     for i in node.childNodes:
         if i.nodeType == i.TEXT_NODE:
-            return(i.data)
+            #return(i.data)
+            return(i.nodeValue)
 
 def getArg(node,index):
     j = 0
@@ -186,13 +188,13 @@ def findState(Eqn, cstate, dstate, var_details):
             myappend(integers, name)
         else:
             assert False, "Type {0} not found".format(vtype)
-    print 'bools', bools
-    print 'reals', reals
-    print 'integers', integers
-    print 'inputs', inputs
-    print 'nonstates', nonstates
-    print 'cstate', cstate
-    print 'dstate', dstate
+    print >> sys.stderr, 'bools', bools
+    print >> sys.stderr, 'reals', reals
+    print >> sys.stderr, 'integers', integers
+    print >> sys.stderr, 'inputs', inputs
+    print >> sys.stderr, 'nonstates', nonstates
+    print >> sys.stderr, 'cstate', cstate
+    print >> sys.stderr, 'dstate', dstate
     return (bools, reals, integers, inputs, nonstates, varmap)
  
 # -----------------------------------------------------------------
@@ -380,8 +382,8 @@ def simplifyITEeq(e1, e2, var=None):
             bi.extend(d1i)
             vi = solve(v0i, v1i, var)
             ans.append((ai,bi,vi))
-    print 'SimplifyITEeq input has {0} = {1} cases'.format(len(e1),len(e2))
-    print 'SimplifyITEeq output has {0} cases'.format(len(ans))
+    print >> sys.stderr, 'SimplifyITEeq input has {0} = {1} cases'.format(len(e1),len(e2))
+    print >> sys.stderr, 'SimplifyITEeq output has {0} cases'.format(len(ans))
     return (var, ans)
 
 def others2saldef(varvall):
@@ -562,7 +564,7 @@ def createPlant(state, ceqns, oeqns, dom):
         name = valueOf(getArg(var,1)).strip()
         rhs =  expr2cexpr(val)
         ode.append( (name, rhs) )
-        print 'ODE for {0} has {1} cases'.format(name,len(rhs))
+        print >> sys.stderr, 'ODE for {0} has {1} cases'.format(name,len(rhs))
     others = []
     for e in oeqns:
         lhs = getArg(e,1) 
@@ -570,7 +572,7 @@ def createPlant(state, ceqns, oeqns, dom):
         e1 =  expr2cexpr2(lhs)
         e2 =  expr2cexpr2(rhs)
         others.append( (e1, e2) )
-        print 'Other equation has {0} and {1} cases'.format(len(e1),len(e2))
+        print >> sys.stderr, 'Other equation has {0} and {1} cases'.format(len(e1),len(e2))
         # print 'lhs = {0}'.format(daexmlPP.ppExpr(lhs))
         # print 'rhs = {0}'.format(daexmlPP.ppExpr(rhs))
         # print 'e1 = {0}'.format(e1)
@@ -643,20 +645,20 @@ def convert2hsal(dom1, dom2):
         return -1
     Eqn = dom1.getElementsByTagName('equations')[0]
     eqns = getElementsByTagTagName(dom1, 'equations', 'equation')
-    print 'Found {0} equations. Processing...'.format(len(eqns))
+    print >> sys.stderr, 'Found {0} equations. Processing...'.format(len(eqns))
     var_details = getElementsByTagTagName(dom2, 'orderedVariables', 'variable')
     var_details2 = getElementsByTagTagName(dom2, 'knownVariables', 'variable')
     var_details.extend(var_details2)
     (discEqns,contEqns,oEqns) = classifyEqns(eqns,cstate,dstate)
-    print 'Classified eqns into {0} discrete, {1} cont, {2} others'.format(len(discEqns),len(contEqns),len(oEqns))
+    print >> sys.stderr, 'Classified eqns into {0} discrete, {1} cont, {2} others'.format(len(discEqns),len(contEqns),len(oEqns))
     state = findState(Eqn,cstate,dstate,var_details)
     (bools,reals,ints,inputs,nonstates,vmap) = state
-    print 'Found {0} bools, {1} reals, {2} ints'.format(len(bools),len(reals),len(ints))
-    print 'Found {0} inputs, {1} non-states'.format(len(inputs),len(nonstates))
+    print >> sys.stderr, 'Found {0} bools, {1} reals, {2} ints'.format(len(bools),len(reals),len(ints))
+    print >> sys.stderr, 'Found {0} inputs, {1} non-states'.format(len(inputs),len(nonstates))
     # preds = getPredsInConds(contEqns)
     preds = getPredsInConds(eqns)
-    print 'Found {0} preds'.format(len(preds))
-    print preds
+    print >> sys.stderr, 'Found {0} preds'.format(len(preds))
+    print >> sys.stderr, preds
     ans0 = createEventsFromPreds(preds, reals, inputs)	# Should events on inputs be included?
     ans1 = createControl(state, discEqns, ans0, dom1)
     ans2 = createPlant(state, contEqns, oEqns, dom1)
@@ -665,12 +667,38 @@ def convert2hsal(dom1, dom2):
     ans = alpha_rename(ans, state)
     return ans
 
-def create_output_file(filename, hsalstr):
+def mkG(dom3, arg1):
+    implopstr = dom3.createTextNode('G')
+    implop = dom3.createElement('NAMEEXPR')
+    implop.appendChild(implopstr)
+    arg = dom3.createElement('TUPLELITERAL')
+    arg.appendChild(arg1)
+    impl = dom3.createElement('APPLICATION')
+    impl.appendChild(implop)
+    impl.appendChild(arg)
+    return impl
+
+def mkImpl(dom3, arg1, arg2):
+    impl = dom3.createElement('APPLICATION')
+    impl.setAttribute('INFIX', 'YES')
+    impl.setAttribute('PARENS', '1')
+    implop = dom3.createElement('NAMEEXPR')
+    implopstr = dom3.createTextNode('=>')
+    implop.appendChild(implopstr)
+    arg = dom3.createElement('TUPLELITERAL')
+    arg.appendChild(arg1)
+    arg.appendChild(arg2)
+    impl.appendChild(implop)
+    impl.appendChild(arg)
+    return impl
+
+def create_output_file(filename, hsalstr, dom3 = None):
+    "dom3: context_property.xml"
     def moveIfExists(filename):
         import shutil
         if os.path.isfile(filename):
-            print "Output file {0} exists.".format(filename),
-            print "Renaming old file to {0}.".format(filename+"~")
+            print >> sys.stderr, "Output file {0} exists.".format(filename),
+            print >> sys.stderr, "Renaming old file to {0}.".format(filename+"~")
             shutil.move(filename, filename + "~")
     basename,ext = os.path.splitext(filename)
     basename += "Model"
@@ -682,11 +710,61 @@ def create_output_file(filename, hsalstr):
     ansBEGIN += "\nBEGIN"
     ansEND = "\nEND"
     system = "\n\n system: MODULE = control || plant ;"
+    propStr = ''
+    if dom3 != None:
+        ccl = dom3.getElementsByTagName('CONTEXT')
+        if ccl != None and len(ccl) > 0:
+           ctxtExpr = getArg(ccl[0], 1)
+        else:
+           ctxtExpr = None
+        ccl = dom3.getElementsByTagName('PROPERTY')
+        if ccl != None and len(ccl) > 0:
+            propExpr = getArg(ccl[0], 1)
+            #print 'Printing propExpr {0}'.format(propExpr.toxml())
+            LTLOpl = propExpr.getElementsByTagName('LTLOP')
+            for i in LTLOpl:
+                i.tagName = 'NAMEEXPR'
+            if ctxtExpr != None:
+                if LTLOpl == None or len(LTLOpl) == 0:
+                    print >> sys.stderr, 'Error: Property has no temporal operator; assuming G'
+                    propExpr = mkImpl(dom3,ctxtExpr,propExpr)
+                    propExpr = mkG(dom3,propExpr)
+                else:
+                    op = valueOf(LTLOpl[0])
+                    if op == 'G' or op == 'ALWAYS' or op == 'always':
+                        propExpr1 = getArg(LTLOpl[0].parentNode,2)
+                        if propExpr1 == None:
+                            print 'Error: Incorrect syntax for property...'
+                            print LTLOpl[0].toxml()
+                            print propExpr.toxml()
+                            sys.exit(-1)
+                        arg2 = getArg(propExpr1,1)
+                        propExpr1.removeChild(arg2)
+                        impl = mkImpl(dom3,ctxtExpr, arg2)
+                        propExpr1.appendChild(impl)
+                    else:
+                        propExpr = mkImpl(dom3,ctxtExpr,propExpr)
+                        propExpr = mkG(dom3,propExpr)
+            else:	# if ctxtExpr is None
+                if LTLOpl == None or len(LTLOpl) == 0:
+                    print >> sys.stderr, 'Error: Property has no temporal operator; assuming G'
+                    propExpr = mkG(dom3,propExpr)
+           # at this point, propExpr is our desired property   
+        else:	# no property in the given file   
+            print >> sys.stderr, 'There is no property in the given file'
+            propExpr = None
+        # at this point, propExpr is None OR is our desired property   
+        if propExpr != None:
+            propStr = HSalXMLPP.HSalPPExpr(propExpr)
+        else:
+            propStr = ''
+    # propStr is the desired property; 
     with open(outfile, "w") as fp:
         print >> fp, '% Generated automatically by daexml2hsal'
         print >> fp, ansBEGIN
         print >> fp, hsalstr
         print >> fp, system
+        print >> fp, ' system |- {0} ;'.format(propStr)
         print >> fp, ansEND
     print "Created file %s containing the HybridSAL representation" % outfile
     return 0
@@ -698,7 +776,8 @@ daexml2hsal -- a converter from differential algebraic equations to HybridSal
 Usage: python daexml2hsal <daexml_file> <modelica_xmlfile>
     '''
 
-def daexml2hsal(dom1, dom2, filename):
+def daexml2hsal(dom1, dom2, filename, dom3):
+    "dom3: context_property.xml; dom1: daexml, dom2: original modelica"
     global dom
     dom = dom1
     try:
@@ -708,7 +787,7 @@ def daexml2hsal(dom1, dom2, filename):
         print e
         print 'Unable to handle such models...quitting'
         sys.exit(-1)
-    create_output_file(filename, hsalstr)
+    create_output_file(filename, hsalstr, dom3)
 
 def main():
     global dom

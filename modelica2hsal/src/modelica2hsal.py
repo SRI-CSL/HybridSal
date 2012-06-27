@@ -10,7 +10,7 @@ def printUsage():
     print '''
 modelica2hsal -- a converter from Modelica to HybridSal
 
-Usage: python modelica2hsal.py <modelica_file.xml>
+Usage: python modelica2hsal.py <modelica_file.xml> [<context_property.xml>]
 
 Description: This will create a file called modelica_file.hsal
     '''
@@ -24,12 +24,21 @@ def moveIfExists(filename):
 
 def main():
     global dom
-    if not len(sys.argv) == 2:
+    if not len(sys.argv) >= 2:
+        printUsage()
+        return -1
+    if sys.argv[1].startswith('-'):
         printUsage()
         return -1
     filename = sys.argv[1]
     basename,ext = os.path.splitext(filename)
-    if not(ext == '.xml'):
+    if len(sys.argv) > 2:
+        pfilename = sys.argv[2]
+        pbasename,pext = os.path.splitext(pfilename)
+    else:
+        pfilename = None
+        pbasename,pext = None,'.xml'
+    if not(ext == '.xml') or not(pext == '.xml'):
         print 'ERROR: Unknown file extension {0}; expecting .xml'.format(ext)
         printUsage()
         return -1
@@ -37,9 +46,13 @@ def main():
         print 'ERROR: File {0} does not exist'.format(filename)
         printUsage()
         return -1
-    modelica2hsal(filename)
+    if (pfilename != None) and not(os.path.isfile(pfilename)):
+        print 'ERROR: File {0} does not exist'.format(pfilename)
+        printUsage()
+        return -1
+    modelica2hsal(filename, pfilename)
 
-def modelica2hsal(filename):
+def modelica2hsal(filename, pfilename = None):
     basename,ext = os.path.splitext(filename)
     try:
         dom = xml.dom.minidom.parse(filename)
@@ -70,8 +83,21 @@ def modelica2hsal(filename):
         sys.exit(-1)
     dom1 = daeXML.simplifydaexml(dom1,daexmlfilename)
     print >> sys.stderr, 'Finished simplification steps.'
+    if pfilename != None:
+        print >> sys.stderr, 'Reading file containing context and property'
+        try:
+            dom3 = xml.dom.minidom.parse(pfilename)
+        except xml.parsers.expat.ExpatError, e:
+            print 'Syntax Error: Input XML ', e 
+            print 'Error: Input XML file is not well-formed...Quitting.'
+            return -1
+        except:
+            print 'Error: Input XML file is not well-formed'
+            print 'Quitting', sys.exc_info()[0]
+            return -1
+        print >> sys.stderr, 'Finished reading context and property'
     print >> sys.stderr, 'Creating HybridSal model....'
-    daexml2hsal.daexml2hsal(dom1, dom2, daexmlfilename)
+    daexml2hsal.daexml2hsal(dom1, dom2, daexmlfilename, dom3)
     print >> sys.stderr, 'Created HybridSal model.'
     return 0
 
