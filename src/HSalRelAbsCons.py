@@ -55,6 +55,7 @@ import HSalExtractRelAbs
 import polyrep # internal representation for expressions
 import HSalXMLPP
 import os.path
+import inspect
 import shutil
 import subprocess
 import HSalPreProcess
@@ -903,6 +904,59 @@ def handleContext(ctxt):
             #newnode = ctxt.createTextNode(i.data+"ABS")
             #idnode.replaceChild(newnode, i)
     #return ctxt
+def hxml2sal(xmlfilename, optarg = 0, timearg = None):
+    global dom
+    global opt
+    global time
+    opt = optarg
+    time = timearg
+    basename,ext = os.path.splitext(xmlfilename)
+    dom = xml.dom.minidom.parse(xmlfilename)
+    setDom(dom)
+    ctxt = HSalPreProcess.handleContext(dom)
+    ctxt = HSalPreProcess2.handleContext(ctxt)
+    newctxt = handleContext(ctxt)
+    absfilename = basename + ".haxml"
+    moveIfExists(absfilename)
+    with open(absfilename, "w") as fp:
+        print >> fp, newctxt.toxml()
+    print "Created file %s containing the original+abstract model (XML)" % absfilename
+    absfilename = basename + ".hasal"
+    moveIfExists(absfilename)
+    with open(absfilename, "w") as fp:
+        HSalXMLPP.HSalPPContext(newctxt, fp)
+    print "Created file %s containing the original+abstract model" % absfilename
+    absXMLFile = basename + ".xml"
+    moveIfExists(absXMLFile)
+    with open(absXMLFile, "w") as fp:
+        HSalExtractRelAbs.extractRelAbs(newctxt, fp)
+    absSalFile = basename + ".sal"
+    moveIfExists(absSalFile)
+    with open(absSalFile, "w") as fp:
+        HSalXMLPP.HSalPPContext(newctxt, fp)
+    print "Created file %s containing the abstract model" % absSalFile
+    return 0
+
+def hsal2hxml(filename):
+    def getexe():
+        folder = os.path.split(inspect.getfile( inspect.currentframe() ))[0]
+        relabsfolder = os.path.join(folder, '..', 'hybridsal2xml')
+        relabsfolder = os.path.realpath(os.path.abspath(relabsfolder))
+        return relabsfolder
+    basename,ext = os.path.splitext(filename)
+    if ext == '.hxml':
+        xmlfilename = filename
+    elif ext == '.hsal':
+        xmlfilename = basename + ".hxml"
+        exe = os.path.join(getexe(), 'hybridsal2xml')
+        retCode = subprocess.call([exe, "-o", xmlfilename, filename])
+        if retCode != 0 or not(os.path.isfile(xmlfilename)):
+            print "hybridsal2xml failed to create XML file. Quitting."
+            return 1
+    else:
+        print "Unknown file extension; Expecting .hsal or .hxml; Quitting"
+        return 1
+    return xmlfilename
 
 def moveIfExists(filename):
     if os.path.isfile(filename):
@@ -972,6 +1026,7 @@ def main():
     global opt
     global time
     opt = 0
+    time = None
     args = sys.argv[1:]
     if len(args) < 1:
         printUsage()
@@ -1021,43 +1076,9 @@ def main():
     if not(os.path.isfile(filename)):
         print "File does not exist. Quitting."
         return 1
-    basename,ext = os.path.splitext(filename)
-    if ext == '.hxml':
-        xmlfilename = filename
-    elif ext == '.hsal':
-        xmlfilename = basename + ".hxml"
-        retCode = subprocess.call(["hybridsal2xml/hybridsal2xml", "-o", xmlfilename, filename])
-        if retCode != 0 or not(os.path.isfile(xmlfilename)):
-            print "hybridsal2xml failed to create XML file. Quitting."
-            return 1
-    else:
-        print "Unknown file extension; Expecting .hsal or .hxml; Quitting"
-        return 1
-    dom = xml.dom.minidom.parse(xmlfilename)
-    setDom(dom)
-    ctxt = HSalPreProcess.handleContext(dom)
-    ctxt = HSalPreProcess2.handleContext(ctxt)
-    newctxt = handleContext(ctxt)
-    absfilename = basename + ".haxml"
-    moveIfExists(absfilename)
-    with open(absfilename, "w") as fp:
-        print >> fp, newctxt.toxml()
-    print "Created file %s containing the original+abstract model (XML)" % absfilename
-    absfilename = basename + ".hasal"
-    moveIfExists(absfilename)
-    with open(absfilename, "w") as fp:
-        HSalXMLPP.HSalPPContext(newctxt, fp)
-    print "Created file %s containing the original+abstract model" % absfilename
-    absXMLFile = basename + ".xml"
-    moveIfExists(absXMLFile)
-    with open(absXMLFile, "w") as fp:
-        HSalExtractRelAbs.extractRelAbs(newctxt, fp)
-    absSalFile = basename + ".sal"
-    moveIfExists(absSalFile)
-    with open(absSalFile, "w") as fp:
-        HSalXMLPP.HSalPPContext(newctxt, fp)
-    print "Created file %s containing the abstract model" % absSalFile
-    return 0
+    xmlfilename = hsal2hxml(filename)
+    ans = hxml2sal(xmlfilename, opt, time)
+    return ans
 
 if __name__ == '__main__':
     main()

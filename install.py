@@ -24,7 +24,7 @@ def findFile(baseList, dirList, fileList):
     for i in fileList:
         for k in baseList:
             for j in dirList:
-                rtjar = k + j + i
+                rtjar = os.path.join(k, j, i)
                 if isFile(rtjar):
                     done = True
                     break
@@ -63,12 +63,16 @@ def main():
         javapath = os.path.realpath(output[0:-1])
         (javabase, javafile) = os.path.split(javapath)
         baseList = [javabase]
-        baseList.append('/System/Library/Frameworks/JavaVM.framework/Versions/CurrentJDK/Classes')
+        path = os.path.join(os.path.sep, 'System', 'Library', 'Frameworks', 'JavaVM', 'framework', 'Versions', 'CurrentJDK', 'Classes')
+        #baseList.append('/System/Library/Frameworks/JavaVM.framework/Versions/CurrentJDK/Classes')
+        baseList.append(path)
         if os.environ.has_key('JAVA_HOME'):
             baseList.append( os.environ['JAVA_HOME'] )
         if os.environ.has_key('JDK_HOME'):
             baseList.append( os.environ['JDK_HOME'] )
-        rtjar = findFile(baseList, ['/../lib', '/../Classes'], ['/rt.jar', '/classes.jar'])
+        p1 = os.path.join('..','lib')
+        p2 = os.path.join('..','Classes')
+        rtjar = findFile(baseList, [p1, p2], ['rt.jar', 'classes.jar'])
         if rtjar == None:
             print 'Warning: Failed to find rt.jar in all possible places'
             print 'Continuing without giving explicit rt.jar path; if this does not work, then...Make sure the system has rt.jar (on Mac, it is sometimes called classes.jar and is located at /System/Library/Frameworks/JavaVM.framework/Versions/CurrentJDK/Classes/classes.jar) and then ...'
@@ -111,8 +115,9 @@ def main():
         pwd = output[0:-1]
     else:
         pwd = output
-    hybridsal2xml = os.path.normpath(pwd + "/hybridsal2xml")
-    if os.path.isdir(pwd+'/src') and os.path.isdir(hybridsal2xml):
+    #hybridsal2xml = os.path.normpath(pwd + "/hybridsal2xml")
+    hybridsal2xml = os.path.normpath(os.path.join(pwd, "hybridsal2xml"))
+    if os.path.isdir(os.path.join(pwd,'src')) and os.path.isdir(hybridsal2xml):
         print 'Everything looks fine until now.'
     else:
         print 'Error: RUN THIS SCRIPT FROM THE HSAL ROOT DIRECTORY'
@@ -137,10 +142,11 @@ def main():
     #
     # Run a test
     #
-    os.remove('examples/SimpleThermo4.xml')
+    os.remove(os.path.join('examples','SimpleThermo4.xml'))
     # subprocess.call([ 'rm', '-f', 'examples/SimpleThermo4.xml'])
-    subprocess.call([ './hybridsal2xml', '-o', 'examples/SimpleThermo4.xml', 'examples/SimpleThermo4.sal' ])
-    if os.path.isfile('examples/SimpleThermo4.xml'):
+    exe = os.path.join('.','hybridsal2xml')
+    subprocess.call([ exe, '-o', os.path.join('examples','SimpleThermo4.xml'), os.path.join('examples','SimpleThermo4.sal') ])
+    if os.path.isfile(os.path.join('examples','SimpleThermo4.xml')):
         print 'hybridsal2xml successfully installed'
     else:
         print 'Error: hybridsal2xml test failed'
@@ -149,40 +155,35 @@ def main():
     #
     # create bin/ files
     #
-    bindir = pwd + "/bin"
+    bindir = os.path.join(pwd, "bin")
     if not(os.path.isdir(bindir)):
-        print 'Error: Directory %s does not exist' % bindir
+        print 'Error: Directory %s does not exist; create it and rerun install.' % bindir
         return 1
     #os.chdir(pwd + "/bin")
-    fp = open(bindir + "/hxml2hsal", 'w')
     if 'SHELL' in os.environ.keys():
         shell = os.environ['SHELL']
     else:
         print 'ERROR: Environment variable SHELL not set!'
         return 1
-    print >> fp, '#!', shell
-    print >> fp, 'python ', pwd + '/src/HSalXMLPP.py $*'
-    fp.close()
-    fp = open(bindir + "/hsal2hasal", 'w')
-    print >> fp, '#!', shell
-    print >> fp, 'python ', pwd + '/src/HSalRelAbsCons.py $*'
-    fp.close()
-    fp = open(bindir + "/hasal2sal", 'w')
-    print >> fp, '#!', shell
-    print >> fp, 'python ', pwd + '/src/HSalExtractRelAbs.py $*'
-    fp.close()
-    fp = open(bindir + "/hsal2Tsal", 'w')
-    print >> fp, '#!', shell
-    print >> fp, 'python ', pwd + '/src/HSalTimedRelAbsCons.py $*'
-    fp.close()
-    subprocess.call(['chmod', '+x', pwd+'/bin/hasal2sal'])
-    subprocess.call(['chmod', '+x', pwd+'/bin/hsal2hasal'])
-    subprocess.call(['chmod', '+x', pwd+'/bin/hxml2hsal'])
-    filename = pwd+'/bin/hsal2hxml'
+    createBinFile(shell, pwd, bindir, 'hxml2hsal', os.path.join('src','HSalXMLPP.py'))
+    createBinFile(shell, pwd, bindir, 'hsal2hasal', os.path.join('src','HSalRelAbsCons.py'))
+    createBinFile(shell, pwd, bindir, 'hasal2sal', os.path.join('src','HSalExtractRelAbs.py'))
+    createBinFile(shell, pwd, bindir, 'hsal2Tsal', os.path.join('src','HSalTimedRelAbsCons.py'))
+    createBinFile(shell, pwd, bindir, 'modelica2hsal', os.path.join('modelica2hsal', 'src','modelica2hsal.py'))
+    createBinFile(shell, pwd, bindir, 'modelica2sal', os.path.join('modelica2hsal', 'src','modelica2sal.py'))
+    filename = os.path.join(pwd, 'bin', 'hsal2hxml')
     if os.path.isfile(filename):
         os.remove(filename)
-    subprocess.call(['ln', '-s', '../hybridsal2xml/hybridsal2xml', pwd+'/bin/hsal2hxml'])
+    subprocess.call(['ln', '-s', os.path.join('..','hybridsal2xml','hybridsal2xml'), os.path.join(pwd, 'bin', 'hsal2hxml')])
     return 0
+
+def createBinFile(shell, pwd, bindir, filename, pythonfile):
+    binfile = os.path.join(bindir, filename)
+    fp = open( binfile, 'w')
+    print >> fp, '#!', shell
+    print >> fp, 'python ', os.path.join(pwd, pythonfile), '$*' 
+    fp.close()
+    subprocess.call(['chmod', '+x', binfile])
 
 if __name__ == '__main__':
     main()

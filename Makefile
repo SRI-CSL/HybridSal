@@ -55,7 +55,10 @@ powertrain:  ${exhsal}/powertrain.hsal
 	bin/hsal2hasal $<
 
 RCEngine:  modelica2hsal/${exhsal}/RCEngine.xml
-	modelica2hsal/bin/modelica2hsal $<
+	bin/modelica2hsal $<
+
+RCEngineFull:  modelica2hsal/${exhsal}/RCEngine.xml
+	bin/modelica2sal $<  modelica2hsal/examples/context-property.xml
 
 PTimed: ${exhsal}/PTimed.hsal
 	echo "***************************************************************"
