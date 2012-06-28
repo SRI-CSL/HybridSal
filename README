@@ -8,11 +8,13 @@ COPYRIGHT: The content in file COPYRIGHT applies to ALL files
 (recursively) inside this directory except the hybridsal2xml 
 subdirectory.  Files in that directory inherit the SAL licence.
 
-INSTALL: Instructions for installing the software
+INSTALL.txt: Instructions for installing the software
 
 Makefile: Makefile
 
 src/ : Source code of the relational abstractor for hybrid systems
+
+modelica2hsal/ : A tool for converting Modelica XML models into HybridSal
 
 examples/ : Examples 
   The examples are written as <filename>.hsal 
@@ -28,7 +30,11 @@ hybridsal2xml/ : This directory contains code that parses a HybridSAL
 
 How to run the tool?
 ---------------------
-After installing (see file INSTALL), you can use the tool by
+After installing (see file INSTALL.txt), you can use the tool by
+(A) Running an existing example, such as,
+     bin/modelica2sal  modelica2hsal/examples/RCEngine.xml modelica2hsal/examples/context-property.xml
+
+Or, you can build your own model:
 (1) Build a .hsal model  (see examples in examples/<filename>.hsal)
   Suppose you create examples/mytest.hsal
 (2) From this directory, run the command:
@@ -48,6 +54,8 @@ For detailed explanation on ONE small example, see the document
 
 How to run the demo?
 --------------------
+make RCEngineFull
+ will run the full tool on an example Modelica XML file.
 
 Some Simple Examples
 --------------------
