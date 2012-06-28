@@ -12,7 +12,7 @@ modelica2hsal -- a converter from Modelica to HybridSal
 
 Usage: python modelica2hsal.py <modelica_file.xml> [<context_property.xml>]
 
-Description: This will create a file called modelica_file.hsal
+Description: This will create a file called modelica_fileModel.hsal
     '''
 
 def moveIfExists(filename):
@@ -22,18 +22,18 @@ def moveIfExists(filename):
         print "Renaming old file to %s." % filename+"~"
         shutil.move(filename, filename + "~")
 
-def main():
-    global dom
-    if not len(sys.argv) >= 2:
+def argCheck(args, printUsage):
+    "args = sys.argv list"
+    if not len(args) >= 2:
         printUsage()
-        return -1
-    if sys.argv[1].startswith('-'):
+        sys.exit(-1)
+    if args[1].startswith('-'):
         printUsage()
-        return -1
-    filename = sys.argv[1]
+        sys.exit(-1)
+    filename = args[1]
     basename,ext = os.path.splitext(filename)
-    if len(sys.argv) > 2:
-        pfilename = sys.argv[2]
+    if len(args) > 2:
+        pfilename = args[2]
         pbasename,pext = os.path.splitext(pfilename)
     else:
         pfilename = None
@@ -41,15 +41,20 @@ def main():
     if not(ext == '.xml') or not(pext == '.xml'):
         print 'ERROR: Unknown file extension {0}; expecting .xml'.format(ext)
         printUsage()
-        return -1
+        sys.exit(-1)
     if not(os.path.isfile(filename)):
         print 'ERROR: File {0} does not exist'.format(filename)
         printUsage()
-        return -1
+        sys.exit(-1)
     if (pfilename != None) and not(os.path.isfile(pfilename)):
         print 'ERROR: File {0} does not exist'.format(pfilename)
         printUsage()
-        return -1
+        sys.exit(-1)
+    return (filename, pfilename)
+
+def main():
+    global dom
+    (filename, pfilename) = argCheck(sys.argv, printUsage)
     modelica2hsal(filename, pfilename)
 
 def modelica2hsal(filename, pfilename = None):
@@ -83,6 +88,7 @@ def modelica2hsal(filename, pfilename = None):
         sys.exit(-1)
     dom1 = daeXML.simplifydaexml(dom1,daexmlfilename)
     print >> sys.stderr, 'Finished simplification steps.'
+    dom3 = None		# No property file given by default
     if pfilename != None:
         print >> sys.stderr, 'Reading file containing context and property'
         try:
@@ -97,9 +103,9 @@ def modelica2hsal(filename, pfilename = None):
             return -1
         print >> sys.stderr, 'Finished reading context and property'
     print >> sys.stderr, 'Creating HybridSal model....'
-    daexml2hsal.daexml2hsal(dom1, dom2, daexmlfilename, dom3)
+    outfile = daexml2hsal.daexml2hsal(dom1, dom2, daexmlfilename, dom3)
     print >> sys.stderr, 'Created HybridSal model.'
-    return 0
+    return outfile
 
 if __name__ == "__main__":
     main()

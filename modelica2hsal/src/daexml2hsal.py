@@ -768,10 +768,11 @@ def create_output_file(filename, hsalstr, propStr = ''):
         print >> fp, ansBEGIN
         print >> fp, hsalstr
         print >> fp, system
-        print >> fp, ' system |- {0} ;'.format(propStr)
+        if propStr != '':
+            print >> fp, ' p1: THEOREM\n   system |- {0} ;'.format(propStr)
         print >> fp, ansEND
     print "Created file %s containing the HybridSAL representation" % outfile
-    return 0
+    return outfile
 
 def printUsage():
     print '''
@@ -791,7 +792,7 @@ def daexml2hsal(dom1, dom2, filename, dom3):
         print e
         print 'Unable to handle such models...quitting'
         sys.exit(-1)
-    create_output_file(filename, hsalstr, propStr)
+    return create_output_file(filename, hsalstr, propStr)
 
 def main():
     global dom
@@ -811,7 +812,7 @@ def main():
     dom1 = xml.dom.minidom.parse(sys.argv[1])
     dom2 = xml.dom.minidom.parse(sys.argv[2])
     dom = dom1
-    hsalstr = convert2hsal(dom1, dom2)
+    (hsalstr,propStr) = convert2hsal(dom1, dom2)
     create_output_file(sys.argv[1], hsalstr)
     return 0
 
