@@ -99,6 +99,7 @@ def main():
     # NOTE: BD I don't have jikes but it still compile fine??
     #
     print '\nSearching for jikes'
+    jikespath = ''
     output = checkProg('jikes')
     if not output:
         print 'Warning: jikes not found; Trying to find javac ...'
@@ -114,6 +115,8 @@ def main():
             print 'Optionally, you can try to install jikes/javac and rerun this script'
         else:
             jikespath = os.path.realpath(output)
+    if jikespath == '':
+        jikespath = 'javac'
 
     #
     # Check that we're in the right directory

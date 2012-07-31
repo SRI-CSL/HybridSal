@@ -26,25 +26,25 @@ antlrpath=$1
 rtjarpath=$2
 jikespath=$3
 
-if [ -z $antlrpath ] ; then
-	antlrpath=$salenv_dir
-fi
-if [ -z $rtjarpath ] ; then
-	rtjarpath=$salenv_dir
-fi
-if [ -z $jikespath ] ; then
-	jikespath=javac
-fi
+#if [ -z $antlrpath ] ; then
+	#antlrpath=$salenv_dir
+#fi
+#if [ -z $rtjarpath ] ; then
+	#rtjarpath=$salenv_dir
+#fi
+#if [ -z $jikespath ] ; then
+	#jikespath=javac
+#fi
 
-if [ ! -r $antlrpath/antlr.jar ] ; then
-	echo "Antlr path not ok"
-	echo "Usage: ./install.sh <ANTLR_PATH> <RTJAR_PATH> <JIKES_PATH>"
-	exit -1
-fi
-if [ ! -f $rtjarpath ] ; then
-	echo "rt.jar path not ok"
-	echo "Usage: ./install.sh <ANTLR_PATH> <RTJAR_PATH> <JIKES_PATH>"
-fi
+#if [ ! -r $antlrpath/antlr.jar ] ; then
+	#echo "Antlr path not ok"
+	#echo "Usage: ./install.sh <ANTLR_PATH> <RTJAR_PATH> <JIKES_PATH>"
+	#exit -1
+#fi
+#if [ ! -f $rtjarpath ] ; then
+	#echo "rt.jar path not ok"
+	#echo "Usage: ./install.sh <ANTLR_PATH> <RTJAR_PATH> <JIKES_PATH>"
+#fi
 
 echo "Installing hybridsal2xml. Copyright (c) SRI International 2003."
 echo "-------------------------------------------------------------------"
