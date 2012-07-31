@@ -55,6 +55,16 @@ def findFile(baseList, dirList, fileList):
         rtjar = None
     return rtjar
 
+def sed(f1, f2, assgn):
+    fp1 = open(f1, 'r')
+    fp2 = open(f2, 'w')
+    for line in fp1:
+        for (s1,s2) in assgn:
+            line = line.replace(s1,s2)
+        fp2.write(line)
+    fp1.close()
+    fp2.close()
+
 def main():
     #
     # Search for java and JAVA_HOME
@@ -151,20 +161,30 @@ def main():
     else:
         print 'Error: Failed to find antlr-2.7.1/'
         return 1
-    subprocess.call(['sh', 'install.sh', antlrpath, rtjar, jikespath ])
+    # subprocess.call(['sh', 'install.sh', antlrpath, rtjar, jikespath ])
+    print "Installing hybridsal2xml. Copyright (c) SRI International 2003."
+    print "-------------------------------------------------------------------"
+    print "Installing hybridsal2xml at {0}".format(os.getcwd())
+    assgn = [ ("__ANTLR_PATH__", antlrpath), ("__JIKES_PATH__",jikespath), ("__RTJAR_PATH__",rtjar) ]
+    sed( 'Makefile.in', 'Makefile', assgn)
+    subprocess.call([ 'make' ])
+    print "hybridsal2xml installation complete. Testing ....\n"
 
     #
     # Run a test
     #
-    os.remove(os.path.join('examples','SimpleThermo4.xml'))
+    ex4 = os.path.join('examples','SimpleThermo4.xml')
+    if os.path.isfile(ex4):
+        os.remove( ex4 )
     # subprocess.call([ 'rm', '-f', 'examples/SimpleThermo4.xml'])
     exe = os.path.join('.','hybridsal2xml')
-    subprocess.call([ exe, '-o', os.path.join('examples','SimpleThermo4.xml'), os.path.join('examples','SimpleThermo4.sal') ])
+    subprocess.call([ exe, '-o', ex4, os.path.join('examples','SimpleThermo4.sal') ])
     if os.path.isfile(os.path.join('examples','SimpleThermo4.xml')):
         print 'hybridsal2xml successfully installed'
     else:
-        print 'Error: hybridsal2xml test failed'
+        print 'Error: hybridsal2xml installation failed'
         return 1
+    os.chdir('..')
 
     #
     # create bin/ files
