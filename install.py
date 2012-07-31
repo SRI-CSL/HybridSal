@@ -4,14 +4,30 @@ import os
 import os.path
 import subprocess
 
+def which(program):
+    def is_exe(fpath):
+        return os.path.isfile(fpath) and os.access(fpath,os.X_OK)
+    fpath,fname = os.path.split(program)
+    if fpath:
+        if is_exe(program):    # check in current working directory
+            return program
+    else:
+        for path in os.environ["PATH"].split(os.pathsep):
+            exe_file = os.path.join(path, program)
+            if is_exe(exe_file):
+                return exe_file
+    return None
+
 def checkProg(name):
     """Check if name is installed on this machine"""
-    proc = subprocess.Popen(['which', name], stdout=subprocess.PIPE)
-    output = proc.stdout.read()
-    if output == '' or output == '\n':
+    #proc = subprocess.Popen(['which', name], stdout=subprocess.PIPE)
+    #output = proc.stdout.read()
+    #if output == '' or output == '\n':
+    output = which(name) or which(name + '.exe')
+    if not output:
         print 'Error: %s not found, Install it first' % name
         return False
-    return True
+    return output
     
 def isFile(filename):
     tmp = os.path.normpath(filename)
@@ -47,11 +63,7 @@ def main():
     checkProg('chmod')
 
     print '\nSearching for java'
-    proc = subprocess.Popen(['which', 'java'], stdout=subprocess.PIPE)
-    output = proc.stdout.read()
-    if output == '' or output == '\n':
-        print 'Error: Java not found, Install java first'
-        return 1
+    output = checkProg('java')
 
     # Set rtjar 
     rtjar = 'rt.jar'
@@ -60,12 +72,14 @@ def main():
         if index+1 < len(sys.argv):
             rtjar = sys.argv[index+1]
     if not(isFile(rtjar)):
-        javapath = os.path.realpath(output[0:-1])
+        javapath = os.path.realpath(output)
         (javabase, javafile) = os.path.split(javapath)
         baseList = [javabase]
-        path = os.path.join(os.path.sep, 'System', 'Library', 'Frameworks', 'JavaVM', 'framework', 'Versions', 'CurrentJDK', 'Classes')
+        forMacs = os.path.join(os.path.sep, 'System', 'Library', 'Frameworks', 'JavaVM', 'framework', 'Versions', 'CurrentJDK', 'Classes')
         #baseList.append('/System/Library/Frameworks/JavaVM.framework/Versions/CurrentJDK/Classes')
-        baseList.append(path)
+        baseList.append(forMacs)
+        forWindows = os.path.join('C:',os.path.sep,'Program Files','Java','jre6','lib')
+        baseList.append(forWindows)
         if os.environ.has_key('JAVA_HOME'):
             baseList.append( os.environ['JAVA_HOME'] )
         if os.environ.has_key('JDK_HOME'):
@@ -85,29 +99,26 @@ def main():
     # NOTE: BD I don't have jikes but it still compile fine??
     #
     print '\nSearching for jikes'
-    proc = subprocess.Popen(['which', 'jikes'], stdout=subprocess.PIPE)
-    output = proc.stdout.read()
-    if output == '' or output == '\n':
+    output = checkProg('jikes')
+    if not output:
         print 'Warning: jikes not found; Trying to find javac ...'
         jikespath = ''
     else:
-        jikespath = os.path.realpath(output[0:-1])
+        jikespath = os.path.realpath(output)
     if jikespath == '':
-        proc = subprocess.Popen(['which', 'javac'], stdout=subprocess.PIPE)
-        output = proc.stdout.read()
-        if output == '' or output == '\n':
+        output = checkProg('javac')
+        if not output:
             print 'Warning: jikes not found; You can not COMPILE hybridsal2xml'
             print ' But you may be able to use the class files already present'
             print ' The class files were built on 64-bit Ubuntu'
             print 'Optionally, you can try to install jikes/javac and rerun this script'
         else:
-            jikespath = os.path.realpath(output[0:-1])
+            jikespath = os.path.realpath(output)
 
     #
     # Check that we're in the right directory
     #
-    proc = subprocess.Popen(['pwd'], stdout=subprocess.PIPE)
-    output = proc.stdout.read()
+    output = os.getcwd()
     if output == '' or output == '\n':
         print 'Error: pwd failed!'
         return 1
@@ -131,13 +142,13 @@ def main():
     print 'Installing hybridsal2xml'
     os.chdir(hybridsal2xml)
     # run ./install.sh antlrpath rtjar jikespath
-    antlrpath = hybridsal2xml + '/antlr-2.7.1/'
+    antlrpath = os.path.join(hybridsal2xml, 'antlr-2.7.1')
     if os.path.isdir(antlrpath):
         print 'antlr-2.7.1/ found as %s' % antlrpath
     else:
         print 'Error: Failed to find antlr-2.7.1/'
         return 1
-    subprocess.call([ './install.sh', antlrpath, rtjar, jikespath ])
+    subprocess.call(['sh', 'install.sh', antlrpath, rtjar, jikespath ])
 
     #
     # Run a test
