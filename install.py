@@ -248,16 +248,16 @@ def main():
         print 'Error: Directory %s does not exist; create it and rerun install.' % bindir
         return 1
     #os.chdir(pwd + "/bin")
-    createBinFile(shell, pwd, bindir, 'hxml2hsal', os.path.join('src','HSalXMLPP.py'))
-    createBinFile(shell, pwd, bindir, 'hsal2hasal', os.path.join('src','HSalRelAbsCons.py'))
-    createBinFile(shell, pwd, bindir, 'hasal2sal', os.path.join('src','HSalExtractRelAbs.py'))
-    createBinFile(shell, pwd, bindir, 'hsal2Tsal', os.path.join('src','HSalTimedRelAbsCons.py'))
-    createBinFile(shell, pwd, bindir, 'modelica2hsal', os.path.join('modelica2hsal', 'src','modelica2hsal.py'))
-    createBinFile(shell, pwd, bindir, 'modelica2sal', os.path.join('modelica2hsal', 'src','modelica2sal.py'))
-    filename = os.path.join(pwd, 'bin', 'hsal2hxml')
-    if os.path.isfile(filename):
-        os.remove(filename)
-    subprocess.call(['ln', '-s', os.path.join('..','hybridsal2xml',hybridsal2xml), os.path.join(pwd, 'bin', 'hsal2hxml')])
+    createBinFile(topshell, pwd, bindir, 'hxml2hsal', os.path.join('src','HSalXMLPP.py'))
+    createBinFile(topshell, pwd, bindir, 'hsal2hasal', os.path.join('src','HSalRelAbsCons.py'))
+    createBinFile(topshell, pwd, bindir, 'hasal2sal', os.path.join('src','HSalExtractRelAbs.py'))
+    createBinFile(topshell, pwd, bindir, 'hsal2Tsal', os.path.join('src','HSalTimedRelAbsCons.py'))
+    createBinFile(topshell, pwd, bindir, 'modelica2hsal', os.path.join('modelica2hsal', 'src','modelica2hsal.py'))
+    createBinFile(topshell, pwd, bindir, 'modelica2sal', os.path.join('modelica2hsal', 'src','modelica2sal.py'))
+    #filename = os.path.join(pwd, 'bin', 'hsal2hxml')
+    #if os.path.isfile(filename):
+        #os.remove(filename)
+    #subprocess.call(['ln', '-s', os.path.join('..','hybridsal2xml',hybridsal2xml), os.path.join(pwd, 'bin', 'hsal2hxml')])
     print 'Done.'
 
     # 
@@ -298,8 +298,11 @@ def main():
     if os.path.isfile(ex4):
         os.remove( ex4 )
     # subprocess.call([ 'rm', '-f', 'examples/SimpleThermo4.xml'])
-    exe = os.path.join('bin','hsal2hasal')
-    subprocess.call([ shell, exe, os.path.join('examples','Linear1.hsal') ])
+    hsal2hasal = 'hsal2hasal'
+    if sys.platform.startswith('win'):
+        hsal2hasal += '.bat'
+    exe = os.path.join('bin',hsal2hasal)
+    subprocess.call([ exe, os.path.join('examples','Linear1.hsal') ])
     if os.path.isfile( ex4 ):
         print 'Successful.'
     else:
@@ -310,9 +313,14 @@ def main():
 
 def createBinFile(shell, pwd, bindir, filename, pythonfile):
     binfile = os.path.join(bindir, filename)
+    if sys.platform.startswith('win'):
+        binfile += '.bat'
     fp = open( binfile, 'w')
-    print >> fp, '#!', shell
-    print >> fp, 'python ', repr(os.path.join(pwd, pythonfile)), '$*' 
+    if sys.platform.startswith('win'):
+        print >> fp, 'python ', os.path.join(pwd, pythonfile), '%1', '%2', '%3', '%4', '%5', '%6', '%7', '%8'
+    else:
+        print >> fp, '#!', shell
+        print >> fp, 'python ', os.path.join(pwd, pythonfile), '$*' 
     fp.close()
     subprocess.call(['chmod', '+x', binfile])
 
