@@ -145,8 +145,8 @@ def getFlow(defs):
         rhsexpr = simpleDefinitionRhsExpr(i)
         flow.append(lhsvar)
         flow.append(rhsexpr)
-    print "printing flow"
-    print flow
+    # print "printing flow"
+    # print flow
     return flow
 
 def flow2var(flow):
@@ -233,14 +233,14 @@ def partitionAux(x, y, A, b):
             A2[j][iA2] = A[j][i]
             del A[j][i]
         iA2 -= 1
-    print "A1 below should be nxn where n is %d" % n
-    print A
-    print "A2 below should be nxm where m is %d" % m
-    print A2
-    print "b1 below should be nx1 where n is %d" % n
-    print b
-    print "b2 below should be mx1 where m is %d" % m
-    print b2
+    # print "A1 below should be nxn where n is %d" % n
+    # print A
+    # print "A2 below should be nxm where m is %d" % m
+    # print A2
+    # print "b1 below should be nx1 where n is %d" % n
+    # print b
+    # print "b2 below should be mx1 where m is %d" % m
+    # print b2
     return [A, A2, b, b2]
 
 def createNodeVarType(varName, typeName):
@@ -653,8 +653,8 @@ def absGuardedCommandAux(varlist,A,b,inputs):
     A1trans = linearAlgebra.transpose(A1)
     eigen = linearAlgebra.eigen(A1trans)
     # CHECK above, tranpose added, [ l [ vectors ] l [ vectors ] ]
-    print "The LEFT eigenvectors computed are:"
-    print eigen
+    # print "The LEFT eigenvectors computed are:"
+    # print eigen
     num = len(eigen)
     i = 0
     A2trans = linearAlgebra.transpose(A2)
@@ -836,10 +836,10 @@ def absGuardedCommand(gc, inputs, basemod):
     defs = assigns.getElementsByTagName("SIMPLEDEFINITION")
     flow = getFlow(defs)
     [varlist,A,b] = flow2Ab(flow)
-    print "A"
-    print A
-    print "b"
-    print b
+    # print "A"
+    # print A
+    # print "b"
+    # print b
     guard = HSalXMLPP.getArg(guard,1)
     guardCopy = guard.cloneNode(True)
     if (opt & 0x4 != 0) :

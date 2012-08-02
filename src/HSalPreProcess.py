@@ -162,7 +162,7 @@ def handleContext(ctxt):
             # print fuPolyrep
             # print "ERROR: Preprocessor can't eliminate constant decls"
             # return ctxt
-    print "Found " + str(j) + "constant decls that are not constants"
+    # print "Found " + str(j) + "constant decls that are not constants"
     # get all NAMEEXPR in the document; see if their textvalue == above; replace
     ctxt = replaceNameexprsNumerals(defs, ctxt)
     return ctxt

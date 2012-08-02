@@ -172,7 +172,7 @@ def main():
     javaclasspath = classpathsep.join([ '.', antlrpath, os.path.join(antlrpath, 'antlr'), rtjar ])
     assgn = [ ("__ANTLR_PATH__", antlrpath), ("__JIKES_PATH__",jikespath), ("__RTJAR_PATH__",rtjar), ("__JAVACLASSPATH__",javaclasspath) ]
     sed( 'Makefile.in', 'Makefile', assgn)
-    assgn = [ ("__HYBRIDSAL_PATH__", os.getcwd()), ("_ANTLRPATH__", antlrpath) ]
+    assgn = [ ("__HYBRIDSAL_PATH__", hybridsal2xml), ("__ANTLRPATH__", antlrpath) ]
     # hybridsal2xmltemplate = os.path.join('hybridsal2xml', 'hybridsal2xml.template')
     hybridsal2xmltemplate = 'hybridsal2xml.template'
     # hybridsal2xml = os.path.join('hybridsal2xml','hybridsal2xml')
@@ -181,6 +181,7 @@ def main():
     os.chmod( hybridsal2xml, 0755 )
     subprocess.call([ 'make' ])
     print "hybridsal2xml installation complete. Testing ....\n"
+    print 'Debug: getcwd = {0} should be hybridsal2xml'.format(os.getcwd())
 
     # set value of shell
     shell = which( 'sh' )

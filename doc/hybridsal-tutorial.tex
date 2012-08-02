@@ -222,11 +222,11 @@ $$
 
 Consider a {\cem{non-deterministic controller}}:
 \begin{itemize}
-\item Switch to Mode 1 when moving left and $-1.5 \leq x \leq -1$
-\item Switch to Mode 2 when moving right and $1 \leq x \leq 1.5$
+\item Switch to {\cem{NE}} mode when moving left and $-1.5 \leq x \leq -1$
+\item Switch to {\cem{NW}} mode when moving right and $1 \leq x \leq 1.5$
 \end{itemize}
 
-{\crm{Two possible simulation}} trajectories:
+{\crm{A possible simulation}} trajectory:
 
 \begin{center}
 \begin{tabular}{c@{\qquad}c}
@@ -236,7 +236,11 @@ Consider a {\cem{non-deterministic controller}}:
 \end{tabular}
 \end{center}
 
-%{\cem{How to discover the correct switching logic?}}
+{\cem{Does the robot ever hit the wall}} -- 
+for all initial states and switchings?
+%irrespective of where it starts, and how it switches ?
+
+
 \end{slide}
 % -------------------------------------------------------
 \begin{slide}
@@ -298,7 +302,7 @@ Consider a {\cem{non-deterministic controller}}:
 \\ \>
  {\cem{TRANSITION}}
 \\ \>
- [ vx\= $\leq$ 0 AND vx' $\leq$ 0 AND x' $\leq$ -1 AND x' $\geq$ -3/2 -->
+ [ vx \= $\leq$ 0 AND vx' $\leq$ 0 AND x' $\leq$ -1 AND x' $\geq$ -3/2 -->
 \\ \> \>
      direction' = FALSE
 \\ \>
@@ -455,6 +459,35 @@ $\frac{dx}{dt}  =  -x$
  $c^T\vec{x} = c^T\vec{x'} = 0) \;\;\;\wedge \ldots $
 \\ \hline
 \end{tabular}
+
+\end{slide}
+% -------------------------------------------------------
+\begin{slide}
+\heading{WHY Relational Abstraction}
+
+{\cem{Concept}}: Analyze hybrid systems by first replacing 
+ODEs by their relational abstraction
+
+{\cem{Why is this a good idea?}}
+\begin{itemize}
+\item 
+ {\crm{separation of concerns}}
+ \begin{itemize}
+ \item use knowledge from control/system theory/linear algebra/Lyapunov functions/barriers
+ to construct high-quality relationalizations of ODEs
+ \item then use verification techniques for infinite-state systems
+ \end{itemize}
+\item
+ {\crm{accuracy improves}} as we get closer to decidable classes
+ \begin{itemize}
+ \item  relationalization is {\cem{lossless}} for timed automata, LHAs
+ \item  almost lossless for other decidable classes of CDSs
+ \end{itemize}
+\item 
+ {\cem{good quality abstractions automatically computed for linear ODEs}}
+\item
+ {\cem{generalizes}} to timed relational abstraction etc.
+\end{itemize}
 
 \end{slide}
 % -------------------------------------------------------
