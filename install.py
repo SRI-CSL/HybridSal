@@ -316,7 +316,8 @@ def createBinFile(shell, pwd, bindir, filename, pythonfile):
         binfile += '.bat'
     fp = open( binfile, 'w')
     if sys.platform.startswith('win'):
-        print >> fp, 'python ', os.path.join(pwd, pythonfile), '%1', '%2', '%3', '%4', '%5', '%6', '%7', '%8'
+        pyfile = repr(os.path.join(pwd, pythonfile))
+        print >> fp, 'python ', pyfile[1:-1], '%1', '%2', '%3', '%4', '%5', '%6', '%7', '%8'
     else:
         print >> fp, shell
         print >> fp, 'python ', os.path.join(pwd, pythonfile), '$*' 
