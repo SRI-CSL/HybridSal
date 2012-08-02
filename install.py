@@ -230,7 +230,6 @@ def main():
     exe = os.path.join('.', hybridsal2xml)
     ex4sal = os.path.join('examples','SimpleThermo4.sal')
     assert os.path.isfile(ex4sal), 'ERROR: hybridsal2xml/examples/SimpleThermo4.sal missing'
-    print 'calling {0}{1}'.format(os.getcwd(), exe)
     subprocess.call([ exe, '-o', ex4, ex4sal ])
     if os.path.isfile( ex4 ):
         print 'Successful.'
