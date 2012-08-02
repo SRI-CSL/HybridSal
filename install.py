@@ -165,10 +165,30 @@ def main():
     print "Installing hybridsal2xml. Copyright (c) SRI International 2003."
     print "-------------------------------------------------------------------"
     print "Installing hybridsal2xml at {0}".format(os.getcwd())
-    assgn = [ ("__ANTLR_PATH__", antlrpath), ("__JIKES_PATH__",jikespath), ("__RTJAR_PATH__",rtjar) ]
+    if sys.platform.startswith('win'):	# windows
+        classpathsep = ';'
+    else:	# linux or mac
+        classpathsep = ':'
+    javaclasspath = classpathsep.join([ '.', antlrpath, os.path.join(antlrpath, 'antlr'), rtjar ])
+    assgn = [ ("__ANTLR_PATH__", antlrpath), ("__JIKES_PATH__",jikespath), ("__RTJAR_PATH__",rtjar), ("__JAVACLASSPATH__",javaclasspath) ]
     sed( 'Makefile.in', 'Makefile', assgn)
+    assgn = [ ("__HYBRIDSAL_PATH__", os.getcwd()), ("_ANTLRPATH__", antlrpath) ]
+    # hybridsal2xmltemplate = os.path.join('hybridsal2xml', 'hybridsal2xml.template')
+    hybridsal2xmltemplate = 'hybridsal2xml.template'
+    # hybridsal2xml = os.path.join('hybridsal2xml','hybridsal2xml')
+    hybridsal2xml = 'hybridsal2xml'
+    sed( hybridsal2xmltemplate, hybridsal2xml, assgn )
+    os.chmod( hybridsal2xml, 0755 )
     subprocess.call([ 'make' ])
     print "hybridsal2xml installation complete. Testing ....\n"
+
+    # set value of shell
+    shell = which( 'sh' )
+    if not shell and 'SHELL' in os.environ.keys():
+        shell = os.environ['SHELL']
+    if not shell:
+        print 'ERROR: Environment variable SHELL not set!'
+        return 1
 
     #
     # Run a test
@@ -178,8 +198,8 @@ def main():
         os.remove( ex4 )
     # subprocess.call([ 'rm', '-f', 'examples/SimpleThermo4.xml'])
     exe = os.path.join('.','hybridsal2xml')
-    subprocess.call([ exe, '-o', ex4, os.path.join('examples','SimpleThermo4.sal') ])
-    if os.path.isfile(os.path.join('examples','SimpleThermo4.xml')):
+    subprocess.call([ shell, exe, '-o', ex4, os.path.join('examples','SimpleThermo4.sal') ])
+    if os.path.isfile( ex4 ):
         print 'hybridsal2xml successfully installed'
     else:
         print 'Error: hybridsal2xml installation failed'
@@ -194,11 +214,6 @@ def main():
         print 'Error: Directory %s does not exist; create it and rerun install.' % bindir
         return 1
     #os.chdir(pwd + "/bin")
-    if 'SHELL' in os.environ.keys():
-        shell = os.environ['SHELL']
-    else:
-        print 'ERROR: Environment variable SHELL not set!'
-        return 1
     createBinFile(shell, pwd, bindir, 'hxml2hsal', os.path.join('src','HSalXMLPP.py'))
     createBinFile(shell, pwd, bindir, 'hsal2hasal', os.path.join('src','HSalRelAbsCons.py'))
     createBinFile(shell, pwd, bindir, 'hasal2sal', os.path.join('src','HSalExtractRelAbs.py'))

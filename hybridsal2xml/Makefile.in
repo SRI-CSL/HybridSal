@@ -7,7 +7,8 @@ RTJARPATH=__RTJAR_PATH__
 
 # Do not modify below.
 JAVAFLAGS =
-JAVACLASSPATH = .:${ANTLRPATH}:${ANTLRPATH}/antlr.jar:${RTJARPATH}::
+#JAVACLASSPATH = .:${ANTLRPATH}:${ANTLRPATH}/antlr.jar:${RTJARPATH}::
+JAVACLASSPATH = __JAVACLASSPATH__
 
 antlrJava:=$(wildcard antlr-2.7.1/antlr/*.java)
 antlrClass=$(antlrJava:.java=.class)
@@ -16,15 +17,15 @@ antlrClass=$(antlrJava:.java=.class)
 .SUFFIXES: .java .class
 .java.class : ; (export CLASSPATH=${JAVACLASSPATH}; $(JAVAC) $(JAVAFLAGS) $<)
 
-install: all
-	sed -e "s|__HYBRIDSAL_PATH__|${PWD}|g;s|__ANTLRPATH__|${ANTLRPATH}|g" hybridsal2xml.template > hybridsal2xml
-	chmod +x hybridsal2xml
-
 all : HybridSalTokenTypes.class \
       HybridSalLexer.class \
       HybridSalParser.class \
       XmlAst.class \
       HybridSal2Xml.class
+
+install: all
+	sed -e "s|__HYBRIDSAL_PATH__|${PWD}|g;s|__ANTLRPATH__|${ANTLRPATH}|g" hybridsal2xml.template > hybridsal2xml
+	chmod +x hybridsal2xml
 
 HybridSalParser.java HybridSalLexer.java HybridSalTokenTypes.java : HybridSalParser.g $(antlrClass)
 	(export CLASSPATH=${JAVACLASSPATH}; java antlr.Tool $(ANTLRFLAGS) HybridSalParser.g)
