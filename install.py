@@ -319,7 +319,7 @@ def createBinFile(shell, pwd, bindir, filename, pythonfile):
     if sys.platform.startswith('win'):
         print >> fp, 'python ', os.path.join(pwd, pythonfile), '%1', '%2', '%3', '%4', '%5', '%6', '%7', '%8'
     else:
-        print >> fp, '#!', shell
+        print >> fp, shell
         print >> fp, 'python ', os.path.join(pwd, pythonfile), '$*' 
     fp.close()
     subprocess.call(['chmod', '+x', binfile])
