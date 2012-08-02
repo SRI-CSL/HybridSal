@@ -165,6 +165,14 @@ def main():
         return 1
     # print '-------------------------'
 
+    # set value of shell
+    shell = checkProg( 'sh' )
+    if not shell and 'SHELL' in os.environ.keys():
+        shell = os.environ['SHELL']
+    if not shell:
+        print 'ERROR: Environment variable SHELL not set!'
+        return 1
+
     #
     # Run the install.sh script in hybridsal2xml
     #
@@ -180,12 +188,15 @@ def main():
     # subprocess.call(['sh', 'install.sh', antlrpath, rtjar, jikespath ])
     print "Installing hybridsal2xml at {0}".format(os.getcwd())
     scriptArgs = ''
+    topshell = ''
     if sys.platform.startswith('win'):	# windows
         classpathsep = ';'
         scriptArgs = '%1 %2 %3'
+        topshell = ''
     else:	# linux or mac
         classpathsep = ':'
         scriptArgs = '$*'
+        topshell = '#!{0}'.format(shell)
     javaclasspath = classpathsep.join([ '.', antlrpath, os.path.join(antlrpath, 'antlr'), rtjar ])
     if 'CLASSPATH' in os.environ.keys():
         javaclasspath = classpathsep.join([ javaclasspath, os.environ['CLASSPATH']])
@@ -194,25 +205,19 @@ def main():
     sed( 'Makefile.in', 'Makefile', assgn)
     javaclasspath = classpathsep.join([ hybridsal2xml, javaclasspath])
     tmp = '"{0}"'.format(javaclasspath)
-    assgn = [ ("__JAVACLASSPATH__", tmp), ("__ARGS__", scriptArgs) ]
+    assgn = [ ("__JAVACLASSPATH__", tmp), ("__ARGS__", scriptArgs), ("__SH__",topshell) ]
     # hybridsal2xmltemplate = os.path.join('hybridsal2xml', 'hybridsal2xml.template')
     hybridsal2xmltemplate = 'hybridsal2xml.template'
     # hybridsal2xml = os.path.join('hybridsal2xml','hybridsal2xml')
     hybridsal2xml = 'hybridsal2xml'
     if sys.platform.startswith('win'):
         hybridsal2xml += '.bat'
+    #else:
+        #hybridsal2xml += '.sh'
     sed( hybridsal2xmltemplate, hybridsal2xml, assgn )
     os.chmod( hybridsal2xml, 0755 )
     subprocess.call([ 'make' ])
     print "hybridsal2xml installation complete."
-
-    # set value of shell
-    shell = checkProg( 'sh' )
-    if not shell and 'SHELL' in os.environ.keys():
-        shell = os.environ['SHELL']
-    if not shell:
-        print 'ERROR: Environment variable SHELL not set!'
-        return 1
 
     #
     # Run a test
@@ -225,6 +230,7 @@ def main():
     exe = os.path.join('.', hybridsal2xml)
     ex4sal = os.path.join('examples','SimpleThermo4.sal')
     assert os.path.isfile(ex4sal), 'ERROR: hybridsal2xml/examples/SimpleThermo4.sal missing'
+    print 'calling {0}{1}'.format(os.getcwd(), exe)
     subprocess.call([ exe, '-o', ex4, ex4sal ])
     if os.path.isfile( ex4 ):
         print 'Successful.'
