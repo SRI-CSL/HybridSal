@@ -50,7 +50,6 @@ def findFile(baseList, dirList, fileList):
             break
     if done:
         rtjar = os.path.normpath(rtjar)
-        print 'rt.jar found as %s' % rtjar
     else:
         rtjar = None
     return rtjar
@@ -69,13 +68,19 @@ def main():
     #
     # Search for java and JAVA_HOME
     #
-    checkProg('sed')
+    # checkProg('sed')
     checkProg('chmod')
 
-    print '\nSearching for java'
+    print "-------------------------------------------------"
+    print "Installing HybridSal Relational Abstraction Tool."
+    print "     Copyright (c) SRI International 2011.       "
+    print "-------------------------------------------------"
+    print 'Searching for java...',
     output = checkProg('java')
+    print 'Found {0}'.format(output)
 
     # Set rtjar 
+    print 'Searching for rt.jar...',
     rtjar = 'rt.jar'
     if '--rtjar' in sys.argv:
         index = sys.argv.index('--rtjar')
@@ -98,35 +103,44 @@ def main():
         p2 = os.path.join('..','Classes')
         rtjar = findFile(baseList, [p1, p2], ['rt.jar', 'classes.jar'])
         if rtjar == None:
+            print 'Failed.'
             print 'Warning: Failed to find rt.jar in all possible places'
             print 'Continuing without giving explicit rt.jar path; if this does not work, then...Make sure the system has rt.jar (on Mac, it is sometimes called classes.jar and is located at /System/Library/Frameworks/JavaVM.framework/Versions/CurrentJDK/Classes/classes.jar) and then ...'
             print 'Rerun install script as: python install.py --rtjar <absolute-path/filename.jar>'
             rtjar = '.'
+        else:
+            print 'Found {0}'.format(rtjar)
     rtjar = os.path.abspath(rtjar)
+    if rtjar.find('java-6-openjdk') >= 0:
+        print '****Warning: rt.jar in java-6-openjdk is buggy; use java-6-sun/jre instead****'
 
     #
     # Search for jikes? 
     # NOTE: BD I don't have jikes but it still compile fine??
     #
-    print '\nSearching for jikes'
+    print 'Searching for jikes or javac...',
     jikespath = ''
     output = checkProg('jikes')
     if not output:
-        print 'Warning: jikes not found; Trying to find javac ...'
+        # print 'Warning: jikes not found; Trying to find javac ...'
         jikespath = ''
     else:
         jikespath = os.path.realpath(output)
     if jikespath == '':
         output = checkProg('javac')
         if not output:
-            print 'Warning: jikes not found; You can not COMPILE hybridsal2xml'
-            print ' But you may be able to use the class files already present'
-            print ' The class files were built on 64-bit Ubuntu'
-            print 'Optionally, you can try to install jikes/javac and rerun this script'
+            pass
         else:
             jikespath = os.path.realpath(output)
     if jikespath == '':
+        print 'Failed.'
+        print 'Warning: jikes not found; You can not COMPILE hybridsal2xml'
+        print ' But you may be able to use the class files already present'
+        print ' The class files were built on {0}'.format(sys.platform)
+        print 'Optionally, you can try to install jikes/javac and rerun this script'
         jikespath = 'javac'
+    else:
+        print 'Found {0}'.format(jikespath)
 
     #
     # Check that we're in the right directory
@@ -142,28 +156,26 @@ def main():
     #hybridsal2xml = os.path.normpath(pwd + "/hybridsal2xml")
     hybridsal2xml = os.path.normpath(os.path.join(pwd, "hybridsal2xml"))
     if os.path.isdir(os.path.join(pwd,'src')) and os.path.isdir(hybridsal2xml):
-        print 'Everything looks fine until now.'
+        pass # print 'Everything looks fine until now.'
     else:
         print 'Error: RUN THIS SCRIPT FROM THE HSAL ROOT DIRECTORY'
         print ' The HSAL root directory is the directory created by tar -xz'
         return 1
-    print '-------------------------'
+    # print '-------------------------'
 
     #
     # Run the install.sh script in hybridsal2xml
     #
-    print 'Installing hybridsal2xml'
     os.chdir(hybridsal2xml)
     # run ./install.sh antlrpath rtjar jikespath
+    print 'Searching for antlr...',
     antlrpath = os.path.join(hybridsal2xml, 'antlr-2.7.1')
     if os.path.isdir(antlrpath):
-        print 'antlr-2.7.1/ found as %s' % antlrpath
+        print 'Found {0}'.format(antlrpath)
     else:
-        print 'Error: Failed to find antlr-2.7.1/'
+        print 'Failed. Failed to find antlr-2.7.1/'
         return 1
     # subprocess.call(['sh', 'install.sh', antlrpath, rtjar, jikespath ])
-    print "Installing hybridsal2xml. Copyright (c) SRI International 2003."
-    print "-------------------------------------------------------------------"
     print "Installing hybridsal2xml at {0}".format(os.getcwd())
     if sys.platform.startswith('win'):	# windows
         classpathsep = ';'
@@ -180,8 +192,7 @@ def main():
     sed( hybridsal2xmltemplate, hybridsal2xml, assgn )
     os.chmod( hybridsal2xml, 0755 )
     subprocess.call([ 'make' ])
-    print "hybridsal2xml installation complete. Testing ....\n"
-    print 'Debug: getcwd = {0} should be hybridsal2xml'.format(os.getcwd())
+    print "hybridsal2xml installation complete."
 
     # set value of shell
     shell = which( 'sh' )
@@ -194,6 +205,7 @@ def main():
     #
     # Run a test
     #
+    print "Testing hybridsal2xml...",
     ex4 = os.path.join('examples','SimpleThermo4.xml')
     if os.path.isfile(ex4):
         os.remove( ex4 )
@@ -201,15 +213,16 @@ def main():
     exe = os.path.join('.','hybridsal2xml')
     subprocess.call([ shell, exe, '-o', ex4, os.path.join('examples','SimpleThermo4.sal') ])
     if os.path.isfile( ex4 ):
-        print 'hybridsal2xml successfully installed'
+        print 'Successful.'
     else:
-        print 'Error: hybridsal2xml installation failed'
+        print 'Failed.'
         return 1
     os.chdir('..')
 
     #
     # create bin/ files
     #
+    print 'Creating bin/ files...',
     bindir = os.path.join(pwd, "bin")
     if not(os.path.isdir(bindir)):
         print 'Error: Directory %s does not exist; create it and rerun install.' % bindir
@@ -225,6 +238,54 @@ def main():
     if os.path.isfile(filename):
         os.remove(filename)
     subprocess.call(['ln', '-s', os.path.join('..','hybridsal2xml','hybridsal2xml'), os.path.join(pwd, 'bin', 'hsal2hxml')])
+    print 'Done.'
+
+    # 
+    # python version test
+    # 
+    if sys.version < '2.6':
+        print '****Warning: Preferably use python version 2.6 or higher****'
+
+    # 
+    # Test if numpy and scipy are installed
+    # 
+    print 'Searching for numpy...',
+    try:
+        import numpy
+    except ImportError, e:
+        print 'Failed.'
+        print 'Install python modules numpy and scipy first.'
+        print 'On Ubuntu: sudo aptitude install python-numpy'
+        print 'On Ubuntu: sudo aptitude install python-scipy'
+        return 1
+    else:
+        print 'Found.'
+    print 'Searching for scipy...',
+    try:
+        import scipy
+    except ImportError, e:
+        print 'Failed.'
+        print 'Install python modules numpy and scipy first.'
+        return 1
+    else:
+        print 'Found.'
+
+    # 
+    # Test relational abstracter itself
+    # 
+    print "Testing HybridSal relational abstracter...",
+    ex4 = os.path.join('examples','Linear1.sal')
+    if os.path.isfile(ex4):
+        os.remove( ex4 )
+    # subprocess.call([ 'rm', '-f', 'examples/SimpleThermo4.xml'])
+    exe = os.path.join('bin','hsal2hasal')
+    subprocess.call([ shell, exe, os.path.join('examples','Linear1.hsal') ])
+    if os.path.isfile( ex4 ):
+        print 'Successful.'
+    else:
+        print 'Failed.'
+        return 1
+    
     return 0
 
 def createBinFile(shell, pwd, bindir, filename, pythonfile):
