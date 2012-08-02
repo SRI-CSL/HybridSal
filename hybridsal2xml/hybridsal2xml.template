@@ -1,2 +1,1 @@
-#!/bin/sh
-(export CLASSPATH=__HYBRIDSAL_PATH__:__ANTLRPATH__:${CLASSPATH}; java HybridSal2Xml $*)
+java -cp __JAVACLASSPATH__ HybridSal2Xml __ARGS__ 

@@ -15,7 +15,7 @@ antlrClass=$(antlrJava:.java=.class)
 
 .SUFFIXES:
 .SUFFIXES: .java .class
-.java.class : ; (export CLASSPATH=${JAVACLASSPATH}; $(JAVAC) $(JAVAFLAGS) $<)
+.java.class : ; $(JAVAC) -cp ${JAVACLASSPATH} $(JAVAFLAGS) $<
 
 all : HybridSalTokenTypes.class \
       HybridSalLexer.class \

@@ -28,6 +28,7 @@ def checkProg(name):
         print 'Error: %s not found, Install it first' % name
         return False
     return output
+
     
 def isFile(filename):
     tmp = os.path.normpath(filename)
@@ -138,6 +139,7 @@ def main():
         print ' But you may be able to use the class files already present'
         print ' The class files were built on {0}'.format(sys.platform)
         print 'Optionally, you can try to install jikes/javac and rerun this script'
+        #sourceforge.net/projects/jikes/files/Jikes/1.22/jikes-1.22-1.windows.zip
         jikespath = 'javac'
     else:
         print 'Found {0}'.format(jikespath)
@@ -177,25 +179,35 @@ def main():
         return 1
     # subprocess.call(['sh', 'install.sh', antlrpath, rtjar, jikespath ])
     print "Installing hybridsal2xml at {0}".format(os.getcwd())
+    scriptArgs = ''
     if sys.platform.startswith('win'):	# windows
         classpathsep = ';'
+        scriptArgs = '%1 %2 %3'
     else:	# linux or mac
         classpathsep = ':'
+        scriptArgs = '$*'
     javaclasspath = classpathsep.join([ '.', antlrpath, os.path.join(antlrpath, 'antlr'), rtjar ])
-    assgn = [ ("__ANTLR_PATH__", antlrpath), ("__JIKES_PATH__",jikespath), ("__RTJAR_PATH__",rtjar), ("__JAVACLASSPATH__",javaclasspath) ]
+    if 'CLASSPATH' in os.environ.keys():
+        javaclasspath = classpathsep.join([ javaclasspath, os.environ['CLASSPATH']])
+    tmp = '"{0}"'.format(javaclasspath)
+    assgn = [ ("__ANTLR_PATH__", antlrpath), ("__JIKES_PATH__",repr(jikespath)), ("__RTJAR_PATH__",rtjar), ("__JAVACLASSPATH__",tmp) ]
     sed( 'Makefile.in', 'Makefile', assgn)
-    assgn = [ ("__HYBRIDSAL_PATH__", hybridsal2xml), ("__ANTLRPATH__", antlrpath) ]
+    javaclasspath = classpathsep.join([ hybridsal2xml, javaclasspath])
+    tmp = '"{0}"'.format(javaclasspath)
+    assgn = [ ("__JAVACLASSPATH__", tmp), ("__ARGS__", scriptArgs) ]
     # hybridsal2xmltemplate = os.path.join('hybridsal2xml', 'hybridsal2xml.template')
     hybridsal2xmltemplate = 'hybridsal2xml.template'
     # hybridsal2xml = os.path.join('hybridsal2xml','hybridsal2xml')
     hybridsal2xml = 'hybridsal2xml'
+    if sys.platform.startswith('win'):
+        hybridsal2xml += '.bat'
     sed( hybridsal2xmltemplate, hybridsal2xml, assgn )
     os.chmod( hybridsal2xml, 0755 )
     subprocess.call([ 'make' ])
     print "hybridsal2xml installation complete."
 
     # set value of shell
-    shell = which( 'sh' )
+    shell = checkProg( 'sh' )
     if not shell and 'SHELL' in os.environ.keys():
         shell = os.environ['SHELL']
     if not shell:
@@ -210,8 +222,10 @@ def main():
     if os.path.isfile(ex4):
         os.remove( ex4 )
     # subprocess.call([ 'rm', '-f', 'examples/SimpleThermo4.xml'])
-    exe = os.path.join('.','hybridsal2xml')
-    subprocess.call([ shell, exe, '-o', ex4, os.path.join('examples','SimpleThermo4.sal') ])
+    exe = os.path.join('.', hybridsal2xml)
+    ex4sal = os.path.join('examples','SimpleThermo4.sal')
+    assert os.path.isfile(ex4sal), 'ERROR: hybridsal2xml/examples/SimpleThermo4.sal missing'
+    subprocess.call([ exe, '-o', ex4, ex4sal ])
     if os.path.isfile( ex4 ):
         print 'Successful.'
     else:
@@ -237,7 +251,7 @@ def main():
     filename = os.path.join(pwd, 'bin', 'hsal2hxml')
     if os.path.isfile(filename):
         os.remove(filename)
-    subprocess.call(['ln', '-s', os.path.join('..','hybridsal2xml','hybridsal2xml'), os.path.join(pwd, 'bin', 'hsal2hxml')])
+    subprocess.call(['ln', '-s', os.path.join('..','hybridsal2xml',hybridsal2xml), os.path.join(pwd, 'bin', 'hsal2hxml')])
     print 'Done.'
 
     # 
@@ -292,7 +306,7 @@ def createBinFile(shell, pwd, bindir, filename, pythonfile):
     binfile = os.path.join(bindir, filename)
     fp = open( binfile, 'w')
     print >> fp, '#!', shell
-    print >> fp, 'python ', os.path.join(pwd, pythonfile), '$*' 
+    print >> fp, 'python ', repr(os.path.join(pwd, pythonfile)), '$*' 
     fp.close()
     subprocess.call(['chmod', '+x', binfile])
 

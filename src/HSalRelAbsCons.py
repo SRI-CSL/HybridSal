@@ -948,7 +948,10 @@ def hsal2hxml(filename):
         xmlfilename = filename
     elif ext == '.hsal':
         xmlfilename = basename + ".hxml"
-        exe = os.path.join(getexe(), 'hybridsal2xml')
+        hybridsal2xml = 'hybridsal2xml'
+        if sys.platform.startswith('win'):
+            hybridsal2xml += '.bat'
+        exe = os.path.join(getexe(), hybridsal2xml)
         retCode = subprocess.call([exe, "-o", xmlfilename, filename])
         if retCode != 0 or not(os.path.isfile(xmlfilename)):
             print "hybridsal2xml failed to create XML file. Quitting."
