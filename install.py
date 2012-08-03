@@ -326,6 +326,8 @@ def main():
         print 'Could not find dparser installed in your system'
         print 'Install dparser AND python support for dparser'
         print 'From dparser.sourceforge.net'
+    else:
+        print 'Successful.'
     print "Testing python support for dparser...",
     try:
         import dparser
@@ -343,6 +345,9 @@ def main():
         print 'dparser-python: python setup.py build --compile=mingw32'
         print 'I had to edit distutils/cygwinccompiler.py and remove all -mno-cygwin from python'
         return 1
+    else:
+        print 'Successful.'
+    print "-------------------------------------------------"
     return 0
 
 def createBinFile(shell, pwd, bindir, filename, pythonfile):
