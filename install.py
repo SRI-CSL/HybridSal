@@ -70,7 +70,7 @@ def main():
     # Search for java and JAVA_HOME
     #
     # checkProg('sed')
-    checkProg('chmod')
+    #checkProg('chmod')
 
     print "-------------------------------------------------"
     print "Installing HybridSal Relational Abstraction Tool."
@@ -169,9 +169,9 @@ def main():
     shell = checkProg( 'sh' )
     if not shell and 'SHELL' in os.environ.keys():
         shell = os.environ['SHELL']
-    if not shell:
-        print 'ERROR: Environment variable SHELL not set!'
-        return 1
+    #if not shell:
+        #print 'ERROR: Environment variable SHELL not set!'
+        #return 1
 
     #
     # Run the install.sh script in hybridsal2xml
@@ -211,11 +211,13 @@ def main():
     # hybridsal2xml = os.path.join('hybridsal2xml','hybridsal2xml')
     hybridsal2xml = 'hybridsal2xml'
     if sys.platform.startswith('win'):
+        if os.path.isfile(hybridsal2xml):
+            os.remove(hybridsal2xml)
         hybridsal2xml += '.bat'
     #else:
         #hybridsal2xml += '.sh'
     sed( hybridsal2xmltemplate, hybridsal2xml, assgn )
-    os.chmod( hybridsal2xml, 0755 )
+    os.chmod( hybridsal2xml, 0775 )
     subprocess.call([ 'make' ])
     print "hybridsal2xml installation complete."
 
@@ -276,6 +278,8 @@ def main():
         print 'Install python modules numpy and scipy first.'
         print 'On Ubuntu: sudo aptitude install python-numpy'
         print 'On Ubuntu: sudo aptitude install python-scipy'
+        print 'On Windows: get numpy-1.6.2-win32-superpack-python2.7.exe'
+        print 'On Windows: get scipy-0.11.Orc1-superpack-python2.7.exe'
         return 1
     else:
         print 'Found.'
@@ -285,9 +289,12 @@ def main():
     except ImportError, e:
         print 'Failed.'
         print 'Install python modules numpy and scipy first.'
+        print 'On Ubuntu: sudo aptitude install python-scipy'
+        print 'On Windows: get scipy-0.11.Orc1-superpack-python2.7.exe'
         return 1
     else:
         print 'Found.'
+    print 'Searching for dparser scipy...',
 
     # 
     # Test relational abstracter itself
@@ -308,6 +315,34 @@ def main():
         print 'Failed.'
         return 1
     
+    #
+    # Test dparser and swig for modelica2hxml converter
+    #
+    print 'Testing Modelica2HybridSal converter...'
+    print "Testing dparser...",
+    make_dparser = checkProg('make_dparser')
+    if not make_dparser:
+        print 'Failed.'
+        print 'Could not find dparser installed in your system'
+        print 'Install dparser AND python support for dparser'
+        print 'From dparser.sourceforge.net'
+    print "Testing python support for dparser...",
+    try:
+        import dparser
+    except ImportError:
+        print 'Failed.'
+        print 'Install python support for dparser'
+        print 'This requires installing swig first: www.swig.org/download.html'
+        print 'and then install dparser and its python support (dparser.sourceforge.net)'
+        print 'modelica2hybridsal converter installation failed'
+        print 'Swig installation steps: download swigwin-2.0.7.zip file; unzip; ./configure; make; make install'
+        print 'Swig uses pcre from www.pcre.org; but it may not be required'
+        print 'My Notes: I installed mingw on my windows machine; and then installed unix-like utilities, such as,'
+        print 'mingw-get install gcc g++ msys-base msys-make mingw32-autotools'
+        print 'And then installed pcre; swig; dparser; dparser-python-support;'
+        print 'dparser-python: python setup.py build --compile=mingw32'
+        print 'I had to edit distutils/cygwinccompiler.py and remove all -mno-cygwin from python'
+        return 1
     return 0
 
 def createBinFile(shell, pwd, bindir, filename, pythonfile):
@@ -322,7 +357,8 @@ def createBinFile(shell, pwd, bindir, filename, pythonfile):
         print >> fp, shell
         print >> fp, 'python ', os.path.join(pwd, pythonfile), '$*' 
     fp.close()
-    subprocess.call(['chmod', '+x', binfile])
+    # subprocess.call(['chmod', '+x', binfile])
+    os.chmod( binfile, 0775 )
 
 if __name__ == '__main__':
     main()
