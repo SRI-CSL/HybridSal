@@ -107,19 +107,20 @@ def main():
         p1 = os.path.join('..','lib')
         p2 = os.path.join('..','Classes')
         rtjar = findFile(baseList, [p1, p2], ['rt.jar', 'classes.jar'])
-        if rtjar == None:
-            print 'Failed.'
-            print '***Warning: Failed to find rt.jar in all possible places'
-            print '***Continuing without giving explicit rt.jar path; if this does not work, then...Make sure the system has rt.jar'
-            print '***Mac: it is sometimes called classes.jar and is located at /System/Library/Frameworks/JavaVM.framework/Versions/CurrentJDK/Classes/classes.jar)'
-            print '***Win: often located at C:\Program Files\Java\jre6\lib....Once you have rt.jar...'
-            print '***Rerun install script as: python install.py --rtjar <absolute-path/filename.jar>'
-            rtjar = '.'
-        else:
-            print 'Successful. Found {0}'.format(rtjar)
+    if rtjar == None:
+        print 'Failed.'
+        print '***Warning: Failed to find rt.jar in all possible places'
+        print '***Continuing without giving explicit rt.jar path; if this does not work, then...Make sure the system has rt.jar'
+        print '***Mac: it is sometimes called classes.jar and is located at /System/Library/Frameworks/JavaVM.framework/Versions/CurrentJDK/Classes/classes.jar)'
+        print '***Win: often located at C:\Program Files\Java\jre6\lib....Once you have rt.jar...'
+        print '***Rerun install script as: python install.py --rtjar <absolute-path/filename.jar>'
+        rtjar = '.'
+    else:
+        print 'Successful. Found {0}'.format(rtjar)
     rtjar = os.path.abspath(rtjar)
     if rtjar.find('java-6-openjdk') >= 0:
         print '****Warning: rt.jar in java-6-openjdk is buggy; use java-6-sun/jre instead****'
+        print '****Rerun install script as: python install.py --rtjar <absolute-path/filename.jar>'
 
     #
     # Search for jikes? 
@@ -234,7 +235,13 @@ def main():
     else:
         print 'Successful. Found {0}'.format(output)
         subprocess.call([ 'make' ])
-    print "hybridsal2xml installation complete."
+
+    if os.path.isfile('HybridSal2Xml.class'):
+        print "hybridsal2xml installation complete."
+    else:
+        print "hybridsal2xml installation failed."
+        print "***See error messages above and fix***"
+        return 1
 
     #
     # Run a test
