@@ -144,7 +144,7 @@ def main():
         print 'Failed.'
         print '***Warning: jikes/javac not found; You can not COMPILE hybridsal2xml'
         print '*** But you may be able to use the class files already present'
-        print '*** The class files were built on {0}'.format(sys.platform)
+        print '*** The class files were built on {0} {1}'.format(sys.platform,sys.version)
         print '***Optionally, you can try to install jikes/javac and rerun this script'
         #sourceforge.net/projects/jikes/files/Jikes/1.22/jikes-1.22-1.windows.zip
         jikespath = 'javac'
