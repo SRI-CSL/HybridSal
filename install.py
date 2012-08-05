@@ -397,6 +397,7 @@ def main():
         print '***And then installed pcre; swig; dparser; dparser-python-support;'
         print '***For python support for dparser: In the python subdirectory of dparser: python setup.py build --compile=mingw32'
         print '***I had to edit distutils/cygwinccompiler.py and remove all -mno-cygwin from python'
+        print 'You can still use HybridSal Relational Abstractor, but you can not use the Modelica2HybridSal front-end'
         return 1
     else:
         print 'Successful.'
