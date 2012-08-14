@@ -22,10 +22,13 @@ def valueOf(node):
 
 def getNameTag(node, tag):
     nodes = node.getElementsByTagName(tag)
-    if (len(nodes) < 1):
+    try:
+        childnode = nodes[0]
+        return(valueOf(childnode))
+    except IndexError as e:
+        print e 
         print node.toxml()
-    childnode = nodes[0]
-    return(valueOf(childnode))
+        raise
 
 def getName(node):
     return getNameTag(node, "IDENTIFIER")

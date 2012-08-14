@@ -243,6 +243,22 @@ def partitionAux(x, y, A, b):
     # print b2
     return [A, A2, b, b2]
 
+def partition(varlist, A, b):
+    "output [x,y,A1,A2,b1,b2] s.t. (x;y) = (A1 A2; 0 0) (x;y) + (b1;b2)"
+    x = dict()
+    y = dict()
+    index = 0
+    for i in A:
+        if isZero(i):
+            var = dictKey(varlist, index)
+            y[var] = index
+        else:
+            var = dictKey(varlist, index)
+            x[var] = index
+        index += 1
+    [A1,A2,b1,b2] = partitionAux(x, y, A, b)
+    return [x,y,A1,A2,b1,b2]
+
 def createNodeVarType(varName, typeName):
     xold = createNodeTag("IDENTIFIER", varName)
     real = createNodeTag("TYPENAME", typeName)
@@ -606,6 +622,47 @@ def ifGoodCreateNodes(soln, vectors, lamb, m, l):
     return (vec,wec)
 
 def absGuardedCommandAux(varlist,A,b,inputs):
+    def processMlist(mlist, inputs):
+        multirateL = []
+        for (c, x, rate) in mlist:
+            yold = createNodeCX(c, x, False, None)
+            ynew = createNodeCX(c, x, True, inputs)
+            multirateL.append([ynew, yold, rate])
+        multirateGuard = createCallToMultirateInv(multirateL)
+        return multirateGuard
+
+    def processElist(elist, inputs):
+        eigencalls = []
+        for ((vec,x,wec,y,const),lamb) in elist:
+            nodePnew = createNodePnew(vec,x,wec,y,const,inputs)
+            nodePold = createNodePold(vec,x,wec,y,const)
+            if not(nodePnew == None):
+                eigencalls.append(createCallToEigenInv(nodePnew,nodePold,lamb))
+        return eigencalls
+
+    def processQlist(qlist, inputs):
+        qcalls = []
+        for ( (u,x,w1,y,c1), (v,x,w2,y,c2), a, d) in qlist: 
+            nodePnew = createNodePnew(u,x,w1,y,c1,inputs)
+            nodePold = createNodePold(u,x,w1,y,c1)
+            nodeQnew = createNodePnew(v,x,w2,y,c2,inputs)
+            nodeQold = createNodePold(v,x,w2,y,c2)
+            # vec could be 0 vector and hence nodePnew could be None
+            qcalls.append(createCallToQuadInv(nodePnew,nodePold,nodeQnew,nodeQold,a,d))
+        return qcalls
+
+    (mlist, elist, qlist) = Ab2eigen(varlist, A, b, inputs)
+    nodeL = []
+    multirateGuard = processMlist(mlist, inputs)
+    if not(multirateGuard == None):
+        nodeL.append(multirateGuard)
+    eigencalls = processElist(elist, inputs)
+    nodeL.extend(eigencalls)
+    qcalls = processQlist(qlist, inputs)
+    nodeL.extend(qcalls)
+    return createNodeAnd(nodeL)
+    
+def Ab2eigen(varlist,A,b,inputs):
     """varlist is a dict from var to indices
     A,b are the A,b matrix defined wrt these indices
     inputs is a list of string names of all input variables
@@ -621,26 +678,11 @@ def absGuardedCommandAux(varlist,A,b,inputs):
             varName = dictKey(y, v)
             if varName in inputs:
                 continue
-            yold = createNodeTag("NAMEEXPR", varName)
-            ynew = createNodeTagChild("NEXTOPERATOR", yold.cloneNode(True))
-            multirateL.append([ynew, yold, b2[i]])
+            # yold = createNodeTag("NAMEEXPR", varName)
+            # ynew = createNodeTagChild("NEXTOPERATOR", yold.cloneNode(True))
+            # multirateL.append([ynew, yold, b2[i]])
+            multirateL.append(([1], {varName:0}, b2[i]))
         return multirateL
-
-    def partition(varlist, A, b):
-        "output [x,y,A1,A2,b1,b2] s.t. (x;y) = (A1 A2; 0 0) (x;y) + (b1;b2)"
-        x = dict()
-        y = dict()
-        index = 0
-        for i in A:
-            if isZero(i):
-                var = dictKey(varlist, index)
-                y[var] = index
-            else:
-                var = dictKey(varlist, index)
-                x[var] = index
-            index += 1
-        [A1,A2,b1,b2] = partitionAux(x, y, A, b)
-        return [x,y,A1,A2,b1,b2]
 
     [x,y,A1,A2,b1,b2] = partition(varlist,A,b)
     # [x,y,A1,A2,b1,b2] s.t. (x;y) = (A1 A2; 0 0) (x;y) + (b1;b2)"
@@ -648,7 +690,7 @@ def absGuardedCommandAux(varlist,A,b,inputs):
     m = len(y)
     if n == 0:
         print "dx/dt is a constant for all x"
-    multirateL = multirateList(y, b2, inputs) 
+    mlist = multirateList(y, b2, inputs) 
     # guardAbs1 = multirateAbs(y, b2)
     A1trans = linearAlgebra.transpose(A1)
     eigen = linearAlgebra.eigen(A1trans)
@@ -658,9 +700,10 @@ def absGuardedCommandAux(varlist,A,b,inputs):
     num = len(eigen)
     i = 0
     A2trans = linearAlgebra.transpose(A2)
-    nodeL = list()
+    #nodeL = list()
     #if not(guardAbs1 == None):
         #nodeL.append(guardAbs1)
+    elist = []
     while i < num:
         vectors = eigen[i+1]
         lambL = eigen[i]
@@ -683,9 +726,10 @@ def absGuardedCommandAux(varlist,A,b,inputs):
             const = linearAlgebra.dotproduct(vec,b1)
             if equal(lamb, 0):
                 if isZero(wec):
-                    pold = createNodeCX(vec,x,False,None)
-                    pnew = createNodeCX(vec,x,True,inputs)
-                    multirateL.append([pnew,pold,const])
+                    # pold = createNodeCX(vec,x,False,None)
+                    # pnew = createNodeCX(vec,x,True,inputs)
+                    # multirateL.append([pnew,pold,const])
+                    mlist.append( ( vec, x, const ) )
                 else:
                     print "lamb==0, but no corr. invariant found"
                     continue
@@ -694,10 +738,11 @@ def absGuardedCommandAux(varlist,A,b,inputs):
                     wec[j] /= lamb
                 const += linearAlgebra.dotproduct(wec,b2)
                 const = float(const) / lamb
-                nodePnew = createNodePnew(vec,x,wec,y,const,inputs)
-                nodePold = createNodePold(vec,x,wec,y,const)
-                if not(nodePnew == None):
-                    nodeL.append(createCallToEigenInv(nodePnew,nodePold,lamb))
+                elist.append( ((vec,x,wec,y,const),lamb) )
+                # nodePnew = createNodePnew(vec,x,wec,y,const,inputs)
+                # nodePold = createNodePold(vec,x,wec,y,const)
+                # if not(nodePnew == None):
+                    # nodeL.append(createCallToEigenInv(nodePnew,nodePold,lamb))
             # Pick d' s.t. l d' = c' A2 or, d l = A2' c
             # Let p := (c'x+d'y+ (c'b1+d'b2)/l) THEN dp/dt = l p
         if len(vectors) > 1:
@@ -731,12 +776,14 @@ def absGuardedCommandAux(varlist,A,b,inputs):
             for j in range(len(soln)):
                 (vec,wec) = ifGoodCreateNodes(soln[j],vectors,lamb,m,l)
                 if vec != None:
-                    nodePnew = createNodePnew(vec,x,wec,y,soln[j][m+l],inputs)
-                    nodePold = createNodePold(vec,x,wec,y,soln[j][m+l])
-                    nodeL.append(createCallToEigenInv(nodePnew,nodePold,lamb))
-    multirateGuard = createCallToMultirateInv(multirateL)
-    if not(multirateGuard == None):
-        nodeL.append(multirateGuard)
+                    #nodePnew = createNodePnew(vec,x,wec,y,soln[j][m+l],inputs)
+                    #nodePold = createNodePold(vec,x,wec,y,soln[j][m+l])
+                    #nodeL.append(createCallToEigenInv(nodePnew,nodePold,lamb))
+                    elist.append( ((vec,x,wec,y,soln[j][m+l]),lamb) )
+    # multirateGuard = createCallToMultirateInv(multirateL)
+    # if not(multirateGuard == None):
+        # nodeL.append(multirateGuard)
+    qlist = []
     i = 0
     while i < num:
         lamb = eigen[i]
@@ -789,13 +836,15 @@ def absGuardedCommandAux(varlist,A,b,inputs):
         c1 = (d*tmp1 + a*tmp2)/DD
         #ux+w1y+c1 and vx+w2y+c2 are position,velocity pair.
         # related by quadInv(_,_)
-        nodePnew = createNodePnew(u,x,w1,y,c1,inputs)
-        nodePold = createNodePold(u,x,w1,y,c1)
-        nodeQnew = createNodePnew(v,x,w2,y,c2,inputs)
-        nodeQold = createNodePold(v,x,w2,y,c2)
+        # nodePnew = createNodePnew(u,x,w1,y,c1,inputs)
+        # nodePold = createNodePold(u,x,w1,y,c1)
+        # nodeQnew = createNodePnew(v,x,w2,y,c2,inputs)
+        # nodeQold = createNodePold(v,x,w2,y,c2)
         # vec could be 0 vector and hence nodePnew could be None
-        nodeL.append(createCallToQuadInv(nodePnew,nodePold,nodeQnew,nodeQold,a,d))
-    return createNodeAnd(nodeL)
+        # nodeL.append(createCallToQuadInv(nodePnew,nodePold,nodeQnew,nodeQold,a,d))
+        qlist.append( ((u,x,w1,y,c1), (v,x,w2,y,c2), a, d) )
+    # return createNodeAnd(nodeL)
+    return (mlist, elist, qlist)
 
 # collect all x s.t. dx/dt = constant
 # replace them by their rel abs.

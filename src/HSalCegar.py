@@ -61,6 +61,7 @@ import subprocess
 import HSalPreProcess
 import HSalPreProcess2
 from xmlHelpers import *
+import HSalRelAbsCons
 #import polyrep2XML
 
 equal = linearAlgebra.equal
@@ -84,6 +85,36 @@ isCont = HSalExtractRelAbs.isCont
     # return '{0:.8f}'.format(k)
 # ********************************************************************
 
+# class - Cont. Dyn. Sys;
+class CDS:
+    def __init__(self, x):
+        self.x = x
+    def setAb(self, A, b):
+        self.A, self.b = A, b
+    def seteigen(self,elist):
+        self.eigen = elist
+    def setmulti(self, mlist):
+        self.multi = mlist
+    def setquad(self, qlist):
+        self.quad = qlist
+    def setsafe(self, prop):
+        self.safe = prop
+    def setmodeinv(self, inv):
+        self.modeinv = inv
+    def setinputs(self, inputs):
+        self.inputs = inputs
+    def setinit(self, init):
+        self.init = init
+    def toStr(self):
+         out = 'CDS:\n x = {0},\n init = {1},\n A = {2},\n b = {3},\n safe = {4},'.format(self.x,self.init,self.A, self.b, self.safe)
+         out += '\n modeinv = {0},'.format(self.modeinv)
+         out += '\n inputs  = {0},'.format(self.inputs)
+         out += '\n\n eigen = {0},'.format(self.eigen)
+         out += '\n multi = {0},'.format(self.multi)
+         out += '\n quad = {0},'.format(self.quad)
+         return out
+    # d = dict from 'A1', 'A2', 'b1', 'b2', 'x', 'y' to values
+
 def simpleDefinitionRhsExpr(defn):
     "Return the RHS expression in definition def"
     rhs = defn.getElementsByTagName("RHSEXPRESSION")
@@ -92,18 +123,6 @@ def simpleDefinitionRhsExpr(defn):
     else:
         return exprs2poly(rhs[0].childNodes)
     
-def getFlow(defs):
-    "Return flow of the continuous dynamics stored in definitions"
-    flow = list()
-    for i in defs:
-        lhsvar = simpleDefinitionLhsVar(i)
-        rhsexpr = simpleDefinitionRhsExpr(i)
-        flow.append(lhsvar)
-        flow.append(rhsexpr)
-    # print "printing flow"
-    # print flow
-    return flow
-
 def flow2var(flow):
     "extract variables from the flow: LHS and RHS"
     i = 0
@@ -144,62 +163,6 @@ def flow2Aibi(flowi, varlist):
             bi = c
     return [Ai,bi]
 
-def flow2Ab(flow):
-    "get A,b matrices from the flow, if possible"
-    "flow is a list of alternative variabledot, poly"
-    varlist = flow2var(flow)
-    n = len(varlist)
-    i = 0
-    A = list()
-    b = list()
-    while i < n:
-        if 2*i+1 < len(flow): 
-            Aibi = flow2Aibi(flow[2*i+1], varlist)
-        else:
-            Aibi = [ [ 0 for j in range(n) ], 0 ]
-        if Aibi == None:
-            return None
-        A.append(Aibi[0])
-        b.append(Aibi[1])
-        i += 1
-    return [varlist,A,b]
-
-def partitionAux(x, y, A, b):
-    "Rearrange A,b s.t. (x;y) = (A1,A2;0,0)(x;y) + (b1;b2); DESTRUCTIVE"
-    xindices = x.values()
-    yindices = y.values()
-    xindices.sort()
-    xindices.reverse()
-    yindices.sort()
-    yindices.reverse()
-    n = len(x)
-    m = len(y)
-    A2 = [ [0 for i in range(m) ] for j in range(n) ]
-    b2 = [ 0 for i in range(m) ] 
-    ib2 = m-1
-    for i in yindices:
-        del A[i]
-        b2[ib2] = b[i]
-        del b[i]
-        ib2 -= 1
-    iA2 = m-1
-    for i in yindices:
-        for j in range(len(A)):
-            A2[j][iA2] = A[j][i]
-            del A[j][i]
-        iA2 -= 1
-    # print "A1 below should be nxn where n is %d" % n
-    # print A
-    # print "A2 below should be nxm where m is %d" % m
-    # print A2
-    # print "b1 below should be nx1 where n is %d" % n
-    # print b
-    # print "b2 below should be mx1 where m is %d" % m
-    # print b2
-    return [A, A2, b, b2]
-
-
-
 def ifGoodCreateNodes(soln, vectors, lamb, m, l):
     """soln is (m+l+1) vector, vectors has l (nx1) vectors, lamb is a scalar"""
     assert l == len(vectors)
@@ -237,28 +200,10 @@ def absGuardedCommandAux(varlist,A,b,inputs):
             varName = dictKey(y, v)
             if varName in inputs:
                 continue
-            yold = createNodeTag("NAMEEXPR", varName)
-            ynew = createNodeTagChild("NEXTOPERATOR", yold.cloneNode(True))
-            multirateL.append([ynew, yold, b2[i]])
+            multirateL.append((varName, b2[i]))
         return multirateL
 
-    def partition(varlist, A, b):
-        "output [x,y,A1,A2,b1,b2] s.t. (x;y) = (A1 A2; 0 0) (x;y) + (b1;b2)"
-        x = dict()
-        y = dict()
-        index = 0
-        for i in A:
-            if isZero(i):
-                var = dictKey(varlist, index)
-                y[var] = index
-            else:
-                var = dictKey(varlist, index)
-                x[var] = index
-            index += 1
-        [A1,A2,b1,b2] = partitionAux(x, y, A, b)
-        return [x,y,A1,A2,b1,b2]
-
-    [x,y,A1,A2,b1,b2] = partition(varlist,A,b)
+    [x,y,A1,A2,b1,b2] = HSalRelAbsCons.partition(varlist,A,b)
     # [x,y,A1,A2,b1,b2] s.t. (x;y) = (A1 A2; 0 0) (x;y) + (b1;b2)"
     n = len(x)
     m = len(y)
@@ -423,147 +368,107 @@ def absGuardedCommandAux(varlist,A,b,inputs):
 
 # If we fail to find eigen, we need BOX invs -- for later...
 
-def absGuardedCommand(gc, inputs, basemod):
-    """Return a new guarded command that is a rel abs of input GC.
-       gc is the XML node of the guarded command, 
-       inputs is a list of string names of all input variables
-       basemod is the XML node of the basemodule of the gc"""
-    global opt
+def handleGuardedCommand(gc):
     guard = gc.getElementsByTagName("GUARD")[0]
     assigns = gc.getElementsByTagName("ASSIGNMENTS")[0]
     defs = assigns.getElementsByTagName("SIMPLEDEFINITION")
-    flow = getFlow(defs)
-    [varlist,A,b] = flow2Ab(flow)
+    flow = HSalRelAbsCons.getFlow(defs)
+    [varlist,A,b] = HSalRelAbsCons.flow2Ab(flow)
     # print "A"
     # print A
     # print "b"
     # print b
     guard = HSalXMLPP.getArg(guard,1)
-    guardCopy = guard.cloneNode(True)
-    if (opt & 0x4 != 0) :
-        primeguard = HSalPreProcess2.makePrime(guardCopy, inputs, basemod)
-        guardCopy = createNodeInfixApp('AND',guardCopy,primeguard)
-    absgc = absGuardedCommandAux(varlist,A,b,inputs)
-    absguardnode = createNodeInfixApp('AND',guardCopy,absgc)
-    absguard = createNodeTagChild('GUARD',absguardnode)
-    # absassigns = assigns.cloneNode(True)
-    absassigns = absAssignments(varlist, keyLimit=len(flow)/2)
-    return createNodeTagChild2('GUARDEDCOMMAND', absguard, absassigns)
+    return (guard, varlist, A, b)
 
-def handleBasemodule(basemod, ctxt):
-    """Side effect: replace cont. transition by relational abstraction
-       by changing the DOM of the basemod, doms root is ctxt"""
+def handleBasemodule(basemod):
+    """populate the data-structure"""
     inputs = HSalPreProcess2.getInputs(basemod)
     cbody = basemod.getElementsByTagName("GUARDEDCOMMAND")
-    for i in cbody:
-        if isCont(i):
-            absGC = absGuardedCommand(i, inputs, basemod)
-            parentNode = i.parentNode
-            if parentNode.localName == 'MULTICOMMAND':
-                if not(absGC == None):
-                    parentNode.appendChild(absGC)
-                # print "Parent is a multicommand"
-            elif parentNode.localName == 'SOMECOMMANDS':
-                # print "Parent is SOMECOMMANDS"
-                newnode = ctxt.createElement("MULTICOMMAND")
-                oldChild = i.cloneNode(True)
-                newnode.appendChild(oldChild)
-                newnode.appendChild(absGC)
-                parentNode.replaceChild(newChild=newnode, oldChild=i)
-            else:
-                print "Unknown parent node type"
+    assert len(cbody) == 1, 'ERROR: Expecting exactly 1 guarded command in module'
+    i = cbody[0]
+    assert isCont(i), 'ERROR: Expecting exactly 1 continuous transition in module'
+    (guard, varlist, A, b) = handleGuardedCommand(i)
+    (mlist, elist, qlist) = HSalRelAbsCons.Ab2eigen(varlist, A, b, inputs)
+    cds = CDS( varlist )
+    cds.setAb( A, b )
+    cds.setmodeinv( guard )
+    cds.setmulti( mlist )
+    cds.seteigen( elist )
+    cds.setquad( qlist )
+    cds.setinputs( inputs )
+    # now I need to set the initial state
+    init = basemod.getElementsByTagName("INITDECL")
+    assert len(init) > 0, 'Error: Need INITIALIZATION'
+    cds.setinit( init[0] )
+    return cds
 
-def handleContext(ctxt):
-    global opt
-    basemodules = ctxt.getElementsByTagName("BASEMODULE")
-    for i in basemodules:
-        handleBasemodule(i, ctxt)
-    cbody = ctxt.getElementsByTagName("CONTEXTBODY")
-    assert len(cbody) == 1
-    if (opt & 0x1 != 0):
-        cbody[0].insertBefore(newChild=createNodeQuadInvOpt(),refChild=cbody[0].firstChild)
-    if (opt & 0x2 != 0):
-        cbody[0].insertBefore(newChild=createNodeQuadInvNonlinear(),refChild=cbody[0].firstChild)
-    if (opt & 0x2 == 0):
-        cbody[0].insertBefore(newChild=createNodeQuadInv(),refChild=cbody[0].firstChild)
-    if (opt & 0x8 != 0):
-        cbody[0].insertBefore(newChild=createTimedNodeQuadInv(),refChild=cbody[0].firstChild)
-        cbody[0].insertBefore(newChild=createTimedNodeEigenInv(),refChild=cbody[0].firstChild)
-    else:
-        cbody[0].insertBefore(newChild=createNodeEigenInv(),refChild=cbody[0].firstChild)
-        cbody[0].insertBefore(newChild=createNodeMultirateInv(),refChild=cbody[0].firstChild)
-    cbody[0].insertBefore(newChild=createModNode(),refChild=cbody[0].firstChild)
-    return ctxt
+def prop2modpropExpr(ctxt, prop):
+    "create and output the shared data-structure"
+    # first, find the assertiondecl for prop in ctxt
+    # get list of all assertiondeclarations in ctxt
+    modulemodels = None
+    adecls = ctxt.getElementsByTagName("ASSERTIONDECLARATION")
+    assert len(adecls) > 0, 'ERROR: Property {0} not found in input HSal file'.format(prop)
+    for i in adecls:
+        propName = HSalXMLPP.getNameTag(i, 'IDENTIFIER')
+        if propName == prop:
+            modulemodels = HSalXMLPP.getArg(i, 3)
+            break
+    assert modulemodels != None, 'ERROR: Property {0} not found in input HSal file'.format(prop)
+    # second, extract modulename and property expression
+    modulename = None
+    try:
+        modulename = HSalXMLPP.getNameTag(modulemodels, 'MODULENAME')
+    except IndexError:
+        print 'ERROR: Expecting MODULENAME inside property {0}'.format(prop)
+        sys.exit(1)
+    propExpr = HSalXMLPP.getArg(modulemodels, 2)
+    assert propExpr != None, 'ERROR: Failed to find property expression'
+    # Now, I have modulename and propExpr
+    # Next, find module modulename from the list of ALL basemodules...
+    moddecl = None
+    moddecls = ctxt.getElementsByTagName("MODULEDECLARATION")
+    for i in moddecls:
+        tmp = HSalXMLPP.getArg(i, 1)
+        assert tmp != None, 'ERROR: Module declaration has no NAME ??'
+        identifier = HSalXMLPP.valueOf(tmp).strip()
+        if identifier == modulename:
+            moddecl = i
+            break
+    assert moddecl != None, 'ERROR: Module {0}, referenced in property {1}, not found'.format(modulename, prop)
+    # Now, I have moddecl and propExpr
+    basemod = HSalXMLPP.getArg(moddecl, 3)
+    assert basemod != None, 'ERROR: Module {0} is not a base module'.format(modulename)
+    # Now I have basemod and propExpr; check if propExpr is G( inv )
+    assert propExpr.tagName == 'APPLICATION', 'ERROR: Property must be of the form G(inv)'
+    functionName = HSalXMLPP.valueOf( HSalXMLPP.getArg(propExpr, 1) ).strip()
+    assert functionName == 'G', 'ERROR: Property must be of the form G(inv)'
+    invExpr = HSalXMLPP.getArg( HSalXMLPP.getArg(propExpr, 2), 1)
+    return (basemod, invExpr)
 
-#def changeContextName(ctxt):
-    #idnode = ctxt.getElementsByTagName("IDENTIFIER")[0]
-    #for i in idnode.childNodes:
-        #if i.nodeType == i.TEXT_NODE:
-            #newnode = ctxt.createTextNode(i.data+"ABS")
-            #idnode.replaceChild(newnode, i)
-    #return ctxt
-def hxml2sal(xmlfilename, optarg = 0, timearg = None):
-    global dom
-    global opt
-    global time
-    opt = optarg
-    time = timearg
+def handleContext(ctxt, prop):
+    (basemod, propExpr) = prop2modpropExpr(ctxt, prop)
+    # basemod and propExpr are XML nodes
+    # basemod -> (x, init, dynamics)
+    cds = handleBasemodule(basemod)
+    cds.setsafe( propExpr )
+    return cds 
+
+def hxml2cegar(xmlfilename, prop, depth = 4):
     basename,ext = os.path.splitext(xmlfilename)
     dom = xml.dom.minidom.parse(xmlfilename)
     setDom(dom)
+    # standard pre-processing for HybridSal models
     ctxt = HSalPreProcess.handleContext(dom)
     ctxt = HSalPreProcess2.handleContext(ctxt)
-    newctxt = handleContext(ctxt)
-    absfilename = basename + ".haxml"
-    moveIfExists(absfilename)
-    with open(absfilename, "w") as fp:
-        print >> fp, newctxt.toxml()
-    print "Created file %s containing the original+abstract model (XML)" % absfilename
-    absfilename = basename + ".hasal"
-    moveIfExists(absfilename)
-    with open(absfilename, "w") as fp:
-        HSalXMLPP.HSalPPContext(newctxt, fp)
-    print "Created file %s containing the original+abstract model" % absfilename
-    absXMLFile = basename + ".xml"
-    moveIfExists(absXMLFile)
-    with open(absXMLFile, "w") as fp:
-        HSalExtractRelAbs.extractRelAbs(newctxt, fp)
-    absSalFile = basename + ".sal"
-    moveIfExists(absSalFile)
-    with open(absSalFile, "w") as fp:
-        HSalXMLPP.HSalPPContext(newctxt, fp)
-    print "Created file %s containing the abstract model" % absSalFile
+    # 
+    mydatastructure = handleContext(ctxt, prop)
+    print "Cegar: First phase of initialization of data-structures is complete"
+    print mydatastructure.toStr()
+    pass
+    print "Cegar: Second phase of CEGAR terminated"
     return 0
-
-def hsal2hxml(filename):
-    def getexe():
-        folder = os.path.split(inspect.getfile( inspect.currentframe() ))[0]
-        relabsfolder = os.path.join(folder, '..', 'hybridsal2xml')
-        relabsfolder = os.path.realpath(os.path.abspath(relabsfolder))
-        return relabsfolder
-    basename,ext = os.path.splitext(filename)
-    if ext == '.hxml':
-        xmlfilename = filename
-    elif ext == '.hsal':
-        xmlfilename = basename + ".hxml"
-        hybridsal2xml = 'hybridsal2xml'
-        if sys.platform.startswith('win'):
-            hybridsal2xml += '.bat'
-        exe = os.path.join(getexe(), hybridsal2xml)
-        retCode = subprocess.call([exe, "-o", xmlfilename, filename])
-        if retCode != 0 or not(os.path.isfile(xmlfilename)):
-            print "hybridsal2xml failed to create XML file. Quitting."
-            return 1
-    else:
-        print "Unknown file extension; Expecting .hsal or .hxml; Quitting"
-        return 1
-    return xmlfilename
-
-def moveIfExists(filename):
-    if os.path.isfile(filename):
-        print "File %s exists." % filename,
-        print "Renaming old file to %s." % filename+"~"
-        shutil.move(filename, filename + "~")
 
 def printUsage():
     print "Usage: hsal-cegar [-h|--help] filename.hsal property"
@@ -599,13 +504,12 @@ REPORTING BUGS
         Report bin/hsal-cegar bugs to ashish_dot_tiwari_at_sri_dot_com
 
 COPYRIGHT
-        Copyright 2011 Ashish Tiwari, SRI International.
+        Copyright 2012 Ashish Tiwari, SRI International.
 -------------------------------------------------------------------------
 """
 
 def main():
-    global dom
-    global depth
+    depth = 4
     args = sys.argv[1:]
     if len(args) < 2:
         printUsage()
@@ -631,8 +535,8 @@ def main():
     if not(os.path.isfile(filename)):
         print "File {0} does not exist. Quitting.".format(filename)
         return 1
-    xmlfilename = hsal2hxml(filename)
-    ans = hxml2sal(xmlfilename, opt, time)
+    xmlfilename = HSalRelAbsCons.hsal2hxml(filename)
+    ans = hxml2cegar(xmlfilename, prop, depth)
     return ans
 
 if __name__ == '__main__':
