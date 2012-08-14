@@ -106,8 +106,13 @@ class CDS:
     def setinit(self, init):
         self.init = init
     def toStr(self):
-         out = 'CDS:\n x = {0},\n init = {1},\n A = {2},\n b = {3},\n safe = {4},'.format(self.x,self.init,self.A, self.b, self.safe)
-         out += '\n modeinv = {0},'.format(self.modeinv)
+         out = 'CDS:\n x = {0},'.format(self.x)
+         out += '\n init = '
+         for i in self.init:
+             out += '{0},'.format(i.toxml())
+         out += '\n A = {0},\n b = {1},'.format(self.A, self.b, self.safe)
+         out += '\n safe = {0},'.format(self.safe.toxml())
+         out += '\n modeinv = {0},'.format(self.modeinv.toxml())
          out += '\n inputs  = {0},'.format(self.inputs)
          out += '\n\n eigen = {0},'.format(self.eigen)
          out += '\n multi = {0},'.format(self.multi)
@@ -381,6 +386,37 @@ def handleGuardedCommand(gc):
     guard = HSalXMLPP.getArg(guard,1)
     return (guard, varlist, A, b)
 
+def init2Formula( xmlnode ):
+    "xmlnode is XML for INITDECL; turn it into XML for formula represented by INITDECL"
+    def simpledef2fmlalist( node ):
+        "node is XML node for SIMPLEDEFINITION, return list of formula XML-nodes"
+        lhs = HSalXMLPP.getArg(node, 1)
+        rhs = HSalXMLPP.getArg(node, 2)
+        assert lhs.tagName == 'NAMEEXPR','ERROR: Unidentified tagName {0} for LHS in simpledefinition'.format(lhs.tagName)
+        if rhs.tagName == 'RHSEXPRESSION':
+            rhsVal = HSalXMLPP.getArg(rhs,1)
+            return [ createNodeInfixApp('=', lhs, rhsVal) ]
+        elif rhs.tagName == 'RHSSELECTION':
+            rhsVal = HSalXMLPP.getArg(rhs,1)
+            assert rhsVal.tagName == 'SETPREDEXPRESSION', 'ERROR: Unidentified tagName {0}'.format(rhsVal.tagName)
+            dummyvar = HSalXMLPP.getNameTag(rhsVal, 'IDENTIFIER').strip()
+            lhsvar = HSalXMLPP.valueOf( lhs ).strip()
+            rhsfmla = HSalXMLPP.getArg(rhsVal, 3)
+            # replace dummyvar by lhsvar in rhsfmla
+            allnames = rhsfmla.getElementsByTagName('NAMEEXPR')
+            for i in allnames:
+                if HSalXMLPP.valueOf(i).strip() == dummyvar:
+                    i.firstChild.data = lhsvar
+            return [ rhsfmla ]
+        else:
+            assert False, 'ERROR: Unreachable code'
+    assert xmlnode.tagName == 'INITDECL', 'ERROR: Initialization not as expected'
+    simpledefs = xmlnode.getElementsByTagName("SIMPLEDEFINITION")
+    fmla = []
+    for i in simpledefs:
+        fmla.extend( simpledef2fmlalist(i) )
+    return fmla
+
 def handleBasemodule(basemod):
     """populate the data-structure"""
     inputs = HSalPreProcess2.getInputs(basemod)
@@ -400,7 +436,7 @@ def handleBasemodule(basemod):
     # now I need to set the initial state
     init = basemod.getElementsByTagName("INITDECL")
     assert len(init) > 0, 'Error: Need INITIALIZATION'
-    cds.setinit( init[0] )
+    cds.setinit( init2Formula( init[0] ) )
     return cds
 
 def prop2modpropExpr(ctxt, prop):
