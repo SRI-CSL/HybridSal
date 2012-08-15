@@ -67,6 +67,31 @@ In this case, run the install script as follows:
   python install.py --rtjar <absolute-path/filename.jar>
 
 
+Additional notes for Windows.
+-----------------------------
+The executable modelica2sal.exe was created using py2exe tool.
+It is an executable that runs on 32-bit windows machine, and
+requires the following .dll's which are not included:
+
+OLEAUT32.dll
+USER32.dll
+IMM32.dll
+SHELL32.dll
+KERNEL32.dll
+COMDLG32.dll
+WSOCK32.dll
+COMCTL32.dll
+ADVAPI32.dll
+msvcrt.dll
+WS2_32.dll
+GDI32.dll
+ole32.dll
+umath.pyd
+_flinalg.pyd
+[ All .dll are in C:\WINDOWS\system32\ on my machine; and the two .pyd files are in 
+c:\Python26\lib\site-packages\numpy\core\umath.pyd  and
+c:\Python26\lib\site-packages\scipy\linalg\_flinalg.pyd ]
+
 How to use the relational abstractions?
 ---------------------------------------
 
