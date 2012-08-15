@@ -395,8 +395,9 @@ def main():
         print '***I installed mingw on my windows machine; and then installed unix-like utilities, such as,'
         print '***mingw-get install gcc g++ msys-base msys-make mingw32-autotools'
         print '***And then installed pcre; swig; dparser; dparser-python-support;'
-        print '***For python support for dparser: In the python subdirectory of dparser: python setup.py build --compile=mingw32'
-        print '***I had to edit Python27/distutils/cygwinccompiler.py and remove all -mno-cygwin from python'
+        print '***For python support for dparser: In the python subdirectory of dparser: python setup.py build --compiler=mingw32'
+        print '***Ideally, add --compiler=mingw32 at end of the python setup.py build in the Makefile in d/python/'
+        print '***I had to edit Python27/Lib/distutils/cygwinccompiler.py and remove all -mno-cygwin from python'
         print 'You can still use HybridSal Relational Abstractor, but you can not use the Modelica2HybridSal front-end'
         return 1
     else:
