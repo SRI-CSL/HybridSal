@@ -1085,6 +1085,10 @@ def simplifyPreDer(varval, eqn, cstate, dstate):
                 done &= replacederx(j, identifier, expr)
     return done
 
+def ppdebug(dom, msg):
+    print msg
+    daexmlPP.source_textPP(dom)
+
 def SimplifyEqnsPPDaeXML(dom, cstate, dstate, filepointer=sys.stdout):
     '''perform substitutions in the dom; output new dom'''
     knownVars = dom.getElementsByTagName('knownVariables')[0]
@@ -1110,15 +1114,21 @@ def SimplifyEqnsPPDaeXML(dom, cstate, dstate, filepointer=sys.stdout):
             done = False
         else:
             pass
+        ppdebug(dom, 'Simplification Phase 0.1 over...printing equations...')
         done &= simplify3(newknownvars)
         done &= simplify3(neweqns)	# simplify special tapp,bapp,etc.
+        ppdebug(dom, 'Simplification Phase 0.2 over...printing equations...')
         done &= simplify1(newknownvars)
         done &= simplify1(neweqns)	# simplify arithmetic
+        ppdebug(dom, 'Simplification Phase 0.3 over...printing equations...')
         done &= simplify2(newknownvars)
         done &= simplify2(neweqns)	# setaccess
+        ppdebug(dom, 'Simplification Phase 0.4 over...printing equations...')
         done &= simplify0(newknownvars)
         done &= simplify0(neweqns)	# ite,set,uapp,bapp,bool
+        ppdebug(dom, 'Simplification Phase 0.5 over...printing equations...')
         done &= simplifyPreDer(newknownvars, neweqns, cstate, dstate)
+        ppdebug(dom, 'Simplification Phase 0.6 over...printing equations...')
     dom = replace(knownVars, newknownvars, dom)
     dom = replace(eqns, neweqns, dom)
     return dom
@@ -1174,10 +1184,16 @@ def simplifydaexml(dom1, filename):
     tmp2 = tmp.getElementsByTagName('identifier')
     dstate = [ valueOf(i).strip() for i in tmp2 ]
     dom = SimplifyEqnsPPDaeXML(dom, cstate, dstate)
+    print 'Simplification Phase 1 over...printing equations...'
+    daexmlPP.source_textPP(dom)
     # dom = SimplifyEqnsPhase2(dom)
     # dom = SimplifyEqnsPhase3(dom)
     dom = SimplifyEqnsPhase4(dom, cstate, dstate)
+    print 'Simplification Phase 2 over...printing equations...'
+    daexmlPP.source_textPP(dom)
     dom = SimplifyEqnsPhase5(dom, cstate, dstate)
+    print 'Simplification Phase 3 over...printing equations...'
+    daexmlPP.source_textPP(dom)
     create_output_file(filename, dom)
     return dom
 

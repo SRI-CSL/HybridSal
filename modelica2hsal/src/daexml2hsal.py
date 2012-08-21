@@ -637,6 +637,15 @@ def convert2hsal(dom1, dom2, dom3 = None):
         (ans, ans2) = alpha_rename_aux(ans, ans2, ints)
         (ans, ans2) = alpha_rename_aux(ans, ans2, reals)
         return (ans, ans2)
+    def printEqn(e):
+        lhs = getArg(e,1)
+        rhs = getArg(e,2)
+        # print 'lhs = {0}'.format(daexmlPP.ppExpr(lhs))
+        # print 'rhs = {0}'.format(daexmlPP.ppExpr(rhs))
+        print >> sys.stderr, '{0} = {1}'.format(daexmlPP.ppExpr(lhs),daexmlPP.ppExpr(rhs))
+    def printE(eqns):
+        for i in eqns:
+            printEqn(i)
     # decide later if creating hsal XML or hsal string
     cstate = getIdentifiersIn(dom1,'continuousState')
     dstate = getIdentifiersIn(dom1,'discreteState')
@@ -653,14 +662,18 @@ def convert2hsal(dom1, dom2, dom3 = None):
     var_details.extend(var_details2)
     (discEqns,contEqns,oEqns) = classifyEqns(eqns,cstate,dstate)
     print >> sys.stderr, 'Classified eqns into {0} discrete, {1} cont, {2} others'.format(len(discEqns),len(contEqns),len(oEqns))
+    print >> sys.stderr, 'discrete eqns: ', printE(discEqns)
+    print >> sys.stderr, 'cont eqns: ', printE(contEqns)
+    print >> sys.stderr, 'other eqns: ', printE(oEqns)
     state = findState(Eqn,cstate,dstate,var_details)
     (bools,reals,ints,inputs,nonstates,vmap) = state
     print >> sys.stderr, 'Found {0} bools, {1} reals, {2} ints'.format(len(bools),len(reals),len(ints))
     print >> sys.stderr, 'Found {0} inputs, {1} non-states'.format(len(inputs),len(nonstates))
+    print >> sys.stderr, 'State: {0}'.format(state)
     # preds = getPredsInConds(contEqns)
     preds = getPredsInConds(eqns)
     print >> sys.stderr, 'Found {0} preds'.format(len(preds))
-    print >> sys.stderr, preds
+    print >> sys.stderr, 'Preds: {0}'.format(preds)
     ans0 = createEventsFromPreds(preds, reals, inputs)	# Should events on inputs be included?
     ans1 = createControl(state, discEqns, ans0, dom1)
     ans2 = createPlant(state, contEqns, oEqns, dom1)

@@ -4,6 +4,7 @@ import xml.dom.minidom
 import ModelicaXML	# modelica -> dae
 import ddae		# dae -> daexml
 import daeXML		# daexml -> simplified daexml
+import daexmlPP
 import daexml2hsal	# daexml -> hsal
 
 def printUsage():
@@ -88,6 +89,7 @@ def modelica2hsal(filename, pfilename = None):
         sys.exit(-1)
     dom1 = daeXML.simplifydaexml(dom1,daexmlfilename)
     print >> sys.stderr, 'Finished simplification steps.'
+    # daexmlPP.source_textPP(dom1)
     dom3 = None		# No property file given by default
     if pfilename != None:
         print >> sys.stderr, 'Reading file containing context and property'
