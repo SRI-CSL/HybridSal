@@ -1086,8 +1086,16 @@ def simplifyPreDer(varval, eqn, cstate, dstate):
     return done
 
 def ppdebug(dom, msg):
+    print '--------------------------------------------------------------------------'
     print msg
+    knownVars = dom.getElementsByTagName('knownVariables')[0]
+    varvals = knownVars.getElementsByTagName('variablevalue')
+    print 'printing {0} variable values...'.format(len(varvals))
+    for i in varvals:
+        print daexmlPP.ppEqn(i)
+    print 'printing {0} equations......'.format(len(dom.getElementsByTagName('equation')))
     daexmlPP.source_textPP(dom)
+    print '--------------------------------------------------------------------------'
 
 def SimplifyEqnsPPDaeXML(dom, cstate, dstate, filepointer=sys.stdout):
     '''perform substitutions in the dom; output new dom'''
@@ -1100,6 +1108,7 @@ def SimplifyEqnsPPDaeXML(dom, cstate, dstate, filepointer=sys.stdout):
     done = False
     newknownvars = knownVars
     neweqns = eqns
+    ppdebug(dom, 'Simplification Phase 0.0 over...printing {0} equations...')
     while not done:
         done = True
         varvals = newknownvars.getElementsByTagName('variablevalue')
@@ -1117,16 +1126,16 @@ def SimplifyEqnsPPDaeXML(dom, cstate, dstate, filepointer=sys.stdout):
         ppdebug(dom, 'Simplification Phase 0.1 over...printing equations...')
         done &= simplify3(newknownvars)
         done &= simplify3(neweqns)	# simplify special tapp,bapp,etc.
-        ppdebug(dom, 'Simplification Phase 0.2 over...printing equations...')
+        #ppdebug(dom, 'Simplification Phase 0.2 over...printing equations...')
         done &= simplify1(newknownvars)
         done &= simplify1(neweqns)	# simplify arithmetic
-        ppdebug(dom, 'Simplification Phase 0.3 over...printing equations...')
+        #ppdebug(dom, 'Simplification Phase 0.3 over...printing equations...')
         done &= simplify2(newknownvars)
         done &= simplify2(neweqns)	# setaccess
-        ppdebug(dom, 'Simplification Phase 0.4 over...printing equations...')
+        #ppdebug(dom, 'Simplification Phase 0.4 over...printing equations...')
         done &= simplify0(newknownvars)
         done &= simplify0(neweqns)	# ite,set,uapp,bapp,bool
-        ppdebug(dom, 'Simplification Phase 0.5 over...printing equations...')
+        #ppdebug(dom, 'Simplification Phase 0.5 over...printing equations...')
         done &= simplifyPreDer(newknownvars, neweqns, cstate, dstate)
         ppdebug(dom, 'Simplification Phase 0.6 over...printing equations...')
     dom = replace(knownVars, newknownvars, dom)

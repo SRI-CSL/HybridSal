@@ -133,18 +133,78 @@ def getIdentifiersIn(root, tag1):
     ids = getElementsByTagTagName(root, tag1, 'identifier')
     return [ valueOf(i).strip() for i in ids ]
 
+def isCont(e):
+    ders = e.getElementsByTagName('der')
+    return ders != None and len(ders) > 0
+
+def preprocessEqn(e):
+    'convert e into der(x) = rhs form, if possible'
+    def mkBOp(op,v1,v2):
+        op = helper_create_tag_val('BINARY_OPERATOR',op)
+        return helper_create_app('BAPP',[op,v1.cloneNode(True),v2.cloneNode(True)])
+    def mkUOp(op,v1):
+        op = helper_create_tag_val('UNARY_OPERATOR',op)
+        return helper_create_app('UAPP',[op,v1.cloneNode(True)])
+    def swapContLHS(lhs, rhs):
+        isContLHS = isCont(lhs)
+        isContRHS = isCont(rhs)
+        assert not(isContLHS and isContRHS),'ERROR: Unable to write DAE as dx/dt=Ax+b'
+        if isContLHS:
+            return (lhs, rhs)
+        else:
+            return (rhs, lhs)
+    def isOp(v, tagName, op):
+        return v.tagName==tagName and valueOf(getArg(v,1)).strip()==op
+    def preprocessEqnAux(lhs, rhs):
+        'lhs has der(); rhs does not have der() term'
+        if lhs.tagName == 'der':
+            return helper_create_app('equation',[lhs,rhs])
+        elif isOp(lhs, 'BAPP', '+'):
+            lhs1 = getArg(lhs,2)
+            lhs2 = getArg(lhs,3)
+            (lhs1, lhs2) = swapContLHS( lhs1, lhs2 )
+            return preprocessEqnAux( lhs1, mkBOp('-',rhs,lhs2) )
+        elif isOp(lhs, 'BAPP', '-'):
+            lhs1old = getArg(lhs,2)
+            lhs2old = getArg(lhs,3)
+            (lhs1, lhs2) = swapContLHS( lhs1old, lhs2old )
+            if lhs1 == lhs1old:
+                return preprocessEqnAux( lhs1, mkBOp('+',rhs,lhs2) )
+            else:
+                return preprocessEqnAux( lhs1, mkBOp('-',lhs2,rhs) )
+        elif isOp(lhs, 'BAPP', '*'):
+            lhs1 = getArg(lhs,2)
+            lhs2 = getArg(lhs,3)
+            (lhs1, lhs2) = swapContLHS( lhs1, lhs2 )
+            return preprocessEqnAux( lhs1, mkBOp('/',rhs,lhs2) )
+        elif isOp(lhs, 'BAPP', '/'):
+            lhs1old = getArg(lhs,2)
+            lhs2old = getArg(lhs,3)
+            (lhs1, lhs2) = swapContLHS( lhs1old, lhs2old )
+            if lhs1 == lhs1old:
+                return preprocessEqnAux( lhs1, mkBOp('*',rhs,lhs2) )
+            else:
+                return preprocessEqnAux( lhs1, mkBOp('/',lhs2,rhs) )
+        elif isOp(lhs, 'UAPP', '-'):
+            lhs = getArg(lhs,2)
+            return preprocessEqnAux( lhs, mkUOp('-',rhs) )
+        else:
+            assert False,'ERROR: Unreachable code; Unable to convert DAE to dx/dt=Ax+b'
+    lhs = getArg(e, 1)
+    rhs = getArg(e, 2)
+    (lhs, rhs) = swapContLHS( lhs, rhs )
+    return preprocessEqnAux(lhs, rhs)
+
 def classifyEqns(eqns, cstate, dstate):
     "partition eqns into 2 sets: dx/dt=f(x) and x'=f(x)"
-    def isCont(e):
-        ders = e.getElementsByTagName('der')
-        return ders != None and len(ders) > 0
     def isDisc(e):
         lhs = getArg(e,1)
         return lhs.tagName == 'identifier' and valueOf(lhs).strip() in dstate
     (d,c,others) = ( [], [], [])
     for e in eqns:
         if isCont(e):
-            c.append(e)
+            # c.append(e)
+            c.append( preprocessEqn(e) )
         elif isDisc(e):
             d.append(e)
         else:
@@ -296,19 +356,18 @@ def createControl(state, deqns, guard, dom):
     for i in reals:
         ans += "\n  INPUT  {0}: REAL".format(i)
     varValInitL = extractInit(deqns)
-    ans  += "\n  INITIALIZATION"
     first = True
     for (var, val, init) in varValInitL:
         lhs = expr2sal(var, flag = False)
         if init != None:
-            sep = ";" if not(first) else ""
+            sep = ";" if not(first) else "\n  INITIALIZATION"
             first = False if first else first
             rhs = expr2sal(init, flag = False)
             ans += "{2}\n\t {0} = {1}".format(lhs,rhs,sep)
         else:  # get initialization from vmap[var]
             initval = getInitialValue(vmap,lhs)
             if initval != None:
-                sep = ";" if not(first) else ""
+                sep = ";" if not(first) else "\n  INITIALIZATION"
                 first = False if first else first
                 ans += "{2}\n\t {0} = {1}".format(lhs,initval,sep)
     ans  += "\n  TRANSITION\n  ["
@@ -561,6 +620,7 @@ def createPlant(state, ceqns, oeqns, dom):
         lhs = getArg(e,1) 
         rhs = getArg(e,2) 
         (var,val) = (rhs,lhs) if rhs.tagName == 'der' else (lhs,rhs)
+        assert var.tagName == 'der', 'ERROR: Unable to covert DAE to dx/dt = Ax+b'
         name = valueOf(getArg(var,1)).strip()
         rhs =  expr2cexpr(val)
         ode.append( (name, rhs) )
@@ -767,6 +827,7 @@ def create_output_file(filename, hsalstr, propStr = ''):
             print >> sys.stderr, "Renaming old file to {0}.".format(filename+"~")
             shutil.move(filename, filename + "~")
     basename,ext = os.path.splitext(filename)
+    basename = basename.replace('.','_')
     basename += "Model"
     outfile = basename + ".hsal"
     moveIfExists(outfile)

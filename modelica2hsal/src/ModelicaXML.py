@@ -482,10 +482,11 @@ def printFixedParameters(varList, varTypeList):
         # fixed = i.getAttribute('fixed')
         param = i.getAttribute('variability')
         inout = i.getAttribute('direction')
+        isfixed = i.getAttribute('fixed')
         if param in varTypeList and inout != 'input':
             value = getVariableValue(i)
             name = i.getAttribute('name')
-            if value != None:
+            if value != None and isfixed == 'true' or isfixed == 'True':
                 print >> fp, '{0} = {1}'.format(name, value)
             else:
                 ans.append(name)
