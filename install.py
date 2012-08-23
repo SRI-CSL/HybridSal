@@ -405,10 +405,11 @@ def main():
 
     print 'Testing modelica2hybridsal converter...',
     # python  /export/u1/homes/tiwari/sal/sal-devel/ashish-tools/modelica2hsal/src/modelica2hsal.py $*
-    ex4 = os.path.join('modelica2hsal', 'examples','RCEngine.xml')
+    #ex4 = os.path.join('modelica2hsal', 'examples','RCEngine.xml')
+    ex4 = os.path.join('modelica2hsal', 'examples','MassSpringDamperTest.MassSpringDamperTest.xml')
     if not os.path.isfile(ex4):
         print 'Failed.'
-        print '***Unable to find modelical RCEngine model file called RCEngine.xml'
+        print '***Unable to find modelica example file'
     else:
         hsal2hasal = 'modelica2hsal'
         if sys.platform.startswith('win'):
@@ -424,7 +425,67 @@ def main():
             print 'Successful.'
     print 'HybridSal Relational Abstracter and Modelica front-end successfully installed.'
     print "-------------------------------------------------"
+
+    print "Searching for sal installation..."
+    output = checkProg('sal-inf-bmc')
+    iswin = sys.platform.startswith('win')	# is windows
+    if not(output) and not(iswin):	# not windows
+        print "***Download and install SAL; otherwise you can create SAL abstractions of HybridSal models, but you won't be able to model check them"
+        print "***Update PATH with location of sal-inf-bmc"
+        return 1
+    elif not(iswin):
+        print 'sal-inf-bmc found at {0}'.format(output)
+    else:  # windows
+        print 'Checking for cygwin at c:\cygwin'
+        cygwin = os.path.join('C:',os.path.sep,'cygwin')
+        if '--cygwin' in sys.argv:
+            index = sys.argv.index('--cygwin')
+            if index+1 < len(sys.argv):
+                cygwin = sys.argv[index+1]
+        if not os.path.isdir(cygwin):
+            print '***Unable to find cygwin; install and rerun script'
+            print '***If installed in non-standard location, rerun script as'
+            print '***  python install.py [--rtjar <absolute-path/filename.jar>] [--cygwin <cygwin root directory>]'
+            return 1
+        print 'cygwin found at {0}'.format(cygwin)
+        print 'searching for sal...'
+        saldir = None
+        if '--sal' in sys.argv:
+            index = sys.argv.index('--sal')
+            if index+1 < len(sys.argv):
+                saldir = sys.argv[index+1]
+        if saldir == None or not(os.path.isdir(saldir)):
+            for root, dirnames, filenames in os.walk(cygwin):
+                for dirname in dirnames:
+                    if dirname.startswith('sal-'):
+                        saldir = os.path.join(root, dirname)
+                        break
+                if saldir != None:
+                    break
+        if saldir != None and os.path.isdir(saldir):
+            print 'sal found at {0}'.format(saldir)
+        else:
+            print '***Unable to find SAL; download from sal.csl.sri.com'
+            print '***install and rerun script'
+            print '***If installed in non-standard location, rerun script as'
+            print '***  python install.py [--rtjar <absolute-path/filename.jar>] [--cygwin <cygwin root directory>] [--sal <sal-root-directory>]'
+            return 1
+        # now we have saldir and cygwin both set...
+        outfile = createSALfile(cygwin, saldir)
+        print 'created file {0}'.format(outfile)
+    print 'HybridSal Relational Abstracter, Modelica front-end, and sal-inf-bmc successfully installed.'
+    print "-------------------------------------------------"
     return 0
+
+def createSALfile(cygwin, saldir):
+    binfile = os.path.join('bin', 'sal-inf-bmc.bat')
+    fp = open( binfile, 'w')
+    cygwinbash = os.path.join(cygwin, 'bin', 'bash')
+    salinfbmc = os.path.join(saldir, 'bin', 'sal-inf-bmc')
+    print >> fp, "{0} -li {1} $*".format(cygwinbash, salinfbmc)
+    fp.close()
+    os.chmod( binfile, 0775 )
+    return binfile
 
 def createBinFile(shell, pwd, bindir, filename, pythonfile):
     binfile = os.path.join(bindir, filename)
