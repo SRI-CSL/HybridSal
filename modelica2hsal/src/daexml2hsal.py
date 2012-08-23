@@ -744,6 +744,13 @@ def convert2hsal(dom1, dom2, dom3 = None):
     return (ans, propStr)
 
 def createProperty(dom3):
+    if dom3 != None and not(isinstance(dom3, dict)):
+        return createPropertyXML(dom3)
+    if dom3 != None and isinstance(dom3, dict):
+        return createPropertyJSON(dom3)
+    return ''
+
+def createPropertyXML(dom3):
     def mkG(dom3, arg1):
         implopstr = dom3.createTextNode('G')
         implop = dom3.createElement('NAMEEXPR')
@@ -817,6 +824,83 @@ def createProperty(dom3):
             propStr = ''
     # propStr is the desired property; 
     return propStr
+
+def createPropertyJSON(dom3):
+    def json2str(expr):
+        if isinstance(expr, int):
+            return str(expr)
+        elif isinstance(expr, str) or isinstance(expr, unicode):
+            return expr
+        elif isinstance(expr, dict):
+            try:
+                if expr['nargs'] == 2:
+                    s1 = json2str(expr['args'][0])
+                    s2 = json2str(expr['args'][1])
+                    return '(' + s1 + ' ' + expr['f'] + ' ' + s2 + ')'
+                elif expr['nargs'] == 1:
+                    s1 = json2str(expr['args'][0])
+                    return expr['f'] + '(' + s1 + ')'
+                else:
+                    print expr
+                    print >> sys.stderr, 'Error: expecting 1 or 2, found {0}'.format(expr['nargs'])
+                    sys.exit(-1)
+            except Exception, e:
+                print e, expr
+                print >> sys.stderr, 'Error: json2str: Ill-formed JSON'
+                sys.exit(-1)
+        else:
+            print expr, type(expr)
+            print >> sys.stderr, 'Error: json2str: Ill-formed JSON'
+            sys.exit(-1)
+    def isG(op):
+        return (op in ['G','Always','always'])
+    def isF(op):
+        return (op in ['F','Eventually','eventually'])
+    def isLTLOp(op):
+        return (isG(op) or isF(op))
+    propStr = ''
+    try:
+        if dom3.has_key('context'):
+            ctxtExpr = dom3['context']
+        else:
+            ctxtExpr = None
+        if dom3.has_key('property'):
+            propExpr = dom3['property']
+        else:
+            propExpr = None
+        # output G( ctxt => prop )
+        if isinstance(propExpr, dict) and isG(propExpr['f']):
+            propExpr['f'] = 'G'
+            if ctxtExpr != None:
+                propExpr1 = propExpr['args'][0]
+                argsL = [ ctxtExpr, propExpr1 ]
+                newExpr = { 'f':'=>', 'nargs':2, 'args': argsL }
+                propExpr['args'] = [ newExpr ]
+        elif isinstance(propExpr, dict) and isLTLOp(propExpr['f']):
+            assert False, 'Error: Can not handle liveness properties'
+        elif propExpr != None:
+            print >> sys.stderr, 'Warning: Property has no temporal operator; assuming G'
+            if ctxtExpr != None:
+                argsL = [ ctxtExpr, propExpr ]
+                tmp = { 'f':'=>', 'nargs':2, 'args': argsL }
+                propExpr = { 'f':'G', 'nargs':1, 'args': [ tmp ] }
+            else:	# if ctxtExpr is None
+                propExpr = { 'f':'G', 'nargs':1, 'args': [ propExpr ] }
+        else:	# no property in the given file   
+            print >> sys.stderr, 'There is no property in the given file'
+            propExpr = None
+        # at this point, propExpr is None OR is our desired property   
+        if propExpr != None:
+            propStr = json2str(propExpr)
+        else:
+            propStr = ''
+    except Exception, e:
+        print e
+        print >> sys.stderr, 'Error: Ill-formed JSON for property/context at TOP'
+        sys.exit(-1)
+    # propStr is the desired property; 
+    return propStr
+
 
 def create_output_file(filename, hsalstr, propStr = ''):
     "dom3: context_property.xml"

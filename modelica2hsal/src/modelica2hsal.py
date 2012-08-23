@@ -39,8 +39,8 @@ def argCheck(args, printUsage):
     else:
         pfilename = None
         pbasename,pext = None,'.xml'
-    if not(ext == '.xml') or not(pext == '.xml'):
-        print 'ERROR: Unknown file extension {0}; expecting .xml'.format(ext)
+    if not(ext == '.xml') or (not(pext == '.xml') and not(pext == '.json')):
+        print 'ERROR: Unknown extension {0}; expecting .xml/.json'.format(ext)
         printUsage()
         sys.exit(-1)
     if not(os.path.isfile(filename)):
@@ -91,19 +91,36 @@ def modelica2hsal(filename, pfilename = None):
     print >> sys.stderr, 'Finished simplification steps.'
     # daexmlPP.source_textPP(dom1)
     dom3 = None		# No property file given by default
-    if pfilename != None:
-        print >> sys.stderr, 'Reading file containing context and property'
+    if pfilename != None and pfilename.rstrip().endswith('.xml'):
+        print >> sys.stderr, 'Reading XML file containing context and property'
         try:
             dom3 = xml.dom.minidom.parse(pfilename)
         except xml.parsers.expat.ExpatError, e:
             print 'Syntax Error: Input XML ', e 
-            print 'Error: Input XML file is not well-formed...Quitting.'
+            print 'Error: Property XML file is not well-formed...Quitting.'
             return -1
         except:
-            print 'Error: Input XML file is not well-formed'
+            print 'Error: Property XML file is not well-formed'
             print 'Quitting', sys.exc_info()[0]
             return -1
         print >> sys.stderr, 'Finished reading context and property'
+    elif pfilename != None and pfilename.rstrip().endswith('.json'):
+        print >> sys.stderr, 'Reading JSON file containing context and property'
+        try:
+            import json
+            with open(pfilename,'r') as fp:
+                jsondata = fp.read()
+                for i in ['\n','\r','\\']:
+                    jsondata = jsondata.replace(i,'')
+                dom3 = json.loads(jsondata)
+                assert isinstance(dom3,dict),'ERROR: Expected dict in JSON file'
+        except SyntaxError, e:
+            print 'Syntax Error: Input JSON ', e 
+            print 'Error: Property JSON file is not well-formed...Quitting.'
+            return -1
+        except:
+            print 'Error: Unable to read property JSON file...Quitting.'
+            return -1
     print >> sys.stderr, 'Creating HybridSal model....'
     outfile = daexml2hsal.daexml2hsal(dom1, dom2, daexmlfilename, dom3)
     print >> sys.stderr, 'Created HybridSal model.'
