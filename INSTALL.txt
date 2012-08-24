@@ -92,6 +92,11 @@ _flinalg.pyd
 c:\Python26\lib\site-packages\numpy\core\umath.pyd  and
 c:\Python26\lib\site-packages\scipy\linalg\_flinalg.pyd ]
 
+This .exe was created using the command:
+python26/python setup.py py2exe
+where setup.py is the python script in this directory.
+
+
 How to use the relational abstractions?
 ---------------------------------------
 
