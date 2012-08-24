@@ -78,6 +78,7 @@ RUNTIME_CLASSES :=  antlr/DefineGrammarSymbols.class \
 DEBUG_CLASSES := $(RUNTIME_CLASSES) \
         antlr/debug/*.class
 
+HYBRIDSAL_CLASSES := HybridSal2Xml.class Indent.class HybridSalLexer.class HybridSalParser.class XmlAst.class HybridSalTokenTypes.class
 
 .PHONY : antlr
 .PHONY : examples
@@ -87,6 +88,12 @@ antlr : .antlr_compiled
 all-jars : runtime-jar tool-jar debug-jar
 
 examples : antlr  .examples_compiled
+
+hybridsaljar :
+	@ echo ""
+	@ echo "Building runtime jar (hybridsal2xml.jar)"
+	@ echo ""
+	@ jar cvf hybridsal2xml.jar $(HYBRIDSAL_CLASSES) $(RUNTIME_CLASSES)
 
 runtime-jar : antlr
 	@ echo ""

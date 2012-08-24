@@ -1,5 +1,5 @@
 import sys
-import os.path
+import os
 import xml.dom.minidom
 import ModelicaXML	# modelica -> dae
 import ddae		# dae -> daexml
@@ -79,6 +79,7 @@ def modelica2hsal(filename, pfilename = None):
     print >> sys.stderr, 'Parsing complete. Created file {0}'.format(daefilename)
     # now parse the dae into daexml
     (dom,daexml) = ddae.dae2daexml(daefilename)
+    os.remove(daefilename)	# this is .dae file
     daexmlfilename = basename + '.daexml'
     print >> sys.stderr, 'Created file {0}'.format(daexmlfilename)
     print >> sys.stderr, 'Trying to simplify the Modelica model...'
@@ -88,6 +89,7 @@ def modelica2hsal(filename, pfilename = None):
         print 'Model not supported: Unable to handle some expressions currently'
         sys.exit(-1)
     dom1 = daeXML.simplifydaexml(dom1,daexmlfilename)
+    os.remove(daexmlfilename)	# this is .daexml file
     print >> sys.stderr, 'Finished simplification steps.'
     # daexmlPP.source_textPP(dom1)
     dom3 = None		# No property file given by default

@@ -1203,7 +1203,7 @@ def simplifydaexml(dom1, filename):
     dom = SimplifyEqnsPhase5(dom, cstate, dstate)
     print 'Simplification Phase 3 over...printing equations...'
     daexmlPP.source_textPP(dom)
-    create_output_file(filename, dom)
+    # create_output_file(filename, dom) # do not create .dae_flat_xml file
     return dom
 
 if __name__ == "__main__":
