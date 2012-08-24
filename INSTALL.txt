@@ -69,9 +69,14 @@ In this case, run the install script as follows:
 
 Additional notes for Windows.
 -----------------------------
-The executable win32_modelica2sal/modelica2sal.exe was created using py2exe tool.
-It is an executable that runs on 32-bit windows machine, and
-requires the following .dll's which are not included:
+Preparing the distribution directory:
+An executable for windows can be created using py2exe tool as follows:
+Run python setup.py py2exe
+It creates an executable for the <file.py> python file specified in setup.py
+
+The generated <file.exe> file is an executable that is almost self
+contained except that it requires the following .dll's which are not 
+included:
 
 OLEAUT32.dll
 USER32.dll
@@ -88,13 +93,53 @@ GDI32.dll
 ole32.dll
 umath.pyd
 _flinalg.pyd
-[ All .dll are in C:\WINDOWS\system32\ on my machine; and the two .pyd files are in 
+
+[All these .dlls are in C:\WINDOWS\system32\ on my machine; 
+ and the two .pyd files are in 
 c:\Python26\lib\site-packages\numpy\core\umath.pyd  and
 c:\Python26\lib\site-packages\scipy\linalg\_flinalg.pyd ]
 
 This .exe was created using the command:
 python26/python setup.py py2exe
 where setup.py is the python script in this directory.
+
+The hybridsal2xml translater is also converted into a .jar
+file (jar cfm hybridsal2xml.jar Manifest.txt *.class antlr).
+Note Manifest tells which class file has the main() function,
+and antlr has to be moved up to hybridsal2xml/ (as a symbolic
+link) to get the right jar.  Now, hybridsal2xml can be called
+using "jave -jar hybridsal2xml.jar -o hxmlfile hsalfile"
+This .jar file is moved to the distribution directory.
+
+Similarly, a script for calling sal-inf-bmc has to be included
+in the distribution directory.
+The script "python installdist.py" does this job.
+
+Running the above installation script should tell you what
+is missing.  Most likely, SAL would be missing.
+
+HybridSAL uses SAL model checkers. To install, follow these steps:
+(1) Install cygwin: install the basic/default variety
+    (Doesn't take too long, but need fast internet connection)
+    (google on cygwin: www.cygwin.com)
+(2) Download sal-3.2 tgz file for Windows/cygwin (sal.csl.sri.com)
+(3) Move sal-3.2.tgz to a place inside cygwin, such as,
+    c:\cygwin\home\<username>\
+(4) Open a cygwin shell, Unpack sal and run install.sh script there
+(5) Update PATH variable with path to sal (mentioned by install.sh)
+
+Now, do "python installdist.py" in the distribution directory
+for installing HybridSal (as above).
+Note: you need to create examples/ subdirectory in the distribution
+directory for the tests to run.
+
+To run HybridSal:
+Run
+ ./hsalRA.exe <ModelicalXML-file> <Property-file>
+
+For example, run:
+
+./hsalRA.exe examples/MassSpringDamperTest.MassSpringDamperTest.xml examples/MassSpringDamperTest.property.json
 
 
 How to use the relational abstractions?
