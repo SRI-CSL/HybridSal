@@ -482,7 +482,7 @@ def createSALfile(cygwin, saldir):
     fp = open( binfile, 'w')
     cygwinbash = os.path.join(cygwin, 'bin', 'bash')
     salinfbmc = os.path.join(saldir, 'bin', 'sal-inf-bmc')
-    print >> fp, "{0} -li {1} $*".format(repr(cygwinbash), repr(salinfbmc))
+    print >> fp, "{0} -li {1} $*".format( repr(cygwinbash)[1:-1], repr(salinfbmc)[1:-1])
     fp.close()
     os.chmod( binfile, 0775 )
     return binfile
