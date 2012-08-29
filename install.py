@@ -748,8 +748,8 @@ def createBinFile(shell, pwd, bindir, filename, pythonfile):
 
 def createRelease(srcdir):
     'create directory for release purposes'
-    distdir = os.path.join(srcdir, 'dist')
-    distdirold = os.path.join(srcdir, 'dist~')
+    distdir = os.path.join(srcdir, 'HybridSal')
+    distdirold = os.path.join(srcdir, 'HybridSal~')
     allFiles = files.splitlines()
     if os.path.isdir(distdir):
         try:
@@ -781,6 +781,12 @@ def createRelease(srcdir):
         print 'System level exception; Maybe a permission issue'
         return -1
     print 'Successfully created distribution directory {0}'.format(distdir)
+    import tarfile
+    tgz = tarfile.open(distdir + '.tgz', 'w|gz')
+    tgz.add(distdir)
+    tgz.close()
+    shutil.rmtree( distdir )
+    print 'Successfully created distribution {0}'.format(distdir+'.tgz')
 
 if __name__ == '__main__':
     main()

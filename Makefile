@@ -20,6 +20,9 @@ SALS=$(EXPLS:.hsal=.sal)
 
 all: $(SALS) src/HSalRelAbsCons.py
 
+release: install.py
+	python install.py dist
+
 install: install.py
 	python install.py
 
