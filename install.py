@@ -81,10 +81,8 @@ files = '''
 ./hybridsal2xml/HybridSal2Xml.java
 ./hybridsal2xml/Makefile
 ./hybridsal2xml/examples
-./hybridsal2xml/examples/SimpleThermo3.xml
 ./hybridsal2xml/examples/SimpleThermo4.sal
 ./hybridsal2xml/examples/SimpleThermo3.sal
-./hybridsal2xml/examples/SimpleThermo4.xml
 ./hybridsal2xml/HybridSalParser.java
 ./hybridsal2xml/HybridSalLexer.java
 ./hybridsal2xml/hybridsal2xml.jar
