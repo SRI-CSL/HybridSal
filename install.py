@@ -3,6 +3,165 @@ import sys
 import os
 import os.path
 import subprocess
+import shutil
+
+files = '''
+./bin
+./bin/hsal2Tsal
+./bin/modelica2hsal
+./bin/hybridsal2xml.template
+./bin/hasal2sal
+./bin/hsal2hasal
+./bin/hxml2hsal
+./bin/hsal2hxml
+./bin/modelica2sal
+./modelica2hsal
+./modelica2hsal/bin
+./modelica2hsal/bin/modelica2hsal
+./modelica2hsal/src
+./modelica2hsal/src/daexml2hsal.py
+./modelica2hsal/src/modelica2sal.py
+./modelica2hsal/src/hsalRA.py
+./modelica2hsal/src/HSalXMLPP.py
+./modelica2hsal/src/daeXML.py
+./modelica2hsal/src/modelica2hsal.py
+./modelica2hsal/src/ddae.py
+./modelica2hsal/src/daexmlPP.py
+./modelica2hsal/src/ModelicaXML.py
+./modelica2hsal/README
+./modelica2hsal/examples
+./modelica2hsal/examples/Torque_Converter2.Torque_Converter2.xml
+./modelica2hsal/examples/context-property.xml
+./modelica2hsal/examples/MassSpringDamperTest.MassSpringDamperTest.xml
+./modelica2hsal/examples/C2M2L_Ext.C2M2L_Delivered_Component_Implementations.Drive_Line.Power_Take_Off_Module.test_PTM_TC_only_Simple.xml
+./modelica2hsal/examples/RCEngine.xml
+./modelica2hsal/examples/RCEngine.mo
+./modelica2hsal/examples/C2M2L_Ext.C2M2L_Delivered_Component_Implementations.Drive_Line.Transfer_Case.test_transfer_case_No3D.xml
+./modelica2hsal/examples/engine1a.xml
+./modelica2hsal/examples/MassSpringDamperTest.MassSpringDamperTest_init.xml
+./modelica2hsal/examples/MassSpringDamperTest.property.json
+./modelica2hsal/examples/Transfer_Case2.Transfer_Case2.xml
+./COPYRIGHT
+./INSTALL.txt
+./doc
+./doc/hybridsal-tutorial.pdf
+./doc/manpage-hxml2hsal.txt
+./doc/manpage-hasal2sal.txt
+./doc/manpage-hsal2hasal.txt
+./doc/manpage-hybridsal2xml.txt
+./doc/hsal-ra.pdf
+./doc/hsal-ra-report.pdf
+./doc/relAbs-tutorial.pdf
+./install.py
+./src
+./src/HSalCegar.py
+./src/HSalPreProcess2.py
+./src/linearAlgebra.py
+./src/HSalExtractRelAbs.py
+./src/polyrep.py
+./src/linAlDevel.py
+./src/HSalXMLPP.py
+./src/HSalRelAbsCons.py
+./src/xmlHelpers.py
+./src/polyrep2XML.py
+./src/HSalPreProcess.py
+./src/Makefile
+./src/HSalTimedRelAbsCons.py
+./hybridsal2xml
+./hybridsal2xml/hybridsal2xml.template
+./hybridsal2xml/HybridSalParser.g.bkp
+./hybridsal2xml/XmlAst.java
+./hybridsal2xml/Indent.java
+./hybridsal2xml/HybridSalParser.g
+./hybridsal2xml/hybridsal2xml
+./hybridsal2xml/HybridSalTokenTypes.txt
+./hybridsal2xml/Makefile.in
+./hybridsal2xml/HybridSal2Xml.mine
+./hybridsal2xml/README
+./hybridsal2xml/HybridSalTokenTypes.java
+./hybridsal2xml/HybridSal2Xml.java
+./hybridsal2xml/Makefile
+./hybridsal2xml/examples
+./hybridsal2xml/examples/SimpleThermo3.xml
+./hybridsal2xml/examples/SimpleThermo4.sal
+./hybridsal2xml/examples/SimpleThermo3.sal
+./hybridsal2xml/examples/SimpleThermo4.xml
+./hybridsal2xml/HybridSalParser.java
+./hybridsal2xml/HybridSalLexer.java
+./hybridsal2xml/hybridsal2xml.jar
+./hybridsal2xml/install.sh
+./README
+./Makefile
+./examples
+./examples/nav10.hsal
+./examples/nav.template.hsal
+./examples/Linear3.hsal
+./examples/SimpleThermo4.hsal
+./examples/nav26.hsal
+./examples/nav30.hsal
+./examples/nav01.hsal
+./examples/nav21.hsal
+./examples/nav14.hsal
+./examples/powertrainSimple.hsal
+./examples/LinearRepeated.hsal
+./examples/nav3.hsal
+./examples/Linear1.hsal
+./examples/PITimed.hsal
+./examples/nav2.hsal
+./examples/Linear6.hsal
+./examples/nav28.hsal
+./examples/drivetrain2.hsal
+./examples/nav4.hsal
+./examples/drivetrain.hsal
+./examples/Linear8.hsal
+./examples/RLC.hsal
+./examples/TGC.hsal
+./examples/nav11.hsal
+./examples/nav24.hsal
+./examples/nav13.hsal
+./examples/PISatTimed.hsal
+./examples/PTimed.hsal
+./examples/nav12.hsal
+./examples/nav29.hsal
+./examples/Linear5.hsal
+./examples/Linear7.hsal
+./examples/nav8.hsal
+./examples/nav6.hsal
+./examples/nav7.hsal
+./examples/Linear4.hsal
+./examples/nav20.hsal
+./examples/nav22.hsal
+./examples/Linear2.hsal
+./examples/nav1.hsal
+./examples/nav25.hsal
+./examples/CAC_FlowControl_CyPhy.hsal
+./examples/InvPenTimed.hsal
+./examples/nav18.hsal
+./examples/nav17.hsal
+./examples/SimpleThermo5.hsal
+./examples/robot.hsal
+./examples/powertrain.hsal
+./examples/nav.hsal
+./examples/robotnav.hsal
+./examples/nav27.hsal
+./examples/drivetrain3.hsal
+./examples/nav9.hsal
+./examples/nav01b.hsal
+./examples/nav5.hsal
+./examples/nav23.hsal
+./examples/nav16.hsal
+./examples/nav19.hsal
+./examples/nav15.hsal
+./examples/Heating.hsal
+'''
+
+def printUsage():
+    return 'Usage: python install.py [--withmodelica] [--withsal] [--cygwin <cygwin root directory>] [--sal <sal-root-directory>]'
+
+def printHelp():
+    print 'Usage: python install.py [--withmodelica] [--withsal]  [--cygwin <cygwin root directory>] [--sal <sal-root-directory>]'
+    print 'Do not use the option --withsal  if SAL is already installed'
+    print 'Do not use the option --withmodelica if you are not interested in Modelica'
 
 def which(program):
     def is_exe(fpath):
@@ -33,6 +192,15 @@ def checkProg(name):
 def isFile(filename):
     tmp = os.path.normpath(filename)
     return os.path.isfile(tmp)
+
+def checkFile(filename):
+    if not os.path.isfile(filename):
+        print 'Failed.'
+        print '***ERROR: File {0} not found'.format(filename)
+        print '***Download of HybridSal .tgz was incomplete???'
+        print '***Aborting...'
+        sys.exit(1)
+    return True
 
 def findFile(baseList, dirList, fileList):
     """See if you can find rt.jar in any directory in baseList"""
@@ -65,32 +233,13 @@ def sed(f1, f2, assgn):
     fp1.close()
     fp2.close()
 
-def main():
-    #
-    # Search for java and JAVA_HOME
-    #
-    # checkProg('sed')
-    #checkProg('chmod')
-
-    print "-------------------------------------------------"
-    print "Installing HybridSal Relational Abstraction Tool."
-    print "     Copyright (c) SRI International 2011.       "
-    print "-------------------------------------------------"
-    print 'Searching for java...',
-    output = checkProg('java')
-    if not output:
-        print 'Failed. Install java and retry.'
-        return 1
-    else:
-        print 'Successful. Found {0}'.format(output)
-
-    # Set rtjar 
+def searchForrtjar( args ):
     print 'Searching for rt.jar...',
     rtjar = 'rt.jar'
-    if '--rtjar' in sys.argv:
-        index = sys.argv.index('--rtjar')
-        if index+1 < len(sys.argv):
-            rtjar = sys.argv[index+1]
+    if '--rtjar' in args:
+        index = args.index('--rtjar')
+        if index+1 < len(args):
+            rtjar = args[index+1]
     if not(isFile(rtjar)):
         javapath = os.path.realpath(output)
         (javabase, javafile) = os.path.split(javapath)
@@ -113,15 +262,17 @@ def main():
         print '***Continuing without giving explicit rt.jar path; if this does not work, then...Make sure the system has rt.jar'
         print '***Mac: it is sometimes called classes.jar and is located at /System/Library/Frameworks/JavaVM.framework/Versions/CurrentJDK/Classes/classes.jar)'
         print '***Win: often located at C:\Program Files\Java\jre6\lib....Once you have rt.jar...'
-        print '***Rerun install script as: python install.py --rtjar <absolute-path/filename.jar>'
+        print '***Rerun install script as: {0}'.format( printUsage() )
         rtjar = '.'
     else:
         print 'Successful. Found {0}'.format(rtjar)
     rtjar = os.path.abspath(rtjar)
     if rtjar.find('java-6-openjdk') >= 0:
         print '****Warning: rt.jar in java-6-openjdk is buggy; use java-6-sun/jre instead****'
-        print '****Rerun install script as: python install.py --rtjar <absolute-path/filename.jar>'
+        print '****Rerun install script as: {0}'.format( printUsage() )
+    return rtjar
 
+def searchForjikes():
     #
     # Search for jikes? 
     # NOTE: BD I don't have jikes but it still compile fine??
@@ -151,35 +302,37 @@ def main():
     else:
         print 'Successful. Found {0}'.format(jikespath)
 
-    #
-    # Check that we're in the right directory
-    #
-    output = os.getcwd()
-    if output == '' or output == '\n':
-        print 'Error: pwd failed!'
-        return 1
-    if output[-1] == '\n':
-        pwd = output[0:-1]
-    else:
-        pwd = output
-    #hybridsal2xml = os.path.normpath(pwd + "/hybridsal2xml")
-    hybridsal2xml = os.path.normpath(os.path.join(pwd, "hybridsal2xml"))
-    if os.path.isdir(os.path.join(pwd,'src')) and os.path.isdir(hybridsal2xml):
-        pass # print 'Everything looks fine until now.'
-    else:
-        print 'Error: RUN THIS SCRIPT FROM THE HSAL ROOT DIRECTORY'
-        print '***The HSAL root directory is the directory created by tar -xz'
-        return 1
-    # print '-------------------------'
+def create_hybridsal2xml_exe( pwd, shell, jarfile ):
+    # create file hybridsal2xml
+    bindir = os.path.join(pwd, "bin")
+    if not(os.path.isdir(bindir)):
+        os.makedirs(bindir)
+    print "Installing hybridsal2xml at {0}...".format(bindir),
+    scriptArgs = ''
+    topshell = ''
+    if sys.platform.startswith('win'):  # windows
+        classpathsep = ';'
+        scriptArgs = '%1 %2 %3'
+        topshell = ''
+    else:       # linux or mac
+        classpathsep = ':'
+        scriptArgs = '$*'
+        topshell = '#!{0}'.format(shell)
+    hybridsal2xml = os.path.join('bin', 'hybridsal2xml')
+    hybridsal2xmltemplate = os.path.join('bin', 'hybridsal2xml.template')
+    if sys.platform.startswith('win'):
+        if os.path.isfile(hybridsal2xml):
+            os.remove(hybridsal2xml)
+        hybridsal2xml += '.bat'
+    assgn = [ ("__HYBRIDSAL2XMLJAR__", os.path.abspath(jarfile)), ("__ARGS__", scriptArgs), ("__SH__",topshell) ]
+    sed( hybridsal2xmltemplate, hybridsal2xml, assgn )
+    os.chmod( hybridsal2xml, 0775 )
+    hybridsal2xml1 = os.path.join( pwd, 'hybridsal2xml' )
+    shutil.copy( hybridsal2xml, hybridsal2xml1 )
+    print "Created script {0}; also copied in directory {1}.".format(hybridsal2xml, hybridsal2xml1)
+    return hybridsal2xml
 
-    # set value of shell
-    shell = checkProg( 'sh' )
-    if not shell and 'SHELL' in os.environ.keys():
-        shell = os.environ['SHELL']
-    #if not shell:
-        #print 'ERROR: Environment variable SHELL not set!'
-        #return 1
-
+def compile_hybridsal2xml( hybridsal2xml ):
     #
     # Run the install.sh script in hybridsal2xml
     #
@@ -235,28 +388,226 @@ def main():
     else:
         print 'Successful. Found {0}'.format(output)
         subprocess.call([ 'make' ])
-
     if os.path.isfile('HybridSal2Xml.class'):
         print "hybridsal2xml installation complete."
     else:
         print "hybridsal2xml installation failed."
         print "***See error messages above and fix***"
         return 1
+    hybridsal2xml1 = os.path.join( '..', 'bin' )
+    shutil.copy( hybridsal2xml, hybridsal2xml1 )
+    print "Created script {0}; also saved in directory {1}.".format(hybridsal2xml, hybridsal2xml1)
+    return hybridsal2xml
+
+def installmodelica():
+    print 'Installing Modelica2HybridSal converter ...'
+    print '-------------------------------------------'
+    print "Testing dparser...",
+    make_dparser = checkProg('make_dparser')
+    if not make_dparser:
+        print 'Failed.'
+        print '***Could not find dparser installed in your system'
+        print '***Install dparser AND python support for dparser'
+        print '***From dparser.sourceforge.net'
+        print '***Continuing with the hope that python support for dparser was installed'
+    else:
+        print 'Successful.'
+    print "Testing python support for dparser...",
+    try:
+        import dparser
+    except ImportError:
+        print 'Failed.'
+        print '***Install python support for dparser'
+        print 'Checking if swig is installed...',
+        swig = checkProg('swig')
+        if not swig:
+            print 'Failed.'
+            print '***You need to install swig first: www.swig.org/download.html'
+            print '***Swig installation steps: download swigwin-2.0.7.zip file; unzip; ./configure; make; make install'
+            print '***Swig uses pcre from www.pcre.org; but it may not be required'
+        else:
+            print 'Successful. Found {0}'.format(swig)
+        print '***Install dparser and its python support from dparser.sourceforge.net'
+        print '***modelica2hybridsal converter installation failed'
+        print 'My Notes: swig and dparser installation required configure and make utilities'
+        print '***I installed mingw on my windows machine; and then installed unix-like utilities, such as,'
+        print '***mingw-get install gcc g++ msys-base msys-make mingw32-autotools'
+        print '***And then installed pcre; swig; dparser; dparser-python-support;'
+        print '***For python support for dparser: In the python subdirectory of dparser: python setup.py build --compiler=mingw32'
+        print '***Ideally, add --compiler=mingw32 at end of the python setup.py build in the Makefile in d/python/'
+        print '***I had to edit Python27/Lib/distutils/cygwinccompiler.py and remove all -mno-cygwin from python'
+        print 'You can still use HybridSal Relational Abstractor, but you can not use the Modelica2HybridSal front-end'
+        return 1
+    else:
+        print 'Successful.'
+
+    print 'Testing modelica2hybridsal converter...',
+    # python  /export/u1/homes/tiwari/sal/sal-devel/ashish-tools/modelica2hsal/src/modelica2hsal.py $*
+    #ex4 = os.path.join('modelica2hsal', 'examples','RCEngine.xml')
+    ex4 = os.path.join('modelica2hsal', 'examples','MassSpringDamperTest.MassSpringDamperTest.xml')
+    if not os.path.isfile(ex4):
+        print 'Failed.'
+        print '***Unable to find modelica example file'
+    else:
+        hsal2hasal = 'modelica2hsal'
+        if sys.platform.startswith('win'):
+            hsal2hasal += '.bat'
+        exe = os.path.join('bin',hsal2hasal)
+        try:
+            subprocess.call([ exe, ex4 ])
+        except Exception, e:
+            print 'Failed.'
+            print '***Failed to execute generated script {0} using python subprocess.call'.format(hsal2hasal)
+            print '***Check if the script looks ok; and if you can execute it from command line with one argument {0}'.format(ex4)
+        else:
+            print 'Successful.'
+    print 'HybridSal Relational Abstracter and Modelica front-end successfully installed.'
+    print "-------------------------------------------------"
+
+def installsal(args):
+    print "Searching for sal installation..."
+    output = checkProg('sal-inf-bmc')
+    iswin = sys.platform.startswith('win')	# is windows
+    if not(output) and not(iswin):	# not windows
+        print "***Download and install SAL; otherwise you can create SAL abstractions of HybridSal models, but you won't be able to model check them"
+        print "***Update PATH with location of sal-inf-bmc"
+        return 1
+    elif not(iswin):
+        print 'sal-inf-bmc found at {0}'.format(output)
+    else:  # windows
+        print 'Checking for cygwin at c:\cygwin'
+        cygwin = os.path.join('C:',os.path.sep,'cygwin')
+        if '--cygwin' in args:
+            index = args.index('--cygwin')
+            if index+1 < len(args):
+                cygwin = args[index+1]
+        if not os.path.isdir(cygwin):
+            print '***Unable to find cygwin; install and rerun script'
+            print '***If installed in non-standard location, rerun script as'
+            print '***  {0}'.format( printUsage() )
+            return 1
+        print 'cygwin found at {0}'.format(cygwin)
+        print 'searching for sal...'
+        saldir = None
+        if '--sal' in args:
+            index = args.index('--sal')
+            if index+1 < len(args):
+                saldir = args[index+1]
+        if saldir == None or not(os.path.isdir(saldir)):
+            for root, dirnames, filenames in os.walk(cygwin):
+                for dirname in dirnames:
+                    if dirname.startswith('sal-'):
+                        saldir = os.path.join(root, dirname)
+                        break
+                if saldir != None:
+                    break
+        if saldir != None and os.path.isdir(saldir):
+            print 'sal found at {0}'.format(saldir)
+        else:
+            print '***Unable to find SAL; download from sal.csl.sri.com'
+            print '***install and rerun script'
+            print '***If installed in non-standard location, rerun script as'
+            print '***  {0}'.format( printUsage() )
+            return 1
+        # now we have saldir and cygwin both set...
+        outfile = createSALfile(cygwin, saldir)
+        print 'created file {0}'.format(outfile)
+    print 'sal-inf-bmc successfully installed.'
+    print "-------------------------------------------------"
+
+def main():
+    if '-h' in sys.argv or '--help' in sys.argv:
+        printHelp()
+
+    if 'dist' in sys.argv:
+        createRelease('.')
+        return 0
+
+    print "-------------------------------------------------"
+    print "Installing HybridSal Relational Abstraction Tool."
+    print "     Copyright (c) SRI International 2011.       "
+    print "-------------------------------------------------"
+
+    #
+    # Search for java and JAVA_HOME
+    #
+    # checkProg('sed')
+    #checkProg('chmod')
+    print 'Searching for java...',
+    output = checkProg('java')
+    if not output:
+        print 'Failed. Install java and retry.'
+        return 1
+    else:
+        print 'Successful. Found {0}'.format(output)
+
+    #
+    # Check that we're in the right directory
+    #
+    print 'Searching for hybridsal2xml...',
+    output = os.getcwd()
+    if output == '' or output == '\n':
+        print 'Error: pwd failed!'
+        return 1
+    if output[-1] == '\n':
+        pwd = output[0:-1]
+    else:
+        pwd = output
+    #hybridsal2xml = os.path.normpath(pwd + "/hybridsal2xml")
+    hybridsal2xml = os.path.normpath(os.path.join(pwd, "hybridsal2xml"))
+    if os.path.isdir(os.path.join(pwd,'src')) and os.path.isdir(hybridsal2xml):
+        print 'Found {0}'.format(hybridsal2xml)
+    else:
+        print 'Failed.'
+        print '***Error: RUN THIS SCRIPT FROM THE HSAL ROOT DIRECTORY'
+        print '***The HSAL root directory is the directory created by tar -xz'
+        return 1
+    # print '-------------------------'
+
+    # set value of shell
+    shell = checkProg( 'sh' )
+    if not shell and 'SHELL' in os.environ.keys():
+        shell = os.environ['SHELL']
+
+    # Test hybridsal2xml converter
+    print 'Testing hybridsal2xml...',
+    jarfile = os.path.join(hybridsal2xml,'hybridsal2xml.jar')
+    hsal = os.path.join(hybridsal2xml, 'examples', 'SimpleThermo4.sal')
+    hxml = os.path.join(hybridsal2xml, 'examples', 'SimpleThermo4.xml')
+    if os.path.isfile(hxml):
+        os.remove(hxml)
+    if os.path.isfile(hsal) and os.path.isfile(jarfile):
+        try:
+            subprocess.call([ 'java', '-jar', jarfile, '-o', hxml, hsal ])
+        except Exception, e:
+            print 'Failed.'
+            print '***Failed to run hybridsal2xml using the precompiled jar file and antlr'
+            print '***Trying to compole hybridsal2xml from sources...'
+            if os.path.isfile(hxml):
+                os.remove(hxml)
+    if os.path.isfile( hxml ):
+        print 'Successful.'
+        hybridsal2xml = create_hybridsal2xml_exe( pwd, shell, jarfile )
+    else:
+        rtjar = searchForrtjar(sys.argv)
+        jikespath = searchForjikes()
+        hybridsal2xml = compile_hybridsal2xml( hybridsal2xml )
+        os.chdir( pwd )
 
     #
     # Run a test
     #
     print "Testing hybridsal2xml...",
-    ex4 = os.path.join('examples','SimpleThermo4.xml')
+    ex4 = os.path.join('examples','SimpleThermo4.hxml')
     if os.path.isfile(ex4):
         os.remove( ex4 )
     # subprocess.call([ 'rm', '-f', 'examples/SimpleThermo4.xml'])
     exe = os.path.join('.', hybridsal2xml)
-    ex4sal = os.path.join('examples','SimpleThermo4.sal')
+    ex4sal = os.path.join('examples','SimpleThermo4.hsal')
     if not os.path.isfile(ex4sal):
         print 'Failed.'
-        print '***ERROR: hybridsal2xml/examples/SimpleThermo4.sal missing'
-        print '***Download of hsalRelAbs.tgz was incomplete???'
+        print '***ERROR: File {0} is missing from installation'.format(ex4sal)
+        print '***Download of HybridSal .tgz was incomplete???'
         print '***Continuing without testing hybridsal2xml...'
     else:
         subprocess.call([ exe, '-o', ex4, ex4sal ])
@@ -266,7 +617,7 @@ def main():
             print 'Failed.'
             print '***hybridsal2xml installation failed. See earlier warnings/error messages to determine cause of failure.'
             return 1
-    os.chdir('..')
+    # os.chdir('..')
 
     #
     # create bin/ files
@@ -361,120 +712,14 @@ def main():
     #
     # Test dparser and swig for modelica2hxml converter
     #
-    print 'The HybridSal Relational Abstracter is correctly installed.'
-    print 'Now we need to make sure that Modelica2HybridSal converter is working'
 
-    print "Testing dparser...",
-    make_dparser = checkProg('make_dparser')
-    if not make_dparser:
-        print 'Failed.'
-        print '***Could not find dparser installed in your system'
-        print '***Install dparser AND python support for dparser'
-        print '***From dparser.sourceforge.net'
-        print '***Continuing with the hope that python support for dparser was installed'
-    else:
-        print 'Successful.'
-    print "Testing python support for dparser...",
-    try:
-        import dparser
-    except ImportError:
-        print 'Failed.'
-        print '***Install python support for dparser'
-        print 'Checking if swig is installed...',
-        swig = checkProg('swig')
-        if not swig:
-            print 'Failed.'
-            print '***You need to install swig first: www.swig.org/download.html'
-            print '***Swig installation steps: download swigwin-2.0.7.zip file; unzip; ./configure; make; make install'
-            print '***Swig uses pcre from www.pcre.org; but it may not be required'
-        else:
-            print 'Successful. Found {0}'.format(swig)
-        print '***Install dparser and its python support from dparser.sourceforge.net'
-        print '***modelica2hybridsal converter installation failed'
-        print 'My Notes: swig and dparser installation required configure and make utilities'
-        print '***I installed mingw on my windows machine; and then installed unix-like utilities, such as,'
-        print '***mingw-get install gcc g++ msys-base msys-make mingw32-autotools'
-        print '***And then installed pcre; swig; dparser; dparser-python-support;'
-        print '***For python support for dparser: In the python subdirectory of dparser: python setup.py build --compiler=mingw32'
-        print '***Ideally, add --compiler=mingw32 at end of the python setup.py build in the Makefile in d/python/'
-        print '***I had to edit Python27/Lib/distutils/cygwinccompiler.py and remove all -mno-cygwin from python'
-        print 'You can still use HybridSal Relational Abstractor, but you can not use the Modelica2HybridSal front-end'
-        return 1
-    else:
-        print 'Successful.'
+    if '--withmodelica' in sys.argv:
+        installmodelica()
 
-    print 'Testing modelica2hybridsal converter...',
-    # python  /export/u1/homes/tiwari/sal/sal-devel/ashish-tools/modelica2hsal/src/modelica2hsal.py $*
-    #ex4 = os.path.join('modelica2hsal', 'examples','RCEngine.xml')
-    ex4 = os.path.join('modelica2hsal', 'examples','MassSpringDamperTest.MassSpringDamperTest.xml')
-    if not os.path.isfile(ex4):
-        print 'Failed.'
-        print '***Unable to find modelica example file'
-    else:
-        hsal2hasal = 'modelica2hsal'
-        if sys.platform.startswith('win'):
-            hsal2hasal += '.bat'
-        exe = os.path.join('bin',hsal2hasal)
-        try:
-            subprocess.call([ exe, ex4 ])
-        except Exception, e:
-            print 'Failed.'
-            print '***Failed to execute generated script {0} using python subprocess.call'.format(hsal2hasal)
-            print '***Check if the script looks ok; and if you can execute it from command line with one argument {0}'.format(ex4)
-        else:
-            print 'Successful.'
-    print 'HybridSal Relational Abstracter and Modelica front-end successfully installed.'
-    print "-------------------------------------------------"
-
-    print "Searching for sal installation..."
-    output = checkProg('sal-inf-bmc')
-    iswin = sys.platform.startswith('win')	# is windows
-    if not(output) and not(iswin):	# not windows
-        print "***Download and install SAL; otherwise you can create SAL abstractions of HybridSal models, but you won't be able to model check them"
-        print "***Update PATH with location of sal-inf-bmc"
-        return 1
-    elif not(iswin):
-        print 'sal-inf-bmc found at {0}'.format(output)
-    else:  # windows
-        print 'Checking for cygwin at c:\cygwin'
-        cygwin = os.path.join('C:',os.path.sep,'cygwin')
-        if '--cygwin' in sys.argv:
-            index = sys.argv.index('--cygwin')
-            if index+1 < len(sys.argv):
-                cygwin = sys.argv[index+1]
-        if not os.path.isdir(cygwin):
-            print '***Unable to find cygwin; install and rerun script'
-            print '***If installed in non-standard location, rerun script as'
-            print '***  python install.py [--rtjar <absolute-path/filename.jar>] [--cygwin <cygwin root directory>]'
-            return 1
-        print 'cygwin found at {0}'.format(cygwin)
-        print 'searching for sal...'
-        saldir = None
-        if '--sal' in sys.argv:
-            index = sys.argv.index('--sal')
-            if index+1 < len(sys.argv):
-                saldir = sys.argv[index+1]
-        if saldir == None or not(os.path.isdir(saldir)):
-            for root, dirnames, filenames in os.walk(cygwin):
-                for dirname in dirnames:
-                    if dirname.startswith('sal-'):
-                        saldir = os.path.join(root, dirname)
-                        break
-                if saldir != None:
-                    break
-        if saldir != None and os.path.isdir(saldir):
-            print 'sal found at {0}'.format(saldir)
-        else:
-            print '***Unable to find SAL; download from sal.csl.sri.com'
-            print '***install and rerun script'
-            print '***If installed in non-standard location, rerun script as'
-            print '***  python install.py [--rtjar <absolute-path/filename.jar>] [--cygwin <cygwin root directory>] [--sal <sal-root-directory>]'
-            return 1
-        # now we have saldir and cygwin both set...
-        outfile = createSALfile(cygwin, saldir)
-        print 'created file {0}'.format(outfile)
-    print 'HybridSal Relational Abstracter, Modelica front-end, and sal-inf-bmc successfully installed.'
-    print "-------------------------------------------------"
+    if '--withsal' in sys.argv:
+        installsal()
+    print 'HybridSal successfully installed.'
+    print 'run make test to see it working.'
     return 0
 
 def createSALfile(cygwin, saldir):
@@ -501,6 +746,35 @@ def createBinFile(shell, pwd, bindir, filename, pythonfile):
     fp.close()
     # subprocess.call(['chmod', '+x', binfile])
     os.chmod( binfile, 0775 )
+
+def createRelease(srcdir):
+    'create directory for release purposes'
+    distdir = os.path.join(srcdir, 'dist')
+    distdirold = os.path.join(srcdir, 'dist~')
+    allFiles = files.splitlines()
+    if os.path.isdir(distdir):
+        try:
+            os.rename(distdir, distdirold)
+            print 'directory {0} exists. Renaming it to {1}'.format(distdir, distdirold)
+        except Exception, e:
+            print 'Error: Exception raised', e
+            print 'System level exception; Maybe a permission issue'
+            return -1
+    try:
+        os.makedir(distdir, 0755)
+        for i in allFiles:
+            dirname = os.path.dirname(i)
+            dstdir = os.path.join( distdir, dstdir )
+            if not os.path.isdir( dstdir ):
+                os.makedirs( dstdir )
+            src = os.path.join( srcdir, i)
+            checkFile( src )
+            shutil.copy2( src, os.path.join(distdir,i) )
+    except Exception, e:
+        print 'Error: Exception raised', e
+        print 'System level exception; Maybe a permission issue'
+        return -1
+    print 'Successfully created distribution directory {0}'.format(distdir)
 
 if __name__ == '__main__':
     main()
