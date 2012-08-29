@@ -59,6 +59,11 @@ Installation instructions for HybridSAL Relational Abstractor:
 	bin/hsal2hasal -h
 
 
+Creating a distribution directory
+---------------------------------
+python install.py dist
+will create a subdirectory 'dist' that contains only the distribution files.
+
 Additional notes for Macs.
 --------------------------
 The install script (install.py) tries to search for the correct path to
