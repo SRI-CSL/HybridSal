@@ -1,0 +1,2 @@
+__SH__
+java -jar __HYBRIDSAL2XMLJAR__  __ARGS__ 
