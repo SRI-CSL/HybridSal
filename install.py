@@ -1,7 +1,6 @@
 
 import sys
 import os
-import os.path
 import subprocess
 import shutil
 
@@ -629,6 +628,7 @@ def main():
         #print 'Error: Directory %s does not exist; create it and rerun install.' % bindir
         #return 1
     #os.chdir(pwd + "/bin")
+    topshell = '' if sys.platform.startswith('win') else '#!{0}'.format(shell)
     try:
         createBinFile(topshell, pwd, bindir, 'hxml2hsal', os.path.join('src','HSalXMLPP.py'))
         createBinFile(topshell, pwd, bindir, 'hsal2hasal', os.path.join('src','HSalRelAbsCons.py'))
@@ -754,6 +754,8 @@ def createRelease(srcdir):
     allFiles = files.splitlines()
     if os.path.isdir(distdir):
         try:
+            if os.path.isdir(distdirold):
+                shutil.rmtree( distdirold )
             os.rename(distdir, distdirold)
             print 'directory {0} exists. Renaming it to {1}'.format(distdir, distdirold)
         except Exception, e:
@@ -761,15 +763,20 @@ def createRelease(srcdir):
             print 'System level exception; Maybe a permission issue'
             return -1
     try:
-        os.makedir(distdir, 0755)
+        os.mkdir(distdir, 0755)
         for i in allFiles:
+            src = os.path.join( srcdir, i)
+            dst = os.path.join( distdir, i)
+            if os.path.isdir( src ):
+                if not os.path.isdir( dst ):
+                    os.makedirs( dst, 0755 )
+                continue
             dirname = os.path.dirname(i)
-            dstdir = os.path.join( distdir, dstdir )
+            dstdir = os.path.join( distdir, dirname )
             if not os.path.isdir( dstdir ):
                 os.makedirs( dstdir )
-            src = os.path.join( srcdir, i)
             checkFile( src )
-            shutil.copy2( src, os.path.join(distdir,i) )
+            shutil.copy2( src, dst )
     except Exception, e:
         print 'Error: Exception raised', e
         print 'System level exception; Maybe a permission issue'

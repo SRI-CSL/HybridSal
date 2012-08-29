@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <!DOCTYPE CONTEXT SYSTEM "sal.dtd">
-<!--  XML version of examples/SimpleThermo4.sal  -->
+<!--  XML version of /export/u1/homes/tiwari/sal/sal-devel/ashish-tools/hybridsal2xml/examples/SimpleThermo4.sal  -->
 <CONTEXT PLACE="2 1 38 4">
   <IDENTIFIER PLACE="2 1 2 14">SimpleThermo4</IDENTIFIER>
   <PARAMETERS></PARAMETERS>
