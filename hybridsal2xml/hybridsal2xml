@@ -1,2 +1,2 @@
 #!/bin/sh
-java -jar /export/u1/homes/tiwari/sal/sal-devel/ashish-tools/hybridsal2xml/hybridsal2xml.jar  $* 
+java -cp "/export/u1/homes/tiwari/sal/sal-devel/ashish-tools/hybridsal2xml:.:/export/u1/homes/tiwari/sal/sal-devel/ashish-tools/hybridsal2xml/antlr-2.7.1:/export/u1/homes/tiwari/sal/sal-devel/ashish-tools/hybridsal2xml/antlr-2.7.1/antlr:/usr/lib/jvm/java-6-sun/jre/lib/rt.jar:.:/homes/tiwari/softwares/antlr-2.7.7/::" HybridSal2Xml $* 

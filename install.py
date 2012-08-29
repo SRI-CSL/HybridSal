@@ -232,7 +232,7 @@ def sed(f1, f2, assgn):
     fp1.close()
     fp2.close()
 
-def searchForrtjar( args ):
+def searchForrtjar( args, output ):
     print 'Searching for rt.jar...',
     rtjar = 'rt.jar'
     if '--rtjar' in args:
@@ -300,6 +300,7 @@ def searchForjikes():
         jikespath = 'javac'
     else:
         print 'Successful. Found {0}'.format(jikespath)
+    return jikespath
 
 def create_hybridsal2xml_exe( pwd, shell, jarfile ):
     # create file hybridsal2xml
@@ -331,7 +332,7 @@ def create_hybridsal2xml_exe( pwd, shell, jarfile ):
     print "Created script {0}; also copied in directory {1}.".format(hybridsal2xml, hybridsal2xml1)
     return hybridsal2xml
 
-def compile_hybridsal2xml( hybridsal2xml ):
+def compile_hybridsal2xml( hybridsal2xml, shell, rtjar, jikespath ):
     #
     # Run the install.sh script in hybridsal2xml
     #
@@ -396,7 +397,7 @@ def compile_hybridsal2xml( hybridsal2xml ):
     hybridsal2xml1 = os.path.join( '..', 'bin' )
     shutil.copy( hybridsal2xml, hybridsal2xml1 )
     print "Created script {0}; also saved in directory {1}.".format(hybridsal2xml, hybridsal2xml1)
-    return hybridsal2xml
+    return os.path.join('hybridsal2xml', hybridsal2xml)
 
 def installmodelica():
     print 'Installing Modelica2HybridSal converter ...'
@@ -533,12 +534,12 @@ def main():
     # checkProg('sed')
     #checkProg('chmod')
     print 'Searching for java...',
-    output = checkProg('java')
-    if not output:
+    javapath = checkProg('java')
+    if not javapath:
         print 'Failed. Install java and retry.'
         return 1
     else:
-        print 'Successful. Found {0}'.format(output)
+        print 'Successful. Found {0}'.format(javapath)
 
     #
     # Check that we're in the right directory
@@ -588,9 +589,9 @@ def main():
         print 'Successful.'
         hybridsal2xml = create_hybridsal2xml_exe( pwd, shell, jarfile )
     else:
-        rtjar = searchForrtjar(sys.argv)
+        rtjar = searchForrtjar(sys.argv, javapath )
         jikespath = searchForjikes()
-        hybridsal2xml = compile_hybridsal2xml( hybridsal2xml )
+        hybridsal2xml = compile_hybridsal2xml( hybridsal2xml, shell, rtjar, jikespath )
         os.chdir( pwd )
 
     #
