@@ -521,6 +521,10 @@ def main():
         createRelease('.')
         return 0
 
+    if 'win32' in sys.argv:
+        createReleaseExe('.')
+        return 0
+
     print "-------------------------------------------------"
     print "Installing HybridSal Relational Abstraction Tool."
     print "     Copyright (c) SRI International 2011.       "
@@ -716,17 +720,17 @@ def main():
         installmodelica()
 
     if '--withsal' in sys.argv:
-        installsal()
+        installsal( sys.argv )
     print 'HybridSal successfully installed.'
     print 'run make test to see it working.'
     return 0
 
 def createSALfile(cygwin, saldir):
-    binfile = os.path.join('bin', 'sal-inf-bmc.bat')
+    binfile = 'sal-inf-bmc.bat'
     fp = open( binfile, 'w')
     cygwinbash = os.path.join(cygwin, 'bin', 'bash')
     salinfbmc = os.path.join(saldir, 'bin', 'sal-inf-bmc')
-    print >> fp, "{0} -li {1} $*".format( repr(cygwinbash)[1:-1], repr(salinfbmc)[1:-1])
+    print >> fp, "{0} -li {1} %1 %2 %3 %4 %5 %6 %7 %8 %9".format( repr(cygwinbash)[1:-1], repr(salinfbmc)[1:-1])
     fp.close()
     os.chmod( binfile, 0775 )
     return binfile
@@ -746,6 +750,110 @@ def createBinFile(shell, pwd, bindir, filename, pythonfile):
     # subprocess.call(['chmod', '+x', binfile])
     os.chmod( binfile, 0775 )
 
+def make_hybridsal2xmljar(currdir, h2xmldir, dstdir):
+    # move directory antlr up one level as a symbolic link
+    # jar cfm hybridsal2xml.jar Manifest.txt *.class antlr
+    tmpdir = os.path.join(dstdir, 'tmp')
+    shutil.copytree(h2xmldir, tmpdir, ignore=shutil.ignore_patterns('.svn'))
+    os.chdir(tmpdir)
+    if not os.path.isdir('antlr'):
+        os.rename(os.path.join('antlr-2.7.1','antlr'),'antlr')
+    subprocess.call(['jar','cfm','hybridsal2xml.jar','Manifest.txt','*.class','antlr'])
+    os.rename('hybridsal2xml.jar',os.path.join('..','hybridsal2xml.jar'))
+    os.chdir(currdir)
+    shutil.rmtree( tmpdir )
+
+def make_readme(currdir, dstdir):
+    os.chdir(dstdir)
+    with open('README','w') as fp:
+        print >> fp, '''
+Prerequisites:
+--------------
+This is a precompiled version of HybridSal analysis tool
+for Windows platform.  It was built on win32, but hopefully
+it should work on other win platforms too.
+
+Installation
+-------------
+Run "python install.py"
+
+Running the above installation script should tell you what
+is missing.  Most likely, SAL would be missing.
+
+HybridSAL uses SAL model checkers. To install, follow these steps:
+(1) Install cygwin: install the basic/default variety
+    (Doesn't take too long, but need fast internet connection)
+    (google on cygwin: www.cygwin.com)
+(2) Download sal-3.2 tgz file for Windows/cygwin (sal.csl.sri.com)
+(3) Move sal-3.2.tgz to a place inside cygwin, such as,
+    c:\cygwin\home\<username>\
+(4) Open a cygwin shell, Unpack sal and run install.sh script there
+(5) Update PATH variable with path to sal (mentioned by install.sh)
+
+Now, do "python install.py" for installing HybridSal (as above).
+
+
+
+Running HybridSal:
+------------------
+Run
+ ./hsalRA.exe <ModelicalXML-file> <Property-file>
+
+For example, run:
+
+./hsalRA.exe examples/MassSpringDamperTest.MassSpringDamperTest.xml examples/MassSpringDamperTest.property.json
+'''
+    os.chdir(currdir)
+    return
+
+def createReleaseExe(srcdir):
+    'create directory for win32 release'
+    join = os.path.join
+    isdir = os.path.isdir
+    isfile = os.path.isfile
+    distdir = join(srcdir, 'win32_HybridSal')
+    # if isdir(distdir):
+        # shutil.rmtree( distdir )
+    #os.mkdir(distdir, 0755)
+    # run python setup.py py2exe
+    if (not isdir('dist') or not isfile(join('dist','hsalRA.exe'))) and (not isdir(distdir) or not isfile(join(distdir,'hsalRA.exe'))):
+        python26 = join('C:',os.path.sep,'Python26','python.exe')
+        subprocess.call([python26,'setup.py','py2exe'])
+    if isdir('dist') and not isdir(distdir):
+        os.rename('dist', distdir)
+    assert isdir(distdir) and isfile(join(distdir,'hsalRA.exe'))
+    # move directory antlr up one level as a symbolic link
+    # jar cfm hybridsal2xml.jar Manifest.txt *.class antlr
+    hybridsal2xmljar = join('hybridsal2xml','hybridsal2xml.jar')
+    currdir = os.path.abspath('.')
+    if not isfile(hybridsal2xmljar):
+        make_hybridsal2xmljar(currdir,'hybridsal2xml',distdir)
+    else:
+        shutil.copy(hybridsal2xmljar, distdir)
+    hybridsal2xmljar = join(distdir,'hybridsal2xml.jar')
+    assert isfile(hybridsal2xmljar)
+    # create sal-inf-bmc.bat and README
+    os.chdir( distdir )
+    installsal([])
+    os.chdir( currdir )
+    make_readme(currdir, distdir)
+    # make examples/ directory
+    allFiles1 = ['MassSpringDamperTest.MassSpringDamperTest.xml','MassSpringDamperTest.property.json']
+    allFiles2 = ['Linear1.hsal','SimpleThermo4.hsal','SimpleThermo4.sal','SimpleThermo4.xml']
+    os.mkdir( os.path.join(distdir,'examples'), 0755 )
+    for i in allFiles1:
+        src = os.path.join( currdir, 'modelica2hsal', 'examples', i)
+        dst = os.path.join( distdir, 'examples', i)
+        shutil.copy(src, dst)
+    for i in allFiles2:
+        src = os.path.join( currdir, 'examples', i)
+        dst = os.path.join( distdir, 'examples', i)
+        shutil.copy(src, dst)
+    # copy install.py ! copy COPYRIGHT and doc
+    shutil.copy('install.py', distdir)
+    shutil.copy('COPYRIGHT', distdir)
+    print 'Successfully created distribution {0}'.format(distdir)
+ 
 def createRelease(srcdir):
     'create directory for release purposes'
     distdir = os.path.join(srcdir, 'HybridSal')
