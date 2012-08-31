@@ -153,10 +153,10 @@ files = '''
 '''
 
 def printUsage():
-    return 'Usage: python install.py [--withmodelica] [--withsal] [--cygwin <cygwin root directory>] [--sal <sal-root-directory>]'
+    return 'Usage: python install.py [--withmodelica] [--withsal] [--cygwin <cygwin root directory>] [--sal <sal-root-directory>] [dist] [win32]'
 
 def printHelp():
-    print 'Usage: python install.py [--withmodelica] [--withsal]  [--cygwin <cygwin root directory>] [--sal <sal-root-directory>]'
+    print 'Usage: python install.py [--withmodelica] [--withsal] [--cygwin <cygwin root directory>] [--sal <sal-root-directory>] [dist] [win32]'
     print 'Do not use the option --withsal  if SAL is already installed'
     print 'Do not use the option --withmodelica if you are not interested in Modelica'
 
