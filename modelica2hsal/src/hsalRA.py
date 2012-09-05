@@ -50,7 +50,7 @@ def main():
     global dom
     (filename, pfilename) = modelica2hsal.argCheck(sys.argv, printUsage)
     try:
-        outfile = modelica2hsal.modelica2hsal(filename, pfilename)
+        outfile = modelica2hsal.modelica2hsal(filename, pfilename, options = sys.argv[1:])
         # maybe copy file to a local place?
         #retCode = subprocess.call(['modelica2hsal', filename, pfilename])
         #outfile = generateHSalfilename(filename)

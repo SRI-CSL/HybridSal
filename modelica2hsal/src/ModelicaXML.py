@@ -472,9 +472,9 @@ def getVariableValue(var):
         val = var.getElementsByTagName(i)
         if val != None and len(val) > 0:
             value = val[0].getAttribute('string')
-            return value
+            return (value, i == 'initialValue')
     #print >> sys.stderr, 'Note: value for variable {0} not fixed'.format(var.getAttribute('name'))
-    return None
+    return (None, False)
 
 def printFixedParameters(varList, varTypeList):
     ans = []
@@ -484,9 +484,9 @@ def printFixedParameters(varList, varTypeList):
         inout = i.getAttribute('direction')
         isfixed = i.getAttribute('fixed')
         if param in varTypeList and inout != 'input':
-            value = getVariableValue(i)
+            (value, isInit) = getVariableValue(i)
             name = i.getAttribute('name')
-            if value != None and isfixed == 'true' or isfixed == 'True':
+            if value != None and (not(isInit) or isfixed == 'true' or isfixed == 'True'):
                 print >> fp, '{0} = {1}'.format(name, value)
             else:
                 ans.append(name)

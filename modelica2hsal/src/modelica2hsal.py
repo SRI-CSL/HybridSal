@@ -11,7 +11,7 @@ def printUsage():
     print '''
 modelica2hsal -- a converter from Modelica to HybridSal
 
-Usage: python modelica2hsal.py <modelica_file.xml> [<context_property.xml>]
+Usage: python modelica2hsal.py <modelica_file.xml> [<context_property.xml>] [--addTime]
 
 Description: This will create a file called modelica_fileModel.hsal
     '''
@@ -33,7 +33,7 @@ def argCheck(args, printUsage):
         sys.exit(-1)
     filename = args[1]
     basename,ext = os.path.splitext(filename)
-    if len(args) > 2:
+    if len(args) > 2 and not args[2].startswith('-'):
         pfilename = args[2]
         pbasename,pext = os.path.splitext(pfilename)
     else:
@@ -56,9 +56,9 @@ def argCheck(args, printUsage):
 def main():
     global dom
     (filename, pfilename) = argCheck(sys.argv, printUsage)
-    modelica2hsal(filename, pfilename)
+    modelica2hsal(filename, pfilename, sys.argv[1:])
 
-def modelica2hsal(filename, pfilename = None):
+def modelica2hsal(filename, pfilename = None, options = []):
     basename,ext = os.path.splitext(filename)
     try:
         dom = xml.dom.minidom.parse(filename)
@@ -124,7 +124,7 @@ def modelica2hsal(filename, pfilename = None):
             print 'Error: Unable to read property JSON file...Quitting.'
             return -1
     print >> sys.stderr, 'Creating HybridSal model....'
-    outfile = daexml2hsal.daexml2hsal(dom1, dom2, daexmlfilename, dom3)
+    outfile = daexml2hsal.daexml2hsal(dom1, dom2, daexmlfilename, dom3, options = options)
     print >> sys.stderr, 'Created HybridSal model.'
     return outfile
 

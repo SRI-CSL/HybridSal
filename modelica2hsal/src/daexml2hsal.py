@@ -939,10 +939,34 @@ daexml2hsal -- a converter from differential algebraic equations to HybridSal
 Usage: python daexml2hsal <daexml_file> <modelica_xmlfile>
     '''
 
-def daexml2hsal(dom1, dom2, filename, dom3):
+def addTime(dom2):
+    'add time as a new continuousState variable in the model'
+    node = dom2.createElement('variable')
+    node.setAttribute('name', 'time')
+    node.setAttribute('variability', 'continuousState')
+    node.setAttribute('direction', 'none')
+    node.setAttribute('type', 'Real')
+    node.setAttribute('index', '-1')
+    node.setAttribute('fixed', 'false')
+    node.setAttribute('flow', 'NonConnector')
+    node.setAttribute('stream', 'NonStreamConnector')
+    orderedVars_varlists = getElementsByTagTagName(dom2, 'orderedVariables', 'variablesList')
+    assert orderedVars_varlists != None and len(orderedVars_varlists) > 0
+    orderedVars_varlist = orderedVars_varlists[0]
+    orderedVars_varlist.appendChild(node)
+    equations = dom2.getElementsByTagName('equations')
+    newequation = dom2.createElement('equation')
+    newequation.appendChild( dom2.createTextNode('der(time) = 1') )
+    assert equations != None and len(equations) > 0
+    equations[0].appendChild(newequation)
+    return dom2
+
+def daexml2hsal(dom1, dom2, filename, dom3, options = []):
     "dom3: context_property.xml; dom1: daexml, dom2: original modelica"
     global dom
     dom = dom1
+    if '--addTime' in options:
+        dom2 = addTime(dom2)
     try:
         (hsalstr, propStr) = convert2hsal(dom1, dom2, dom3)
     except AssertionError, e:

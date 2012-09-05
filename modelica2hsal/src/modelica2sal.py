@@ -19,7 +19,7 @@ def printUsage():
     print '''
 modelica2sal -- a converter from Modelica to Sal
 
-Usage: python modelica2sal.py <modelica_file.xml> [<context_property.xml>]
+Usage: python modelica2sal.py <modelica_file.xml> [<context_property.xml>] [--addTime]
 
 Description: This will create a file called modelica_fileModel.sal
     '''
@@ -33,7 +33,7 @@ def main():
     global dom
     (filename, pfilename) = modelica2hsal.argCheck(sys.argv, printUsage)
     try:
-        outfile = modelica2hsal.modelica2hsal(filename, pfilename)
+        outfile = modelica2hsal.modelica2hsal(filename, pfilename, options = sys.argv[1:])
     except Exception, e:
         print e
         print 'Error: Unable to create HybridSal file from Modelica XML'
