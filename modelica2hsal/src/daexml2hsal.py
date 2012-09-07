@@ -450,6 +450,63 @@ def simplifyITEeq(e1, e2, var=None):
     print >> sys.stderr, 'SimplifyITEeq output has {0} cases'.format(len(ans))
     return (var, ans)
 
+def others2salmonitor(varvall, bools, ints, reals):
+    "varvall is a list of (var,ans) as above; output it as sal definition"
+    def ite2sal(val):
+        if len(val) == 1:
+            ans = expr2sal(val[0][2],flag=True)
+            return ans
+        first, ans = True, ""
+        for (c,d,v) in val:
+            sep = "ELSIF" if not first else "IF"
+            first = False
+            ans += " {2} {0} AND {1} ".format(toSal(c,0,primeflag=True),toSal(d,1,primeflag=True),sep)
+            ans += " THEN {0}".format(expr2sal(v,flag = True))
+        # Repeating last value in ELSE clause.....
+        ans += " ELSE {0} ENDIF".format(expr2sal(v,flag=True))
+        return ans
+    def xml2vars(v):
+        ans = set()
+        ids = v.getElementsByTagName('identifier')
+        for i in ids:
+            ans.add( valueOf(i).strip() )
+        return ans
+    def xmlList2vars(c):
+        ans = set()
+        for i in c:
+            ans = ans.union( xml2vars( i ) )
+        return ans
+    def condE2vars( val ):
+        ans = set()
+        for (c,d,e) in val:
+            ans = ans.union( xmlList2vars(c) )
+            ans = ans.union( xmlList2vars(d) )
+            ans = ans.union( xml2vars(e) )
+        return ans
+    if len(varvall) == 0:
+        return None
+    ans = "\n monitor: MODULE = \n BEGIN"
+    first = True
+    guard = ""
+    variables = set()
+    for (var,val) in varvall:
+        sep = " AND " if not first else ""
+        first = False
+        guard += "{1}\n   {0}' = ".format(var,sep)
+        guard += ite2sal(val)
+        variables = variables.union(condE2vars( val ))	# a set
+        variables.add( var )		# add var to set
+    # now we have guard and the variables
+    for v in variables:
+        assert v in reals or v in bools or v in ints
+        tval = 'REAL' if v in reals else ('BOOLEAN' if v in bools else 'NATURAL')
+        ans += '\n  INPUT {0}: {1}'.format(v, tval)
+    ans += '\n  TRANSITION\n  ['
+    ans += '\n  {0} --> '.format(guard)
+    ans += '\n  ]'
+    ans += "\n END;\n"
+    return ans
+
 def others2saldef(varvall):
     "varvall is a list of (var,ans) as above; output it as sal definition"
     def ite2sal(val):
@@ -483,7 +540,7 @@ def replace(node, newnode, root):
         parentnode.replaceChild(newChild=newnode,oldChild=node)
     return root
 
-def toSal(pn, flag):
+def toSal(pn, flag, primeflag = False):
     ans = ""
     first = True
     if len(pn) == 0:
@@ -492,9 +549,9 @@ def toSal(pn, flag):
         ans += ' AND ' if not first else ''
         first = False
         if flag == 0:
-            ans += '(' + expr2sal(i, flag = False) + ')' # CHECK flag setting
+            ans += '(' + expr2sal(i, flag = primeflag) + ')' # CHECK flag setting
         else:
-            ans += 'NOT(' + expr2sal(i, flag = False) + ')'
+            ans += 'NOT(' + expr2sal(i, flag = primeflag) + ')'
     return ans
 
 def createPlant(state, ceqns, oeqns):
@@ -577,14 +634,25 @@ def createPlant(state, ceqns, oeqns):
         if val.tagName != 'IF' and len(val.getElementsByTagName('IF')) == 0:
             return [([], [], val)]
         elif val.tagName == 'IF': # val.tagName == 'IF':
-            ans = []
+            iteCond = getArg(val, 1)
+            iteThen = getArg(val, 2)
+            iteElse = getArg(val, 3)
+            thenv = expr2cexpr( iteThen )
+            elsev = expr2cexpr( iteElse )
+            for (p,n,v) in thenv:
+                p.append( iteCond )
+            for (p,n,v) in elsev:
+                n.append( iteCond )
+            thenv.extend( elsev )
+            return thenv
+            '''ans = []
             while val.tagName == 'IF':
                 iteCond = getArg(val, 1)
                 iteThen = getArg(val, 2)
                 val = getArg(val, 3)
                 ans.append( ([iteCond], [], iteThen) )
             ans.append( ( [], [iteCond], val ) )
-            return ans
+            return ans '''
         elif val.tagName == 'BAPP':
             op = getArg(val, 1)
             a1 = getArg(val, 2)
@@ -662,8 +730,8 @@ def createPlant(state, ceqns, oeqns):
     for e in oeqns:
         lhs = getArg(e,1) 
         rhs = getArg(e,2) 
-        e1 =  expr2cexpr2(lhs)
-        e2 =  expr2cexpr2(rhs)
+        e1 =  expr2cexpr(lhs)
+        e2 =  expr2cexpr(rhs)
         others.append( (e1, e2) )
         print >> sys.stderr, 'Other equation has {0} and {1} cases'.format(len(e1),len(e2))
         # print 'lhs = {0}'.format(daexmlPP.ppExpr(lhs))
@@ -672,7 +740,7 @@ def createPlant(state, ceqns, oeqns):
         # print 'e2 = {0}'.format(e2)
     others = [ simplifyITEeq(e1,e2) for (e1,e2) in others ]
     # now I have the substitution in others; apply it to ode
-    ans += others2saldef(others)
+    # ans += others2saldef(others)
     newode = [(var,applySubstitution(val, others)) for (var,val) in ode]
     finalode = myproduct(newode)
     ans  += "\n  TRANSITION\n  ["
@@ -688,6 +756,12 @@ def createPlant(state, ceqns, oeqns):
             ans += "{2}\n\t {0} = {1}".format(var+"dot'",expr2sal(val,flag=False),sep)
     ans += "\n  ]"
     ans += "\n END;\n"
+    monitor = others2salmonitor(others, bools, ints, reals)
+    if monitor != None:
+        ans += monitor
+        ans += "\n\n system: MODULE = control || plant || monitor ;"
+    else:
+        ans += "\n\n system: MODULE = control || plant ;"
     return ans
 # -----------------------------------------------------------------
 
@@ -959,12 +1033,10 @@ def create_output_file(filename, hsalstr, propStr = ''):
     ansBEGIN += ": CONTEXT ="
     ansBEGIN += "\nBEGIN"
     ansEND = "\nEND"
-    system = "\n\n system: MODULE = control || plant ;"
     with open(outfile, "w") as fp:
         print >> fp, '% Generated automatically by daexml2hsal'
         print >> fp, ansBEGIN
         print >> fp, hsalstr
-        print >> fp, system
         if propStr != '':
             print >> fp, ' p1: THEOREM\n   system |- {0} ;'.format(propStr)
         print >> fp, ansEND
