@@ -135,7 +135,7 @@ def getIdentifiersIn(root, tag1):
 
 def isCont(e):
     ders = e.getElementsByTagName('der')
-    return ders != None and len(ders) > 0
+    return e.tagName == 'der' or (ders != None and len(ders) > 0)
 
 def preprocessEqn(e):
     'convert e into der(x) = rhs form, if possible'
@@ -189,6 +189,7 @@ def preprocessEqn(e):
             lhs = getArg(lhs,2)
             return preprocessEqnAux( lhs, mkUOp('-',rhs) )
         else:
+            print 'unable to handle lhs: {0} == rhs:{1}'.format( lhs.toxml(), rhs.toxml() )
             assert False,'ERROR: Unreachable code; Unable to convert DAE to dx/dt=Ax+b'
     lhs = getArg(e, 1)
     rhs = getArg(e, 2)
@@ -204,7 +205,7 @@ def classifyEqns(eqns, cstate, dstate):
     for e in eqns:
         if isCont(e):
             # c.append(e)
-            c.append( preprocessEqn(e) )
+            c.append( preprocessEqn(e) )	# THIS MESSES up eqns becos it uses nodes to create new equations
         elif isDisc(e):
             d.append(e)
         else:
@@ -226,11 +227,15 @@ def findState(Eqn, cstate, dstate, var_details):
         assert False, "Model Error: Variable {0} is not declared".format(name)
         return None
     ids = Eqn.getElementsByTagName('identifier')
+    #print 'Number of equations in Eqn is {0}'.len(Eqn.getElementsByTagName('equation'))
+    #sys.stdout.flush()
     bools, reals, integers = [], [], []
     nonstates, inputs = [], []
     varmap = {}
     for identifier in ids:
         name = valueOf(identifier).strip()
+        # print name,
+        # sys.stdout.flush()
         ovar = find(name, var_details)
         vtype = ovar.getAttribute('type')
         variability = ovar.getAttribute('variability')
@@ -328,7 +333,7 @@ def getInitialValue(vmap, var):
     return ans
 
 # need to handle INITIAL properly
-def createControl(state, deqns, guard, dom):
+def createControl(state, deqns, guard):
     "print the control HSAL module"
     def extractInitE(eqn):
         var = getArg(eqn,1)
@@ -492,7 +497,7 @@ def toSal(pn, flag):
             ans += 'NOT(' + expr2sal(i, flag = False) + ')'
     return ans
 
-def createPlant(state, ceqns, oeqns, dom):
+def createPlant(state, ceqns, oeqns):
     "print the PLANT HSAL module"
     def occurs(var, node):
         ids = node.getElementsByTagName('identifier')
@@ -528,10 +533,23 @@ def createPlant(state, ceqns, oeqns, dom):
                 valuecopy = val.cloneNode(True)
                 expr = replace(i, valuecopy, expr)
         return expr
+    def applyOpUnary(op, e1):
+        "multiply two conditional exprs"
+        ans = []
+        if valueOf(op).strip() == '-':
+            for (p1,n1,v1) in e1:
+                p12 = p1
+                n12 = n1
+                v12 = helper_create_app('UAPP',[op.cloneNode(True),v1.cloneNode(True)])
+                ans.append((p12,n12,v12))
+        else:
+            print 'Found unhandled operator {0} applied on an ITE'.format(valueOf(op).strip())
+            assert False, 'No other operator supported'
+        return ans
     def applyOp(op, e1, e2):
         "multiply two conditional exprs"
         ans = []
-        if valueOf(op).strip() == '*':
+        if valueOf(op).strip() in ['*', '+', '-', '/']:
             for (p1,n1,v1) in e1:
                 for (p2,n2,v2) in e2:
                     p12 = list(p1)
@@ -541,6 +559,7 @@ def createPlant(state, ceqns, oeqns, dom):
                     n12.extend(n2)
                     ans.append((p12,n12,v12))
         else:
+            print 'Found unhandled operator {0} combining ITEs'.format(valueOf(op).strip())
             assert False, 'No other operator supported'
         return ans
     def expr2cexpr2( val ):
@@ -555,17 +574,31 @@ def createPlant(state, ceqns, oeqns, dom):
             return expr2cexpr(val)
     def expr2cexpr( val ):
         "expr 2 conditional expr"
-        ans = []
-        if val.tagName != 'IF':
+        if val.tagName != 'IF' and len(val.getElementsByTagName('IF')) == 0:
             return [([], [], val)]
-        else: # val.tagName == 'IF':
+        elif val.tagName == 'IF': # val.tagName == 'IF':
+            ans = []
             while val.tagName == 'IF':
                 iteCond = getArg(val, 1)
                 iteThen = getArg(val, 2)
                 val = getArg(val, 3)
                 ans.append( ([iteCond], [], iteThen) )
             ans.append( ( [], [iteCond], val ) )
-        return ans
+            return ans
+        elif val.tagName == 'BAPP':
+            op = getArg(val, 1)
+            a1 = getArg(val, 2)
+            a2 = getArg(val, 3)
+            e1 = expr2cexpr( a1 )
+            e2 = expr2cexpr( a2 )
+            return applyOp( op, e1, e2 )
+        elif val.tagName == 'UAPP':
+            op = getArg(val, 1)
+            a1 = getArg(val, 2)
+            v1 = expr2cexpr( a1 )
+            return applyOpUnary( op, v1 )
+        else:
+             assert False, 'Can not convert nested IF-THEN-ELSE to HybridSal'
     def myproduct( vvl ):
         "vvl = list of (var, (p,n,v)-list). OUTPUT (p,n,(var,v)-list)"
         ans = []
@@ -720,23 +753,29 @@ def convert2hsal(dom1, dom2, dom3 = None):
     var_details = getElementsByTagTagName(dom2, 'orderedVariables', 'variable')
     var_details2 = getElementsByTagTagName(dom2, 'knownVariables', 'variable')
     var_details.extend(var_details2)
-    (discEqns,contEqns,oEqns) = classifyEqns(eqns,cstate,dstate)
-    print >> sys.stderr, 'Classified eqns into {0} discrete, {1} cont, {2} others'.format(len(discEqns),len(contEqns),len(oEqns))
-    print >> sys.stderr, 'discrete eqns: ', printE(discEqns)
-    print >> sys.stderr, 'cont eqns: ', printE(contEqns)
-    print >> sys.stderr, 'other eqns: ', printE(oEqns)
+    # find and classify all variables that occur in Eqn -- do this before classifyEqns becos it messes up eqns
     state = findState(Eqn,cstate,dstate,var_details)
     (bools,reals,ints,inputs,nonstates,vmap) = state
     print >> sys.stderr, 'Found {0} bools, {1} reals, {2} ints'.format(len(bools),len(reals),len(ints))
     print >> sys.stderr, 'Found {0} inputs, {1} non-states'.format(len(inputs),len(nonstates))
     print >> sys.stderr, 'State: {0}'.format(state)
+    # find and classify all equations in Eqn -- this messes up contEqns (essentially deletes them from Eqn)
+    (discEqns,contEqns,oEqns) = classifyEqns(eqns,cstate,dstate)
+    print >> sys.stderr, 'Classified eqns into {0} discrete, {1} cont, {2} others'.format(len(discEqns),len(contEqns),len(oEqns))
+    print >> sys.stderr, 'discrete eqns: ', printE(discEqns)
+    print >> sys.stderr, 'cont eqns: ', printE(contEqns)
+    print >> sys.stderr, 'other eqns: ', printE(oEqns)
     # preds = getPredsInConds(contEqns)
+    # Note: dom1 is MESSED UP; contEqns have been DELETED; so we can't get eqns from dom1.
+    eqns = list(discEqns)
+    eqns.extend(contEqns)
+    eqns.extend(oEqns)
     preds = getPredsInConds(eqns)
     print >> sys.stderr, 'Found {0} preds'.format(len(preds))
     print >> sys.stderr, 'Preds: {0}'.format(preds)
     ans0 = createEventsFromPreds(preds, reals, inputs)	# Should events on inputs be included?
-    ans1 = createControl(state, discEqns, ans0, dom1)
-    ans2 = createPlant(state, contEqns, oEqns, dom1)
+    ans1 = createControl(state, discEqns, ans0)
+    ans2 = createPlant(state, contEqns, oEqns)
     # replace varname.var -> varname_var
     ans = ans1 + ans2
     propStr = createProperty(dom3)
@@ -939,34 +978,10 @@ daexml2hsal -- a converter from differential algebraic equations to HybridSal
 Usage: python daexml2hsal <daexml_file> <modelica_xmlfile>
     '''
 
-def addTime(dom2):
-    'add time as a new continuousState variable in the model'
-    node = dom2.createElement('variable')
-    node.setAttribute('name', 'time')
-    node.setAttribute('variability', 'continuousState')
-    node.setAttribute('direction', 'none')
-    node.setAttribute('type', 'Real')
-    node.setAttribute('index', '-1')
-    node.setAttribute('fixed', 'false')
-    node.setAttribute('flow', 'NonConnector')
-    node.setAttribute('stream', 'NonStreamConnector')
-    orderedVars_varlists = getElementsByTagTagName(dom2, 'orderedVariables', 'variablesList')
-    assert orderedVars_varlists != None and len(orderedVars_varlists) > 0
-    orderedVars_varlist = orderedVars_varlists[0]
-    orderedVars_varlist.appendChild(node)
-    equations = dom2.getElementsByTagName('equations')
-    newequation = dom2.createElement('equation')
-    newequation.appendChild( dom2.createTextNode('der(time) = 1') )
-    assert equations != None and len(equations) > 0
-    equations[0].appendChild(newequation)
-    return dom2
-
-def daexml2hsal(dom1, dom2, filename, dom3, options = []):
+def daexml2hsal(dom1, dom2, filename, dom3):
     "dom3: context_property.xml; dom1: daexml, dom2: original modelica"
     global dom
     dom = dom1
-    if '--addTime' in options:
-        dom2 = addTime(dom2)
     try:
         (hsalstr, propStr) = convert2hsal(dom1, dom2, dom3)
     except AssertionError, e:

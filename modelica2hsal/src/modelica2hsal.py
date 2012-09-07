@@ -58,6 +58,49 @@ def main():
     (filename, pfilename) = argCheck(sys.argv, printUsage)
     modelica2hsal(filename, pfilename, sys.argv[1:])
 
+def addTime(dom2):
+    'add time as a new continuousState variable in the model'
+    node = dom2.createElement('variable')
+    node.setAttribute('name', 'time')
+    node.setAttribute('variability', 'continuousState')
+    node.setAttribute('direction', 'none')
+    node.setAttribute('type', 'Real')
+    node.setAttribute('index', '-1')
+    node.setAttribute('fixed', 'false')
+    node.setAttribute('flow', 'NonConnector')
+    node.setAttribute('stream', 'NonStreamConnector')
+    orderedVars_varlists = daexml2hsal.getElementsByTagTagName(dom2, 'orderedVariables', 'variablesList')
+    assert orderedVars_varlists != None and len(orderedVars_varlists) > 0
+    orderedVars_varlist = orderedVars_varlists[0]
+    orderedVars_varlist.appendChild(node)
+    equations = dom2.getElementsByTagName('equations')
+    newequation = dom2.createElement('equation')
+    newequation.appendChild( dom2.createTextNode('der(time) = 1') )
+    assert equations != None and len(equations) > 0
+    equations[0].appendChild(newequation)
+    return dom2
+
+def removeTime(dom1):
+    'remove all equations that mention time in them'
+    def hasTime(e):
+        ids = e.getElementsByTagName('identifier')
+        for identifier in ids:
+            name = daexml2hsal.valueOf(identifier).strip()
+	    if name.strip() == 'time':
+                return True
+        return False
+    Eqn = dom1.getElementsByTagName('equations')[0]
+    eqns = Eqn.getElementsByTagName('equation')
+    for e in eqns:
+        if hasTime(e):
+            Eqn.removeChild(e)
+    Eqn = dom1.getElementsByTagName('knownVariables')[0]
+    eqns = Eqn.getElementsByTagName('variablevalue')
+    for e in eqns:
+        if hasTime(e):
+            Eqn.removeChild(e)
+    return dom1
+
 def modelica2hsal(filename, pfilename = None, options = []):
     basename,ext = os.path.splitext(filename)
     try:
@@ -71,6 +114,8 @@ def modelica2hsal(filename, pfilename = None, options = []):
         print 'Quitting', sys.exc_info()[0]
         return -1
     dom2 = dom	# will be used later by daexml2hsal for variable information
+    if '--addTime' in options:
+        dom2 = addTime(dom2)
     daefilename = basename + '.dae'
     moveIfExists(daefilename)
     print >> sys.stderr, 'Parsing Modelica XML file......'
@@ -88,10 +133,13 @@ def modelica2hsal(filename, pfilename = None, options = []):
     except:
         print 'Model not supported: Unable to handle some expressions currently'
         sys.exit(-1)
+    if '--removeTime' in options:
+        dom1 = removeTime(dom1)
     dom1 = daeXML.simplifydaexml(dom1,daexmlfilename)
     os.remove(daexmlfilename)	# this is .daexml file
     print >> sys.stderr, 'Finished simplification steps.'
-    # daexmlPP.source_textPP(dom1)
+    # with open('tmp','w') as fp:
+        # daexmlPP.source_textPP(dom1, filepointer=fp)
     dom3 = None		# No property file given by default
     if pfilename != None and pfilename.rstrip().endswith('.xml'):
         print >> sys.stderr, 'Reading XML file containing context and property'
@@ -124,7 +172,7 @@ def modelica2hsal(filename, pfilename = None, options = []):
             print 'Error: Unable to read property JSON file...Quitting.'
             return -1
     print >> sys.stderr, 'Creating HybridSal model....'
-    outfile = daexml2hsal.daexml2hsal(dom1, dom2, daexmlfilename, dom3, options = options)
+    outfile = daexml2hsal.daexml2hsal(dom1, dom2, daexmlfilename, dom3)
     print >> sys.stderr, 'Created HybridSal model.'
     return outfile
 

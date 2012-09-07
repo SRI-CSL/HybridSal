@@ -1086,6 +1086,7 @@ def simplifyPreDer(varval, eqn, cstate, dstate):
     return done
 
 def ppdebug(dom, msg):
+    '''
     print '--------------------------------------------------------------------------'
     print msg
     knownVars = dom.getElementsByTagName('knownVariables')[0]
@@ -1096,6 +1097,7 @@ def ppdebug(dom, msg):
     print 'printing {0} equations......'.format(len(dom.getElementsByTagName('equation')))
     daexmlPP.source_textPP(dom)
     print '--------------------------------------------------------------------------'
+    '''
 
 def SimplifyEqnsPPDaeXML(dom, cstate, dstate, filepointer=sys.stdout):
     '''perform substitutions in the dom; output new dom'''
@@ -1193,16 +1195,21 @@ def simplifydaexml(dom1, filename):
     tmp2 = tmp.getElementsByTagName('identifier')
     dstate = [ valueOf(i).strip() for i in tmp2 ]
     dom = SimplifyEqnsPPDaeXML(dom, cstate, dstate)
-    print 'Simplification Phase 1 over...printing equations...'
+    print '-------------Simplification Phase 1 over...printing equations...'
     daexmlPP.source_textPP(dom)
+    print '-----------------------------------------------------------------'
     # dom = SimplifyEqnsPhase2(dom)
     # dom = SimplifyEqnsPhase3(dom)
     dom = SimplifyEqnsPhase4(dom, cstate, dstate)
+    print '-----------------------------------------------------------------'
     print 'Simplification Phase 2 over...printing equations...'
     daexmlPP.source_textPP(dom)
+    print '-----------------------------------------------------------------'
     dom = SimplifyEqnsPhase5(dom, cstate, dstate)
+    print '-----------------------------------------------------------------'
     print 'Simplification Phase 3 over...printing equations...'
     daexmlPP.source_textPP(dom)
+    print '-----------------------------------------------------------------'
     # create_output_file(filename, dom) # do not create .dae_flat_xml file
     return dom
 
