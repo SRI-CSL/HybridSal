@@ -510,13 +510,16 @@ def HSalPPContext(dom, filepointer=sys.stdout):
     tmp = getChildByTagName(variables, 'knownVariables')
     kvars = tmp.getElementsByTagName('variable') if tmp != None else []
     #
+    statevars = []
     print >> fp, '#####{0}'.format('continuousState')
     for i in ovars:
         if i.getAttribute('variability') == 'continuousState':
+            statevars.append(i)
             print >> fp, i.getAttribute('name')
     print >> fp, '#####{0}'.format('discreteState')
     for i in ovars:
         if i.getAttribute('variability') == 'discrete':
+            statevars.append(i)
             print >> fp, i.getAttribute('name')
     # print constants or parameters with their values
     print >> fp, '#####{0}'.format('knownVariables')
@@ -549,6 +552,17 @@ def HSalPPContext(dom, filepointer=sys.stdout):
     print >> fp, '#####equations'
     for i in eqns:
         print >> fp, i.strip()
+    print >> fp, '#####initializations'
+    for node in statevars:
+        val0 = getInitialValue(node)
+        if val0 != None and val0 != '':
+            print >> fp, '{0} = {1}'.format(node.getAttribute('name'), val0)
+
+def getInitialValue(node):
+    ival = node.getElementsByTagName('initialValue')
+    if ival == None or len(ival) == 0:
+        return None
+    return ival[0].getAttribute('string')
 
 def start_element(name, attrs):
     if name == 'bindExpression':

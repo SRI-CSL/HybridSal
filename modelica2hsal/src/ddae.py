@@ -19,11 +19,20 @@ from xml.dom.minidom import getDOMImplementation
 import sys
 import os.path
 import pprint
+from ModelicaXML import getArg
 
 # /* Source Text */
 def d_source_text(s, nodes):
-    "source_text : cstate dstate knownVariables equations"
-    return helper_create_app('source_text', [s[0],s[1],s[2],s[3]], nodes[0].start_loc)
+    "source_text : cstate dstate knownVariables equations initializations"
+    return helper_create_app('source_text', [s[0],s[1],s[2],s[3],s[4]], nodes[0].start_loc)
+
+def d_initializations(s, nodes):
+    "initializations: '#####initializations' variablevalue*"
+    for i in s[1]:
+        i.tagName = 'equation'
+        var = getArg(i,1)
+        var.tagName = 'initidentifier'
+    return helper_create_app('initializations', s[1], nodes[0].start_loc)
 
 def d_cstate(s, nodes):
     "cstate: '#####continuousState' variablename*"
@@ -60,6 +69,8 @@ def d_identifier(s, nodes):
     "identifier : identifier_access ( '.' identifier_access)*"
     fullname = mkfullname(s)
     node = helper_create_tag_val('identifier', fullname, nodes[0].start_loc)
+    if fullname.strip() in ['true','false','True','False']:
+        node.tagName = 'string'
     return node
 
 def d_string(s, nodes):

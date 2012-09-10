@@ -92,6 +92,8 @@ def getPredsInConds(contEqns):
                 return add2Preds(preds, (s11,name1,name2), val)
             else:
                 assert False, 'MISSING BAPP CODE: Found {0} expression.'.format(daexmlPP.ppExpr(c))
+        elif s1 in ['>', '<'] and a2.tagName == 'number' and a1.tagName == 'number':
+            return preds
         else:
             assert False, 'MISSING BAPP CODE: Found {0} expression.'.format(daexmlPP.ppExpr(c))
     def getPredsInExpr(c, preds):
@@ -148,7 +150,7 @@ def preprocessEqn(e):
     def swapContLHS(lhs, rhs):
         isContLHS = isCont(lhs)
         isContRHS = isCont(rhs)
-        assert not(isContLHS and isContRHS),'ERROR: Unable to write DAE as dx/dt=Ax+b'
+        assert not(isContLHS and isContRHS) #'ERROR: Unable to write DAE as dx/dt=Ax+b'
         if isContLHS:
             return (lhs, rhs)
         else:
@@ -196,6 +198,213 @@ def preprocessEqn(e):
     (lhs, rhs) = swapContLHS( lhs, rhs )
     return preprocessEqnAux(lhs, rhs)
 
+def evalCond(c):
+    if c.tagName == 'string':
+        val = valueOf(c).strip()
+        if val == 'TRUE':
+            return True
+        elif val == 'FALSE':
+            return False
+        else:
+            return None
+    elif c.tagName == 'BAPP' and valueOf(getArg(c,1)).strip() == 'AND':
+        c1 = evalCond( getArg( c, 2 ) )
+        c2 = evalCond( getArg( c, 3 ) )
+        if c1 == False or c2 == False:
+            return False
+        else:
+            return c1 and c2
+    elif c.tagName == 'UAPP' and valueOf(getArg(c,1)).strip() == 'NOT':
+        c1 = evalCond( getArg( c, 2 ) )
+        ans = None if c1 == None else not c1
+        return ans
+    else:
+        return None
+
+def preprocessEqnNEW(eL,cstate,dstate):
+    'convert e into der(x) = rhs form, if possible'
+    def mkBOp(op,v1,v2):
+        op = helper_create_tag_val('BINARY_OPERATOR',op)
+        return helper_create_app('BAPP',[op,v1.cloneNode(True),v2.cloneNode(True)])
+    def mkUOp(op,v1):
+        op = helper_create_tag_val('UNARY_OPERATOR',op)
+        return helper_create_app('UAPP',[op,v1.cloneNode(True)])
+    def mkc(v):
+        return helper_create_tag_val('number',str(v))
+    def mkv(v):
+        return helper_create_tag_val('identifier',v)
+    def mkdv(v):
+        var = helper_create_tag_val('identifier',v)
+        return helper_create_app('der',[var])
+    def mkprev(v):
+        var = helper_create_tag_val('identifier',v)
+        return helper_create_app('pre',[var])
+    def polyrep2xmlL( lrL ):
+        return [ polyrep2xmle(lr) for lr in lrL ]
+    def polyrep2xmle( lr ):
+        lhs = polyrep2xml(lr[0])
+        rhs = polyrep2xml(lr[1])
+        return helper_create_app('equation',[lhs,rhs])
+    def polyrep2xml( p ):
+        ans = None
+        for (v,cnum) in p.items():
+            if v == None:
+                continue
+            c = mkc(cnum)
+            if isinstance(v,str) or isinstance(v,unicode):
+                v = mkv(v)
+            elif isinstance(v,tuple) and v[1] == True:
+                v = mkdv(v[0])
+            elif isinstance(v,tuple) and v[1] == False:
+                v = mkprev(v[0])
+            # elif v == None or else: pass
+            cv = v if cnum==1 else mkBOp('*',c,v)
+            ans = mkBOp('+',ans,cv) if ans != None else cv
+        if p.has_key(None):
+            cnum = p[None]
+            if ans != None and cnum == 0:
+                return ans
+            c = mkc(cnum)
+            if ans == None:
+                return c
+            ans = mkBOp('+',ans,c)
+        return ans
+    def isOp(v, tagName, op):
+        return v.tagName==tagName and valueOf(getArg(v,1)).strip()==op
+    def ispolyrepc(p):
+        n = len(p.items())
+        return n==0 or (n==1 and p.has_key(None))
+    def polyrepBOp(op,p,q):
+        if op in ['+','-']:
+            for (x,c) in q.items():
+                if p.has_key(x):
+                    p[x] = p[x] + c if op=='+' else p[x]-c
+                else:
+                    p[x] = c if op=='+' else -c
+                if p[x] == 0 and x != None:
+                    p.pop(x)
+            return p
+        elif op=='*':
+            assert ispolyrepc(p) or ispolyrepc(q), 'ERROR: Nonlinear expression found'
+            (p,q) = (q,p) if ispolyrepc(p) else (p,q)
+            d = q[None]
+            if d==0:
+                return {None:0}
+            for (x,c) in p.items():
+                p[x] = c*d
+            return p
+        elif op=='/':
+            assert ispolyrepc(q), 'ERROR: Dividing by non-constant; cannot handle.'
+            d = q[None]
+            for (x,c) in p.items():
+                p[x] = c/d
+            return p
+        else:
+            assert False, 'Error: Unknown binary operator {0}; cannot handle'.format(op)
+    def polyrepUOp(op,p):
+        if op == '-':
+            for (x,c) in p.items():
+                p[x] = -c
+            return p
+        else:
+            assert False, 'Error: Unknown unary operator {0}; cannot handle'.format(op)
+    def expr2polyrep(e):
+        if e.tagName == 'identifier':
+            return { valueOf(e).strip():1 }
+        elif e.tagName == 'number':
+            return { None: float( valueOf(e)) }
+        elif e.tagName == 'der':
+            return { (valueOf(getArg(e,1)).strip(),True):1 }
+        elif e.tagName == 'pre':
+            return { (valueOf(getArg(e,1)).strip(),False):1 }
+        elif e.tagName == 'BAPP':
+            e1 = expr2polyrep( getArg(e,2) )
+            e2 = expr2polyrep( getArg(e,3) )
+            return polyrepBOp( valueOf(getArg(e,1)).strip(), e1, e2 )
+        elif e.tagName == 'UAPP':
+            e1 = expr2polyrep( getArg(e,2) )
+            return polyrepUOp( valueOf(getArg(e,1)).strip(), e1 )
+        elif e.tagName == 'IF':
+            c = getArg(e, 1)
+            if evalCond(c) == True:
+                return expr2polyrep( getArg(e,2) )
+            elif evalCond(c) == False:
+                return expr2polyrep( getArg(e,3) )
+            else:
+                return { e:1 }
+        else:
+            print 'unable to convert expr {0} to polyrep form'.format(e.toxml())
+            assert False,'ERROR: Unable to convert expression to linear form'
+    def freevar(p, dstate, cstate):
+        varList = p.keys()
+        for v in varList:
+            if (isinstance(v,str) or isinstance(v,unicode)) and v not in cstate and v not in dstate:
+                return v
+        return None
+    def dervar(varList, dstate, cstate):
+        for v in varList:
+            if isinstance(v,tuple) and v[0] in cstate:
+                return v
+        return None
+    def moveDerLeft(p, q):
+        p = polyrepBOp('-',p,q)
+        q.clear()
+        q[None] = 0
+        # is there a derivative in p ?
+        for i in p.keys():
+            if p[i] == 0:
+                p.pop(i)
+        x = freevar(p, dstate, cstate)
+        if x != None:
+            substitution = polyrepsolve(p, q, x)
+            return (substitution, None, None)
+        x = dervar(p.keys(), dstate, cstate)
+        if x != None:
+            ode = polyrepsolve(p, q, x)
+            return (None, ode, None)
+        return (None,None,(p,q))
+    def polyrepsolve(p,q,x):
+        c = p.pop(x)
+        q = polyrepBOp('-',q,p)
+        lhs = { None:c} 
+        q = polyrepBOp('/',q,lhs)
+        lhs.clear()
+        lhs[x] = 1
+        return (lhs,q)
+    def polyrepapplySub(p, subL):
+        for (prepv,val) in subL:
+            v = prepv.keys()[0]
+            if p.has_key(v):
+                c = p.pop(v)
+                q = val.copy()
+                q = polyrepBOp('*',{None:c},q)
+                p = polyrepBOp('+',p,q)
+        return p
+    subL, odeL, othersL = [],[],[]
+    for e in eL:
+        lhs = getArg(e, 1)
+        rhs = getArg(e, 2)
+        print 'debuggin printing ......................................'
+        print expr2sal(lhs), '=', expr2sal(rhs)
+        p = expr2polyrep(lhs)
+        q = expr2polyrep(rhs)
+        print p, '=', q
+        print 'debuggin printing ......................................'
+        p = polyrepapplySub(p, subL)
+        q = polyrepapplySub(q, subL)
+        (sub,ode,others) = moveDerLeft(p,q)
+        if sub != None:
+            subL.append(sub)
+        if ode != None:
+            odeL.append(ode)
+        if others != None:
+            othersL.append(others)
+    # now I have subL, odeL, othersL
+    # I dont have to apply later found subs to initially found odes becos that is impossible
+    odeL = polyrep2xmlL(odeL)
+    othersL = polyrep2xmlL(othersL)
+    return (odeL, othersL)
+
 def classifyEqns(eqns, cstate, dstate):
     "partition eqns into 2 sets: dx/dt=f(x) and x'=f(x)"
     def isDisc(e):
@@ -211,6 +420,33 @@ def classifyEqns(eqns, cstate, dstate):
         else:
             others.append(e)
     return (d,c,others)
+
+def classifyEqnsNEW(eqns, cstate, dstate):
+    "partition eqns into 2 sets: dx/dt=f(x) and x'=f(x)"
+    def isDisc(e):
+        lhs = getArg(e,1)
+        return lhs.tagName == 'identifier' and valueOf(lhs).strip() in dstate
+    def isInit(e):
+        lhs = getArg(e,1)
+        rhs = getArg(e,2)
+        if lhs.tagName == 'initidentifier':
+            return True
+        elif rhs.tagName == 'initidentifier':
+            e.appendChild(lhs)
+            return True
+        return False
+    (d,c,others,init) = ( [], [], [], {})
+    for e in eqns:
+        if isCont(e):
+            c.append(e)
+        elif isDisc(e):
+            d.append(e)
+        elif isInit(e):
+            init[valueOf(getArg(e,1)).strip()] = getArg(e,2)
+        else:
+            c.append(e)
+    (c, others) = preprocessEqnNEW(c, cstate, dstate)
+    return (d,c,others,init)
 
 def findState(Eqn, cstate, dstate, var_details):
     "return (bools, reals, integers) from the give equations"
@@ -317,7 +553,10 @@ def expr2sal(node, flag=True):
         print >> sys.stderr, 'MISSING CODE: {0}'.format(node.toprettyxml())
     return ""
 
-def getInitialValue(vmap, var):
+def getInitialValue(vmap, var, iEqns):
+    if iEqns.has_key(var):
+        node = iEqns[var]
+        return expr2sal(node,flag=False)
     if not vmap.has_key(var):
         return None
     node = vmap[var]	# node is from Modelica XML dom
@@ -333,7 +572,7 @@ def getInitialValue(vmap, var):
     return ans
 
 # need to handle INITIAL properly
-def createControl(state, deqns, guard):
+def createControl(state, deqns, guard, iEqns = {}):
     "print the control HSAL module"
     def extractInitE(eqn):
         var = getArg(eqn,1)
@@ -370,7 +609,7 @@ def createControl(state, deqns, guard):
             rhs = expr2sal(init, flag = False)
             ans += "{2}\n\t {0} = {1}".format(lhs,rhs,sep)
         else:  # get initialization from vmap[var]
-            initval = getInitialValue(vmap,lhs)
+            initval = getInitialValue(vmap,lhs,iEqns)
             if initval != None:
                 sep = ";" if not(first) else "\n  INITIALIZATION"
                 first = False if first else first
@@ -410,6 +649,12 @@ def simplifyITEeq(e1, e2, var=None):
     def mkUOp(op,v1):
         op = helper_create_tag_val('UNARY_OPERATOR',op)
         return helper_create_app('UAPP',[op,v1.cloneNode(True)])
+    def xml2vars(v):
+        ans = set()
+        ids = v.getElementsByTagName('identifier')
+        for i in ids:
+            ans.add( valueOf(i).strip() )
+        return ans
     def solve(v1, v2, var):
         if isVar(v1,var):
             return v2.cloneNode(True)
@@ -433,10 +678,18 @@ def simplifyITEeq(e1, e2, var=None):
         print 'Unable to solve equation'
         assert False, 'Expr is {0}'.format(daexmlPP.ppExpr(v1))
     assert len(e1) > 0, 'Error: expecting nonempty list'
-    (c0,d0,v0) = e1[0]
-    if var == None and v0.tagName == 'identifier':
-        var = valueOf(v0).strip()
-    assert var != None, 'Error: Cant handle arbitrary equations'
+    if var == None:
+        allX = xml2vars(e1[0][2])
+        for (c,d,v) in e1[1:]:
+            vX = xml2vars(v)
+            allX.intersection_update(vX)
+            if len(allX) == 0:
+                print 'Failed to find variable to solve'
+                return None
+        var = allX.pop()
+    # assert var != None, 'Error: Cant handle arbitrary equations'
+    if var == None:
+        return None
     ans = []
     for (c0i,d0i,v0i) in e1:
         for (c1i,d1i,v1i) in e2:
@@ -449,6 +702,37 @@ def simplifyITEeq(e1, e2, var=None):
     print >> sys.stderr, 'SimplifyITEeq input has {0} = {1} cases'.format(len(e1),len(e2))
     print >> sys.stderr, 'SimplifyITEeq output has {0} cases'.format(len(ans))
     return (var, ans)
+
+def others2salmonitorNew(oeqns, bools, ints, reals):
+    def xml2vars(v):
+        ans = set()
+        ids = v.getElementsByTagName('identifier')
+        for i in ids:
+            ans.add( valueOf(i).strip() )
+        return ans
+    if len(oeqns) == 0:
+        return None
+    ans = "\n monitor: MODULE = \n BEGIN"
+    first = True
+    guard = ""
+    variables = set()
+    for e in oeqns:
+        lhs = getArg(e,1) 
+        rhs = getArg(e,2) 
+        sep = " AND" if not first else ""
+        first = False
+        guard += "{2}\n   {0} = {1}".format(expr2sal(lhs,flag=True),expr2sal(rhs,flag=True),sep)
+        variables = variables.union( xml2vars( lhs ))	# a set
+        variables = variables.union( xml2vars( rhs ))	# a set
+    for v in variables:
+        assert v in reals or v in bools or v in ints
+        tval = 'REAL' if v in reals else ('BOOLEAN' if v in bools else 'NATURAL')
+        ans += '\n  INPUT {0}: {1}'.format(v, tval)
+    ans += '\n  TRANSITION\n  ['
+    ans += '\n  {0} --> '.format(guard)
+    ans += '\n  ]'
+    ans += "\n END;\n"
+    return ans
 
 def others2salmonitor(varvall, bools, ints, reals):
     "varvall is a list of (var,ans) as above; output it as sal definition"
@@ -554,7 +838,7 @@ def toSal(pn, flag, primeflag = False):
             ans += 'NOT(' + expr2sal(i, flag = primeflag) + ')'
     return ans
 
-def createPlant(state, ceqns, oeqns):
+def createPlant(state, ceqns, oeqns, iEqns = {}):
     "print the PLANT HSAL module"
     def occurs(var, node):
         ids = node.getElementsByTagName('identifier')
@@ -675,10 +959,11 @@ def createPlant(state, ceqns, oeqns):
             for (p,n,v) in val:
                 tmp.append( (p,n,[(var,v)]) )
             ans.append(tmp)
-        if len(ans) <= 1:
-            return ans
-        else:
-            return myproductAux( ans[1:], ans[0] )
+        assert len(ans) >= 1
+        # if len(ans) <= 1:
+            # return ans
+        # else:
+        return myproductAux( ans[1:], ans[0] )
     def myproductAux( pnvvlll, pnvvll ):
         if len(pnvvlll) == 0:
             return pnvvll
@@ -708,7 +993,7 @@ def createPlant(state, ceqns, oeqns):
     ans  += "\n  INITIALIZATION"
     first = True
     for i in reals:
-        initval = getInitialValue(vmap,i)
+        initval = getInitialValue(vmap,i,iEqns)
         if initval != None:
             sep = ";" if not(first) else ""
             first = False if first else first
@@ -739,10 +1024,14 @@ def createPlant(state, ceqns, oeqns):
         # print 'e1 = {0}'.format(e1)
         # print 'e2 = {0}'.format(e2)
     others = [ simplifyITEeq(e1,e2) for (e1,e2) in others ]
+    others[:] = filter(None, others)
     # now I have the substitution in others; apply it to ode
     # ans += others2saldef(others)
+    print '#####-----****************ode', ode
     newode = [(var,applySubstitution(val, others)) for (var,val) in ode]
+    print '#####-----****************newode', newode
     finalode = myproduct(newode)
+    print '#####-----****************finalode', finalode
     ans  += "\n  TRANSITION\n  ["
     first = True
     for (p,n,vvl) in finalode:
@@ -756,7 +1045,8 @@ def createPlant(state, ceqns, oeqns):
             ans += "{2}\n\t {0} = {1}".format(var+"dot'",expr2sal(val,flag=False),sep)
     ans += "\n  ]"
     ans += "\n END;\n"
-    monitor = others2salmonitor(others, bools, ints, reals)
+    #monitor = others2salmonitor(others, bools, ints, reals)
+    monitor = others2salmonitorNew(oeqns, bools, ints, reals)
     if monitor != None:
         ans += monitor
         ans += "\n\n system: MODULE = control || plant || monitor ;"
@@ -834,11 +1124,15 @@ def convert2hsal(dom1, dom2, dom3 = None):
     print >> sys.stderr, 'Found {0} inputs, {1} non-states'.format(len(inputs),len(nonstates))
     print >> sys.stderr, 'State: {0}'.format(state)
     # find and classify all equations in Eqn -- this messes up contEqns (essentially deletes them from Eqn)
-    (discEqns,contEqns,oEqns) = classifyEqns(eqns,cstate,dstate)
+    (discEqns,contEqns,oEqns,iEqns) = classifyEqnsNEW(eqns,cstate,dstate)
     print >> sys.stderr, 'Classified eqns into {0} discrete, {1} cont, {2} others'.format(len(discEqns),len(contEqns),len(oEqns))
     print >> sys.stderr, 'discrete eqns: ', printE(discEqns)
     print >> sys.stderr, 'cont eqns: ', printE(contEqns)
     print >> sys.stderr, 'other eqns: ', printE(oEqns)
+    print >> sys.stderr, 'init eqns: ',
+    for (i,j) in iEqns.items():
+        print >> sys.stderr, '{0} = {1}'.format(i,daexmlPP.ppExpr(j)),
+    print >> sys.stderr, ''
     # preds = getPredsInConds(contEqns)
     # Note: dom1 is MESSED UP; contEqns have been DELETED; so we can't get eqns from dom1.
     eqns = list(discEqns)
@@ -848,8 +1142,11 @@ def convert2hsal(dom1, dom2, dom3 = None):
     print >> sys.stderr, 'Found {0} preds'.format(len(preds))
     print >> sys.stderr, 'Preds: {0}'.format(preds)
     ans0 = createEventsFromPreds(preds, reals, inputs)	# Should events on inputs be included?
-    ans1 = createControl(state, discEqns, ans0)
-    ans2 = createPlant(state, contEqns, oEqns)
+    print >> sys.stderr, 'created events from preds'
+    ans1 = createControl(state, discEqns, ans0, iEqns)
+    print >> sys.stderr, 'created control'
+    ans2 = createPlant(state, contEqns, oEqns, iEqns)
+    print >> sys.stderr, 'created plant'
     # replace varname.var -> varname_var
     ans = ans1 + ans2
     propStr = createProperty(dom3)

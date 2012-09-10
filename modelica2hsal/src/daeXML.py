@@ -90,12 +90,12 @@ def simplify1(node):
             elif opstr == '==':
                 arg1 = getArg(i, 2)
                 arg2 = getArg(i, 3)
-                if arg1.localName != 'identifier' or arg2.localName != 'identifier':
+                if arg1.localName not in ['identifier','string'] or arg2.localName not in ['identifier','string']:
                     continue
                 v1 = valueOf(arg1).strip()
                 v2 = valueOf(arg2).strip()
                 if v1 in Shapes or v2 in Shapes:
-                    ans = helper_create_tag_val('identifier', str(v1 == v2))
+                    ans = helper_create_tag_val('string', str(v1 == v2))
                     #ans = helper_create_tag_val('identifier', 'True')
                     node = replace(i, ans, node)
                     done = False
@@ -325,7 +325,8 @@ def simplify0ITE(node):
     sas = node.getElementsByTagName('IF')
     for parentnode in sas:
         changedchild = getArg(parentnode, 1)
-        if changedchild.tagName == 'identifier':
+        # if changedchild.tagName == 'identifier':
+        if changedchild.tagName == 'string':
             if valueOf(changedchild).strip() in TRUE: 
                 ans = getArg(parentnode, 2)
                 node = replace(parentnode, ans, node)
@@ -378,14 +379,15 @@ def simplify0bool(node):
         if not(func == 'not'):
             continue
         arg1 = getArg(parentnode, 2)
-        v1 = valueOf(arg1).strip() if arg1.tagName == 'identifier' else ''
+        # v1 = valueOf(arg1).strip() if arg1.tagName == 'identifier' else ''
+        v1 = valueOf(arg1).strip() if arg1.tagName == 'string' else ''
         if v1 in FALSE:
-            ans = helper_create_tag_val('identifier', 'true')
+            ans = helper_create_tag_val('string', 'true')
             node = replace(parentnode, ans, node)
             done = False
             print 'b',
         elif v1 in TRUE:
-            ans = helper_create_tag_val('identifier', 'false')
+            ans = helper_create_tag_val('string', 'false')
             node = replace(parentnode, ans, node)
             done = False
             print 'b',
@@ -397,8 +399,8 @@ def simplify0bool(node):
             print 'Critical Overlap Case', parentnode.toxml()
             sys.exit(1)
         func = valueOf(getArg(parentnode, 1)).strip()
-        v1 = valueOf(arg1).strip() if arg1.tagName == 'identifier' else ''
-        v2 = valueOf(arg2).strip() if arg2.tagName == 'identifier' else ''
+        v1 = valueOf(arg1).strip() if arg1.tagName == 'string' else ''
+        v2 = valueOf(arg2).strip() if arg2.tagName == 'string' else ''
         if func == 'and':
             if v1 in FALSE or v2 in TRUE:
                 node = replace(parentnode, arg1, node)
@@ -462,7 +464,7 @@ def my_equal(node1, node2):
         return False
     if node1.tagName == 'number':
         return abs(float(valueOf(node1)) - float(valueOf(node2))) < 1e-6
-    if node1.tagName == 'identifier':
+    if node1.tagName == 'identifier' or node1.tagName == 'string':
         return valueOf(node1).strip() == valueOf(node2).strip()
     if node1.tagName.find('OPERATO') != -1:
         return valueOf(node1).strip() == valueOf(node2).strip()
@@ -651,7 +653,8 @@ def simplify0bapp(node):
             if isinstance(val, float):
                 tag = 'number'
             elif isinstance(val, str): # true, false
-                tag = 'identifier'
+                # tag = 'identifier'
+                tag = 'string'
             else:
                 tag = None
             if tag != None:
@@ -714,7 +717,7 @@ def getMapping(varvals,root, cstate, dstate):
             continue
         identifier = lhs if lhs != None else rhs
         expr = arg2 if lhs != None else arg1
-        if expr.localName == 'number' or expr.localName == 'identifier' or expr.localName == 'set':
+        if expr.localName == 'number' or expr.localName == 'identifier' or expr.localName == 'set' or expr.localName == 'string':
             print '.',
             mapping = extendMapping(mapping, identifier, expr)
             root.removeChild( i )
@@ -830,7 +833,7 @@ def equation2list(eqn):
     # print 'Input eqn is {0}'.format(daexmlPP.ppEqn(eqn))
     ans1 = expr2list(arg1, True, {})
     ans2 = expr2list(arg2, False, ans1)
-    #print 'Output eqn is {0} = 0'.format(daexmlPP.ppExpr(list2equation(ans2,True)))
+    # print 'Output eqn is {0} = 0'.format(daexmlPP.ppExpr(list2equation(ans2,True)))
     return ans2
 
 def list2equation(myeqn, flag):
@@ -964,7 +967,7 @@ def SimplifyEqnsPhase4(dom, cstate, dstate):
             variable = None
             for (k,v) in myeqn.items():
                 if k != 'pos' and k != 'neg' and k != 'number':
-                    if not occurs(k, myeqn) and k not in cstate and k not in dstate:
+                    if not occurs(k, myeqn) and k not in cstate and k not in dstate and k not in TRUE and k not in FALSE:
                         variable = k
                         freq = v
                         break
@@ -975,6 +978,8 @@ def SimplifyEqnsPhase4(dom, cstate, dstate):
                 mapping[variable] = value
                 print '{0} --> {1}'.format(variable,daexmlPP.ppExpr(value))
                 break
+            else:
+                print 'Equation {0} failed to eliminate'.format(myeqn)
         if len(mapping) > 0:
             neweqns = substitute(neweqns, mapping)
             done = False
@@ -1103,7 +1108,7 @@ def SimplifyEqnsPPDaeXML(dom, cstate, dstate, filepointer=sys.stdout):
     '''perform substitutions in the dom; output new dom'''
     knownVars = dom.getElementsByTagName('knownVariables')[0]
     eqns = dom.getElementsByTagName('equations')[0]
-    alleqns = eqns.getElementsByTagName('equation')
+    # alleqns = eqns.getElementsByTagName('equation')
     # substitute values for vars in alleqns
     # find all 'identifier nodes' in eqns...replace it by
     # expression
@@ -1194,12 +1199,21 @@ def simplifydaexml(dom1, filename):
     tmp = dom.getElementsByTagName('discreteState')[0]
     tmp2 = tmp.getElementsByTagName('identifier')
     dstate = [ valueOf(i).strip() for i in tmp2 ]
+    # additional code for handling initializations AS equations
+    inits = dom.getElementsByTagName('initializations')[0]
+    initeqns = inits.getElementsByTagName('equation')
+    eqns = dom.getElementsByTagName('equations')[0]
+    for i in initeqns:
+        eqns.appendChild(i)
+    # end of additional code
     dom = SimplifyEqnsPPDaeXML(dom, cstate, dstate)
     print '-------------Simplification Phase 1 over...printing equations...'
     daexmlPP.source_textPP(dom)
     print '-----------------------------------------------------------------'
     # dom = SimplifyEqnsPhase2(dom)
     # dom = SimplifyEqnsPhase3(dom)
+    print 'cstate = {0}'.format(cstate)
+    print 'dstate = {0}'.format(dstate)
     dom = SimplifyEqnsPhase4(dom, cstate, dstate)
     print '-----------------------------------------------------------------'
     print 'Simplification Phase 2 over...printing equations...'

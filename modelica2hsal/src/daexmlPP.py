@@ -52,6 +52,8 @@ def ppOp(node):
 def ppExpr(node):
     if node.tagName == 'identifier':
         return valueOf(node).strip()
+    elif node.tagName == 'initidentifier':
+        return valueOf(node).strip()+'__INIT'
     elif node.tagName == 'string':
         return valueOf(node).strip()
     elif node.tagName == 'number':
