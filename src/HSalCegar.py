@@ -1,83 +1,26 @@
-# Generate relational abstraction of hybrid systems with
-# linear dynamics in each mode
-
-# Input:  Hybrid Sal model in XML syntax
-# Output: Hybrid Sal model in XML syntax
-# Output will have relational abstractions 
-# of all continuous modes
-
-# Caveat: FLOW should define ALL continuous variables.
-
-# Algorithm for constructing relational abstraction:
-# Partition variables into x;y s.t.
-# d/dt (x;y) = (A B; 0 0) (x;y) + (b1;b2)
-# Suppose c' is a left eigenvector of A with eigenvalue l
-# Pick d' s.t. l d' = c' B
-# Then, d/dt(c'x+d'y)=c'(Ax+By+b1)+d'b2 = l c'x + l d'y + c'b1 + d'b2
-# Let p := (c'x+d'y+ (c'b1+d'b2)/l) THEN dp/dt = l p
-# If we fail to find eigenvector with real eigenvalues, 
-# we need BOX invs and other things -- for later...
-
-# We use eigenvalue and eigenvector computation from linearAlgebra.py
-# linearAlgebra.py uses an iteration method for computing eigenvectors
-
-# For imaginary eigenvalues:
-# Suppose u' A1 = a u' + b v' and v' A1 = -b u' + a v'
-# We find unknowns w1 and w2 and constant c1 and c2 s.t.
-# if p1 = (u' x + w1' y + c1) and p2 = ( v' x + w2' y + c2) then
-# d/dt p1 = a p1 + b p2 and d/dt p2 = -b p1 + a p2...
-# for this to happen, the unknowns should satisfy the following:
-# u' b1 + w1' b2 = a c1 + b c2  (Matching CONST COEFF)
-# v' b1 + w2' b2 = -b c1 + a c2  (Matching CONST COEFF)
-# u' A2 = a w1' + b w2'  (Matching y coeff)
-# v' A2 = -b w1' + a w2'  (Matching y coeff)
-# Solving this we get w1,w2, then we get c1,c2 and hence p1,p2
-# If p1,p2 have the above relation, then we get the following relational abstraction:
-# 3 cases: a >0, a = 0, a < 0
-# if a > 0:
-# p1 >= 0 and p2 >= 0 => p1' >= p1 and p2' >= 0 AND
-# p1 <= 0 and p2 <= 0 => p1' <= p1 and p2' <= 0 AND
-# p1 >= 0 and p2 <= 0 => p2' <= p2 and p1' >= 0 AND
-# p1 <= 0 and p2 >= 0 => p2' >= p2 and p1' >= 0 
-
-# Aug 26, 2011: Adding support for INVARIANT and INITFORMULA
-# INITFORMULA \phi will be replaced by INITIALIZATION [ \phi --> ]
-# INVARIANT \phi will be deleted and each guarded command with
-# get \phi AND \phi' in its guard.
-# Aug 29, 2011: Flow need not define all variables. Undefined variables are
-# treated as unchanging...
+# I did sudo aptitude install python-glpk
+# import sys
+# sys.path.append('/usr/lib/python-support/python-glpk/python2.6')
+# import glpk
+# But it is not so user-friendly; so I tried to install pyglpk, by first
+# doing sudo aptitude install libc6-dev-i386
+# (becos when I run make on softwares/pyglpk-0.3/ I got an error), but didn't work out.
+# Now, I will just use the raw python-glpk connection; and not pyglpk
 
 import xml.dom.minidom
 import sys	# for sys.argv[0]
-import math
-import linearAlgebra
 import HSalExtractRelAbs
 import polyrep # internal representation for expressions
 import HSalXMLPP
 import os.path
-import inspect
-import shutil
-import subprocess
 import HSalPreProcess
 import HSalPreProcess2
 from xmlHelpers import *
 import HSalRelAbsCons
 #import polyrep2XML
 
-equal = linearAlgebra.equal
-isZero = linearAlgebra.isZero
-exprs2poly = polyrep.exprs2poly
 simpleDefinitionLhsVar = HSalExtractRelAbs.SimpleDefinitionLhsVar
 isCont = HSalExtractRelAbs.isCont
-#createNodeAnd = polyrep2XML.createNodeAnd
-#createNodeInfixApp = polyrep2XML.createNodeInfixApp
-#createNodeTagChild = polyrep2XML.createNodeTagChild
-#createNodeTagChild2 = polyrep2XML.createNodeTagChild2
-#createNodeTime = polyrep2XML.createNodeTime
-#createNodePnew = polyrep2XML.createNodePnew
-#createNodePold = polyrep2XML.createNodePold
-#dictKey = polyrep2XML.dictKey
-
 
 # def mystr(k):
     # """return floating value k as a string; str(k) uses e notation
@@ -86,6 +29,14 @@ isCont = HSalExtractRelAbs.isCont
 # ********************************************************************
 
 # class - Cont. Dyn. Sys;
+# types of fields are as follows:
+# safe, init, modeinv: DNF = objects of class DNF = list of REGIONS
+# Region = list of atoms
+# atom = Atom class = {'p':poly,'op':op} where poly = list of monomials
+# monomial = [c {'x':1,'y':2}] denotes c*x*y^2
+# eigen = list of (eigenvector,eigenvalue) pairs where eigenvector = poly
+# multi = list of (poly, rate) pairs
+# quad = list of (poly1, poly2, a, b) tuples s.t. poly1dot = a*poly1-b*poly2; poly2dot=b*poly1+a*poly2
 class CDS:
     def __init__(self, x):
         self.x = x
@@ -108,11 +59,11 @@ class CDS:
     def toStr(self):
          out = 'CDS:\n x = {0},'.format(self.x)
          out += '\n init = '
-         for i in self.init:
-             out += '{0},'.format(i.toxml())
+         out += '{0},'.format( self.init.tostr() ) 
          out += '\n A = {0},\n b = {1},'.format(self.A, self.b, self.safe)
-         out += '\n safe = {0},'.format(self.safe.toxml())
-         out += '\n modeinv = {0},'.format(self.modeinv.toxml())
+         # out += '\n safe = {0},'.format(self.safe.toxml())
+         out += '\n safe = {0},'.format( self.safe.tostr() )
+         out += '\n modeinv = {0},'.format( self.modeinv.tostr() )
          out += '\n inputs  = {0},'.format(self.inputs)
          out += '\n\n eigen = {0},'.format(self.eigen)
          out += '\n multi = {0},'.format(self.multi)
@@ -120,258 +71,184 @@ class CDS:
          return out
     # d = dict from 'A1', 'A2', 'b1', 'b2', 'x', 'y' to values
 
-def simpleDefinitionRhsExpr(defn):
-    "Return the RHS expression in definition def"
-    rhs = defn.getElementsByTagName("RHSEXPRESSION")
-    if rhs == None:
-        return None
+class Atom:
+    def __init__(self,p,op):
+        self.p = p
+        self.op = op
+    op_neg = {'<':'>=','<=':'>','>':'<=','>=':'<','=':'!=','!=':'='}
+    def neg(self):
+        '''negate atom; for e.g. p > 0 to p <= 0'''
+        self.op = op_neg[self.op]
+    def tostr(self):
+        '''return string representing p > 0'''
+        return '{0} {1} 0'.format( poly2str( self.p), self.op )
+
+class DNF:
+    class Region:
+        def __init__(self,r=[]):
+            self.r = r
+        def get(self):
+            return self.r
+        @staticmethod
+        def true():
+            return DNF.Region([])
+        def and_atom(self, atom ):
+            self.r.append( atom )
+        def and_region(self, r2):
+            self.r.extend(r2.r)
+        def tostr(self):
+            ans = ''
+            first = True
+            for i in self.r:
+                sep = ' AND' if not(first) else ''
+                first = False
+                ans += '{0} {1}'.format(sep, i.tostr())
+            return ans
+    def __init__(self, fmla=False):
+        self.fmla = fmla if fmla else []
+    @staticmethod
+    def true():
+        return DNF([ DNF.Region.true() ])
+    @staticmethod
+    def false():
+        return DNF()
+    @staticmethod
+    def atom2region(atom):
+        return DNF.Region([ atom ])
+    @staticmethod
+    def atom2dnf(atom):
+        return DNF( [ DNF.atom2region(atom) ] )
+    @staticmethod
+    def region2dnf(region):
+        return DNF( [ region ] )
+    def free(self):
+        del self.fmla 
+    def or_atom(self, atom):
+        self.fmla.append( DNF.atom2region(atom) )
+    def or_region(self, region):
+        self.fmla.append( region )
+    def and_atom(self, atom):
+        for f in self.fmla:
+            f.and_atom( atom )
+    def neg_conj(f):
+        ans = DNF.false()
+        for i in f:
+            i.neg()
+            ans.or_atom(i)
+        return ans
+    def neg(self):
+        '''return not(f)'''
+        def neg_conj(f):
+            ans = DNF.false()
+            for i in f:
+                i.neg()
+                ans.or_atom(i)
+            return ans
+        ans = DNF.true()
+        for f in self.fmla:
+            notf = neg_conj(f)
+            ans.and_dnf( notf )
+            notf.free()
+        del self.fmla
+        self.fmla = ans
+    @staticmethod
+    def copy_region(region):
+        return DNF.Region( list(region.get()) )
+    def and_dnf(self, dnf2):
+        "self := self and dnf2"
+        f1,f2 = self.fmla, dnf2.fmla
+        ans = DNF.false()
+        for i in f1:
+            for j in f2:
+                # ij = list(i)
+                ij = DNF.copy_region(i)
+                # ij.extend(j)
+                ij.and_region(j)
+                ans.or_region(ij)
+        del self.fmla
+        self.fmla = ans.fmla
+    def or_dnf(self, dnf2):
+        self.fmla.extend(dnf2.fmla)
+    def tostr(self):
+        if self.fmla == []:
+            return 'FALSE'
+        elif self.fmla == [[]]:
+            return 'TRUE'
+        ans = ''
+        first = True
+        for i in self.fmla:
+            sep = ' OR' if not(first) else ''
+            first = False
+            ans += '{0} {1}'.format(sep, i.tostr())
+        return ans
+
+def applyBOp(op, f1, f2):
+    '''return f1 op f2, where op=OR or op=AND'''
+    assert op in ['OR','AND']
+    if op == 'OR':
+        f1.or_dnf(f2)
+        return f1
     else:
-        return exprs2poly(rhs[0].childNodes)
-    
-def flow2var(flow):
-    "extract variables from the flow: LHS and RHS"
-    i = 0
-    varlist = dict()
-    # get variables from LHS
-    while i < len(flow):
-        varnamedot = flow[i]
-        varlist[varnamedot[0:-3]] = i/2
-        i += 2
-    # now get variables from RHS too
-    i = 1
-    j = len(varlist)
-    while i < len(flow):
-        rhsExpr = flow[i]
-        for [c,pp] in rhsExpr:
-            for var in pp.keys():
-                if not(var in varlist): 
-                    varlist[var] = j
-                    j += 1
-        i += 2
-    return varlist
+        f1.and_dnf(f2)
+        return f1
 
-def flow2Aibi(flowi, varlist):
-    "flowi is an expression polynomial"
-    n = len(varlist)
-    Ai = [ 0 for i in range(n) ]
-    bi = 0
-    for [c,pp] in flowi:
-        degree = sum(pp.values())
-        if degree > 1:
-            print "ERROR: Nonlinear dynamics found; can't handle"
-            return None
-        elif degree == 1:
-            var = pp.keys()[0]
-            index = varlist[var]
-            Ai[index] = c
+def applyArithOp(op, e1, e2):
+    '''return e1 op e2'''
+    e = polyrep.polySub(e1,e2)
+    return DNF.atom2dnf( Atom(p=e, op=op) )
+
+def xml_fmla_2_dnf_fmla(fmla):
+    assert fmla != None and (isinstance(fmla,list) or fmla.nodeType == fmla.ELEMENT_NODE), 'Error: expecting ELEMENT node'
+    if isinstance(fmla, list):
+        polyllL = [ xml_fmla_2_dnf_fmla(i) for i in fmla ]
+        ans = DNF.true()
+        for i in polyllL:
+            ans = applyBOp('AND', ans, i)
+        return ans
+    elif fmla.localName == 'NAMEEXPR':
+        bcst = HSalXMLPP.valueOf(fmla).strip()
+        assert bcst in ['TRUE','FALSE'], 'Error: Boolean constant is not TRUE/FALSE?'
+        return DNF.false() if bcst == "FALSE" else DNF.true()
+    elif fmla.localName == 'APPLICATION':
+        if fmla.getAttribute('INFIX') == 'YES':
+            op = HSalXMLPP.valueOf( HSalXMLPP.getArg(fmla,1) ).strip()
+            if op in ['AND','OR']: 
+                fmla1 = xml_fmla_2_dnf_fmla( HSalXMLPP.appArg(fmla,1) )
+                fmla2 = xml_fmla_2_dnf_fmla( HSalXMLPP.appArg(fmla,2) )
+                return applyBOp(op, fmla1, fmla2)
+            elif op in ['<','<=','>','>=','=']:
+                fmla1 = polyrep.expr2poly ( HSalXMLPP.appArg(fmla,1), ignoreNext = True )
+                fmla2 = polyrep.expr2poly ( HSalXMLPP.appArg(fmla,2), ignoreNext = True )
+                return applyArithOp(op, fmla1, fmla2)
+            else: 
+                assert False, 'Error: Unknown op {0} in formula'.format(op)
         else:
-            bi = c
-    return [Ai,bi]
-
-def ifGoodCreateNodes(soln, vectors, lamb, m, l):
-    """soln is (m+l+1) vector, vectors has l (nx1) vectors, lamb is a scalar"""
-    assert l == len(vectors)
-    nzCount = 0
-    for i in range(l):
-        if not(equal(soln[m+i],0)):
-            nzCount += 1
-            if nzCount > 1:
-                break
-    if nzCount <= 1:
-        return (None, None)
-    wec = [0 for i in range(m)]
-    for i in range(m):
-        wec[i] = soln[i]
-    n = len(vectors[0])
-    vec = [0 for i in range(n)]
-    for i in range(n):
-        for j in range(l):
-            vec[i] += soln[m+j]*vectors[j][i]
-    return (vec,wec)
-
-def absGuardedCommandAux(varlist,A,b,inputs):
-    """varlist is a dict from var to indices
-    A,b are the A,b matrix defined wrt these indices
-    inputs is a list of string names of all input variables
-    Return an abstract GC"""
-
-    def multirateList(y, b2, inputs):
-        """Return list of [y[i]',y[i],b1[i]],
-           where y,y' are XML nodes, b1[i] is a float"""
-        multirateL = list()
-        yindices = y.values()
-        yindices.sort()
-        for i,v in enumerate(yindices):
-            varName = dictKey(y, v)
-            if varName in inputs:
-                continue
-            multirateL.append((varName, b2[i]))
-        return multirateL
-
-    [x,y,A1,A2,b1,b2] = HSalRelAbsCons.partition(varlist,A,b)
-    # [x,y,A1,A2,b1,b2] s.t. (x;y) = (A1 A2; 0 0) (x;y) + (b1;b2)"
-    n = len(x)
-    m = len(y)
-    if n == 0:
-        print "dx/dt is a constant for all x"
-    multirateL = multirateList(y, b2, inputs) 
-    # guardAbs1 = multirateAbs(y, b2)
-    A1trans = linearAlgebra.transpose(A1)
-    eigen = linearAlgebra.eigen(A1trans)
-    # CHECK above, tranpose added, [ l [ vectors ] l [ vectors ] ]
-    # print "The LEFT eigenvectors computed are:"
-    # print eigen
-    num = len(eigen)
-    i = 0
-    A2trans = linearAlgebra.transpose(A2)
-    nodeL = list()
-    #if not(guardAbs1 == None):
-        #nodeL.append(guardAbs1)
-    while i < num:
-        vectors = eigen[i+1]
-        lambL = eigen[i]
-        i += 2
-        if vectors == None or len(vectors) == 0:
-            continue
-        if len(lambL) > 1:
-            continue
-        lamb = lambL[0]
-        # Suppose d/dt(vec.x+wec.y+b)= 0
-        # vec.(A1 x + A2 y + b1) + wec.(b2) = 0
-        # vec.A1 = lamb.vec; Suppose d/dt(vec.x+wec.y+b)=lamb(...)
-        # Then, vec.(A1 x + A2 y + b1) + wec.(b2) = lamb(...)
-        # lamb.vec.x + vec.A2.y+vec.b1 + wec.b2 = lamb(vec.x+wec.y+b)
-        # vec.A2.y = lamb.wec.y AND vec.b1 + wec.b2 = lamb(b)
-        for vec in vectors:
-            if isZero(vec):
-                continue
-            wec = linearAlgebra.multiplyAv(A2trans, vec)
-            const = linearAlgebra.dotproduct(vec,b1)
-            if equal(lamb, 0):
-                if isZero(wec):
-                    pold = createNodeCX(vec,x,False,None)
-                    pnew = createNodeCX(vec,x,True,inputs)
-                    multirateL.append([pnew,pold,const])
-                else:
-                    print "lamb==0, but no corr. invariant found"
-                    continue
-            else:
-                for j in range(len(wec)):
-                    wec[j] /= lamb
-                const += linearAlgebra.dotproduct(wec,b2)
-                const = float(const) / lamb
-                nodePnew = createNodePnew(vec,x,wec,y,const,inputs)
-                nodePold = createNodePold(vec,x,wec,y,const)
-                if not(nodePnew == None):
-                    nodeL.append(createCallToEigenInv(nodePnew,nodePold,lamb))
-            # Pick d' s.t. l d' = c' A2 or, d l = A2' c
-            # Let p := (c'x+d'y+ (c'b1+d'b2)/l) THEN dp/dt = l p
-        if len(vectors) > 1:
-            if equal(lamb, 0):	# multirate above gets all the relations...
-                continue
-            # Test if vec0'x + c1* vec1'x + ci*veci'x + w'y+c is an eigenInv
-            # (vec0'+ci*veci')(A1x+A2y+b1) + w'b2 = lamb*((ci*veci')x+w'y+c)
-            # iff (vec0'+ci*veci')(A2y+b1) + w'b2 = lamb*(w'y+c)
-            # iff (vec0'+ci*veci')A2=lamb*w' and (vec0'+ci*veci')*b1+w'b2=lamb*c
-            # iff lamb*w=(A2'vec0+ci*A2'*veci) &&(vec0'+ci*veci')*b1+w'b2=lamb*c
-            l = len(vectors)
-            # m+l+1 variables, |w|=m, |veci|=l, const c 
-            row = [ 0 for j in range(m+l+1) ]
-            for j in range(m):
-                row[j] = b2[j]
-            for j in range(l):
-                row[m+j] = linearAlgebra.dotproduct(vectors[j],b1)
-            row[m+l] = -lamb
-            AA = []
-            bb = []
-            AA.append(row)
-            bb.append( 0 )
-            for j in range(m):
-                row = [ 0 for k in range(m+l+1) ]
-                row[j] = lamb
-                for k in range(l):
-                    row[m+k] = linearAlgebra.dotproduct(A2trans[j], vectors[k])
-                AA.append(row)
-                bb.append( 0 )
-            soln = linearAlgebra.solve(AA,bb)
-            for j in range(len(soln)):
-                (vec,wec) = ifGoodCreateNodes(soln[j],vectors,lamb,m,l)
-                if vec != None:
-                    nodePnew = createNodePnew(vec,x,wec,y,soln[j][m+l],inputs)
-                    nodePold = createNodePold(vec,x,wec,y,soln[j][m+l])
-                    nodeL.append(createCallToEigenInv(nodePnew,nodePold,lamb))
-    multirateGuard = createCallToMultirateInv(multirateL)
-    if not(multirateGuard == None):
-        nodeL.append(multirateGuard)
-    i = 0
-    while i < num:
-        lamb = eigen[i]
-        vectors = eigen[i+1]
-        i += 2
-        if vectors == None or len(vectors) == 0:
-            continue
-        if not(len(lamb) == 2):
-            continue
-        a = lamb[0]
-        d = lamb[1]
-        assert len(vectors) == 2
-        u = vectors[0]
-        v = vectors[1]
-        # We know that A1'u=au-dv AND A1'v=bu+av
-        # add something to nodeL
-        # we want d/dt(u'x+w1'y+c1)= a*(u'x+w1'y+c1)-d*(v'x+w2'y+c2)
-        # we want d/dt(v'x+w2'y+c2)= d*(u'x+w1'y+c1)+a*(v'x+w2'y+c2)
-        # find w1,w2,c1,c2 s.t.
-        # u'*(A1*x+A2*y+b1)+w1'*b2 = a*(u'x+w1'y+c1)-d*(v'x+w2'y+c2)
-        # i.e., u'*(A2*y+b1)+w1'*b2 = a*(w1'y+c1)-d*(w2'y+c2)
-        # i.e., u' A2 = a*w1'-d*w2' and u'*b1+w1'*b2 = a*c1-d*c2
-        # v'*(A1*x+A2*y+b1)+w2'*b2 = d*(u'x+w1'y+c1)+a*(v'x+w2'y+c2)
-        # i.e., v'*(A2*y+b1)+w2'*b2 = d*(w1'y+c1)+a*(w2'y+c2)
-        # i.e., v' A2 = d w1' + a w2' and v'*b1+w2'*b2 = d*c1+a*c2
-        # find w1,w2 such that v' A2 = d w1' + a w2' and u' A2 = a*w1'-d*w2' 
-        # then find c1,c2 s.t v'*b1+w2'*b2 = d*c1+a*c2 and u'*b1+w1'*b2 = a*c1-d*c2
-        # w1,w2 satisfy v' A2 = d w1' + a w2' and u' A2 = a*w1'-d*w2' 
-        # w1,w2 satisfy (a*v'-d*u')*A2 = (a*a+d*d)*w2' 
-        # w1,w2 satisfy (d*v'+a*u')*A2 = (a*a+d*d)*w1' 
-        # c1,c2 satisfy v'*b1+w2'*b2 = d*c1+a*c2 and u'*b1+w1'*b2 = a*c1-d*c2
-        # c1,c2 satisfy a*(v'*b1+w2'*b2)-d*(u'*b1+w1'*b2)=(a*a+d*d)*c2
-        # c1,c2 satisfy d*(v'*b1+w2'*b2)+a*(u'*b1+w1'*b2)=(a*a+d*d)*c1
-        if isZero(u):
-            continue
-        # w1,w2 satisfy (d*v'+a*u')*A2 = (a*a+d*d)*w1' 
-        DD = a*a + d*d
-        tmp = [ (a*v[j]-d*u[j])/DD for j in range(n) ]
-        w2 = linearAlgebra.nmultiplyAv(A2trans, tmp)
-        # w1 satisfies (d*v'+a*u')*A2 = (a*a+d*d)*w1' 
-        tmp = [ (d*v[j]+a*u[j])/DD for j in range(n) ]
-        w1 = linearAlgebra.nmultiplyAv(A2trans, tmp)
-        # c2 satisfies a*(v'*b1+w2'*b2)-d*(u'*b1+w1'*b2)=(a*a+d*d)*c2
-        tmp1 = linearAlgebra.dotproduct(v,b1)
-        tmp1 += linearAlgebra.dotproduct(w2,b2)
-        tmp2 = linearAlgebra.dotproduct(u,b1)
-        tmp2 += linearAlgebra.dotproduct(w1,b2)
-        c2 = (a*tmp1 - d*tmp2)/DD 
-        # c1 satisfies d*(v'*b1+w2'*b2)+a*(u'*b1+w1'*b2)=(a*a+d*d)*c1
-        c1 = (d*tmp1 + a*tmp2)/DD
-        #ux+w1y+c1 and vx+w2y+c2 are position,velocity pair.
-        # related by quadInv(_,_)
-        nodePnew = createNodePnew(u,x,w1,y,c1,inputs)
-        nodePold = createNodePold(u,x,w1,y,c1)
-        nodeQnew = createNodePnew(v,x,w2,y,c2,inputs)
-        nodeQold = createNodePold(v,x,w2,y,c2)
-        # vec could be 0 vector and hence nodePnew could be None
-        nodeL.append(createCallToQuadInv(nodePnew,nodePold,nodeQnew,nodeQold,a,d))
-    return createNodeAnd(nodeL)
-
-# collect all x s.t. dx/dt = constant
-# replace them by their rel abs.
-# all other x's: d (x;y) = (A B; 0 0) (x;y) + (b1;b2)
-# Suppose c'A=l c' is a left eigenvector of A with eigenvalue l
-# Pick d' s.t. l d' = c' B
-# d/dt(c'x+d'y)=c'(Ax+By+b1)+d'b2 = l c'x + l d'y + c'b1 + d'b2
-# Let p := (c'x+d'y+ (c'b1+d'b2)/l) THEN dp/dt = l p
-
-# If we fail to find eigen, we need BOX invs -- for later...
+            op = HSalXMLPP.valueOf( HSalXMLPP.getArg(fmla,1) ).strip()
+            assert op in ['NOT'], 'Error: Unhandled bool connective {0}'.format(op)
+            fmla1 = xml_fmla_2_dnf_fmla( HSalXMLPP.appArg(fmla,1) )
+            fmla1.neg()
+            return fmla1 
+    else: 
+        assert False, 'Error: Unknown tag {0} in formula'.format(fmla.localName)
+ 
+def poly2str(poly):
+    '''return string representing the polynomial'''
+    def mono2str(mono):
+        '''convert monomial to its string representation'''
+        c = mono[0] if len(mono) > 0 else 0
+        mu = mono[1] if len(mono) > 1 else {}
+        ans = ''
+        for (k,v) in mu.items():
+            ans += '{0}'.format(k) if v==1 else '{0}^{1}'.format(k,v)
+        ans = '{0}{1}'.format(c,ans) if c != 1 else ans
+        return ans
+    ans = ''
+    first = True
+    for i in poly:
+        sep = ' +' if not(first) else ''
+        first = False
+        ans += '{0} {1}'.format(sep, mono2str(i))
+    return ans
 
 def handleGuardedCommand(gc):
     guard = gc.getElementsByTagName("GUARD")[0]
@@ -419,6 +296,47 @@ def init2Formula( xmlnode ):
 
 def handleBasemodule(basemod):
     """populate the data-structure"""
+    def equal(c,d,tolerance=1e-4):
+        return(abs(c-d) < tolerance)
+    def dictKey(varlist, value):
+        "Return key given the value"
+        for var,index in varlist.iteritems():
+            if index == value:
+                return var
+        return None
+    def mk_cx(c,x):
+        xindices = x.values()
+        xindices.sort()
+        n = len(xindices)
+        cx = list()
+        for i,v in enumerate(xindices):
+            if not(equal(c[i], 0)):
+                cx.append( [ c[i], { dictKey(x,v): 1} ] )
+        return cx
+    def mk_cxdye(vec,x,wec,y,const):
+        cx = mk_cx(vec,x)
+        dy = mk_cx(wec,y)
+        cx.extend(dy)
+        if not(equal(const,0)):
+            cx.append( [const,{}] )
+        return cx
+    def elist_2_eig(elist):
+        ans = [ (mk_cxdye(vec,x,wec,y,const),lamb) for ((vec,x,wec,y,const),lamb) in elist ]
+        return ans
+    def mlist_2_poly(mlist):
+        multirateL = []
+        for (c, x, rate) in mlist:
+            yold = mk_cx(c, x)
+            multirateL.append( (yold, rate) )
+        return multirateL
+    def qlist_2_poly(qlist):
+        qcalls = []
+        for ( (u,x,w1,y,c1), (v,x,w2,y,c2), a, d) in qlist: 
+            nodePnew = mk_cxdye(u,x,w1,y,c1)
+            nodeQnew = mk_cxdye(v,x,w2,y,c2)
+            # CHECK: vec could be 0 vector and hence nodePnew could be None
+            qcalls.append( (nodePnew,nodeQnew,a,d) )
+        return qcalls
     inputs = HSalPreProcess2.getInputs(basemod)
     cbody = basemod.getElementsByTagName("GUARDEDCOMMAND")
     assert len(cbody) == 1, 'ERROR: Expecting exactly 1 guarded command in module'
@@ -428,15 +346,15 @@ def handleBasemodule(basemod):
     (mlist, elist, qlist) = HSalRelAbsCons.Ab2eigen(varlist, A, b, inputs)
     cds = CDS( varlist )
     cds.setAb( A, b )
-    cds.setmodeinv( guard )
-    cds.setmulti( mlist )
-    cds.seteigen( elist )
-    cds.setquad( qlist )
+    cds.setmodeinv( xml_fmla_2_dnf_fmla(guard) )
+    cds.setmulti( mlist_2_poly(mlist) )
+    cds.seteigen( elist_2_eig(elist) )
+    cds.setquad( qlist_2_poly(qlist) )
     cds.setinputs( inputs )
     # now I need to set the initial state
     init = basemod.getElementsByTagName("INITDECL")
     assert len(init) > 0, 'Error: Need INITIALIZATION'
-    cds.setinit( init2Formula( init[0] ) )
+    cds.setinit( xml_fmla_2_dnf_fmla( init2Formula( init[0] ) ) )
     return cds
 
 def prop2modpropExpr(ctxt, prop):
@@ -488,7 +406,7 @@ def handleContext(ctxt, prop):
     # basemod and propExpr are XML nodes
     # basemod -> (x, init, dynamics)
     cds = handleBasemodule(basemod)
-    cds.setsafe( propExpr )
+    cds.setsafe( xml_fmla_2_dnf_fmla( propExpr) )
     return cds 
 
 def hxml2cegar(xmlfilename, prop, depth = 4):
@@ -574,6 +492,23 @@ def main():
     xmlfilename = HSalRelAbsCons.hsal2hxml(filename)
     ans = hxml2cegar(xmlfilename, prop, depth)
     return ans
+
+# -----------------------------------------------------------------------------------
+# Second Phase Algorithm:
+# overinit = map from region (in init) to DNF;
+# oversafe; overinv = same?
+# for each region in Init: compute overapprox in eigen-directions; multi-directions
+# we need a method to complete a DNF...
+# e.g. x>0 or y>0 ---> x>0 AND y<=0 OR y>0 AND x<=0 OR x>0 AND y>0
+# Then we need a method to compute an over-approx of a completed REGION
+# for each overinitregion, overunsaferegion, we can check intersection
+# we do this by computing time-bounds for possible intersection;
+# then we can pick times in the MIDDLE...and compute Xn with EXACT unsafe...
+# if it does; we can see if the corr. initial state is real/spurious and refine INIT-over
+# if it doesn't; we refine unsafe-over
+# refining algo: once you get a point; move it in all eigen-directions as long as it is
+# spurious; get the most internal point ...we get n-factor multiplication...
+# -----------------------------------------------------------------------------------
 
 if __name__ == '__main__':
     main()

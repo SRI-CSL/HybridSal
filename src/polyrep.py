@@ -89,10 +89,10 @@ def polyDiv(p, q):
         print "Error: Can't divide by NON-CONSTANT"
     return p
 
-def infixApp2poly(node):
-    str1 = expr2poly(appArg(node,1))
+def infixApp2poly(node, ignoreNext = False):
+    str1 = expr2poly(appArg(node,1), ignoreNext)
     str2 = getNameTag(node, 'NAMEEXPR')
-    str3 = expr2poly(appArg(node,2))
+    str3 = expr2poly(appArg(node,2), ignoreNext)
     if not(str2.find('+') == -1):
         return polyAdd(str1, str3)
     elif not(str2.find('-') == -1):
@@ -105,22 +105,22 @@ def infixApp2poly(node):
         print "Error: Unidentified operator %s" % str2
         return str1
 
-def prefixApp2poly(node):
+def prefixApp2poly(node, ignoreNext = False):
     str0 = getNameTag(node, 'NAMEEXPR')
     i = 1
     expr = appArg(node,i)
-    str1 = expr2poly(expr)
+    str1 = expr2poly(expr, ignoreNext)
     if not(str0.find('-') == -1):
         return polyNeg(str1)
     else:
         print "Error: Unidentified operator %s" % str0
         return str1
 
-def app2poly(node):
+def app2poly(node, ignoreNext=False):
     if node.getAttribute('INFIX') == 'YES':
-        return infixApp2poly(node)
+        return infixApp2poly(node, ignoreNext)
     else:
-        return prefixApp2poly(node)
+        return prefixApp2poly(node, ignoreNext)
 
 def nextOperator2poly(node):
     print "Error: Nextoperator not allowed on RHSExpression %s" % node.nodeValue
@@ -130,7 +130,7 @@ def setPredExpr2poly(node):
     print "Error: SetPredExpr not allowed on RHSExpression %s" % node.nodeValue
     return None
 
-def expr2poly(node):
+def expr2poly(node, ignoreNext = False):
     # print node.localName
     if (node == None) or not(node.nodeType == node.ELEMENT_NODE):
         return list()
@@ -141,7 +141,10 @@ def expr2poly(node):
     elif node.localName == "NUMERAL":
         return numeral2poly(node)
     elif node.localName == "NEXTOPERATOR":
-        return nextOperator2poly(node)
+        if ignoreNext:
+            return expr2poly( HSalXMLPP.getArg(node,1), ignoreNext)
+        else:
+            return nextOperator2poly(node)
     elif node.localName == "SETPREDEXPRESSION":
         return setPredExpr2poly(node)
     else:
