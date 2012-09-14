@@ -17,6 +17,8 @@ import HSalPreProcess
 import HSalPreProcess2
 from xmlHelpers import *
 import HSalRelAbsCons
+import copy
+import HSalCegarAux
 #import polyrep2XML
 
 simpleDefinitionLhsVar = HSalExtractRelAbs.SimpleDefinitionLhsVar
@@ -56,6 +58,16 @@ class CDS:
         self.inputs = inputs
     def setinit(self, init):
         self.init = init
+    def getsafe(self):
+        return self.safe
+    def getinit(self):
+        return self.init
+    def geteigen(self):
+        return self.eigen
+    def getmulti(self):
+        return self.multi
+    def getquad(self):
+        return self.quad
     def toStr(self):
          out = 'CDS:\n x = {0},'.format(self.x)
          out += '\n init = '
@@ -78,10 +90,16 @@ class Atom:
     op_neg = {'<':'>=','<=':'>','>':'<=','>=':'<','=':'!=','!=':'='}
     def neg(self):
         '''negate atom; for e.g. p > 0 to p <= 0'''
-        self.op = op_neg[self.op]
+        self.op = self.op_neg[self.op]
     def tostr(self):
         '''return string representing p > 0'''
         return '{0} {1} 0'.format( poly2str( self.p), self.op )
+    def get_poly(self):
+        return self.p
+    def deep_copy(self):
+        newp = self.get_poly()
+        ans = Atom(copy.deepcopy(newp), self.op)
+        return ans
 
 class DNF:
     class Region:
@@ -92,10 +110,17 @@ class DNF:
         @staticmethod
         def true():
             return DNF.Region([])
+        def get_atoms(self):
+            return self.r
         def and_atom(self, atom ):
             self.r.append( atom )
         def and_region(self, r2):
             self.r.extend(r2.r)
+        def deep_copy(self):
+            ans = DNF.Region()
+            for i in self.get_atoms():
+                ans.and_atom( i.deep_copy() )
+            return ans
         def tostr(self):
             ans = ''
             first = True
@@ -121,6 +146,8 @@ class DNF:
     @staticmethod
     def region2dnf(region):
         return DNF( [ region ] )
+    def get_regions(self):
+        return self.fmla
     def free(self):
         del self.fmla 
     def or_atom(self, atom):
@@ -136,11 +163,16 @@ class DNF:
             i.neg()
             ans.or_atom(i)
         return ans
+    def deep_copy(self):
+        ans = DNF()
+        for i in self.get_regions():
+            ans.or_region( i.deep_copy() )
+        return ans
     def neg(self):
         '''return not(f)'''
         def neg_conj(f):
             ans = DNF.false()
-            for i in f:
+            for i in f.get_atoms():
                 i.neg()
                 ans.or_atom(i)
             return ans
@@ -150,7 +182,7 @@ class DNF:
             ans.and_dnf( notf )
             notf.free()
         del self.fmla
-        self.fmla = ans
+        self.fmla = ans.fmla
     @staticmethod
     def copy_region(region):
         return DNF.Region( list(region.get()) )
@@ -420,7 +452,7 @@ def hxml2cegar(xmlfilename, prop, depth = 4):
     mydatastructure = handleContext(ctxt, prop)
     print "Cegar: First phase of initialization of data-structures is complete"
     print mydatastructure.toStr()
-    pass
+    HSalCegarAux.safety_check(mydatastructure)
     print "Cegar: Second phase of CEGAR terminated"
     return 0
 
