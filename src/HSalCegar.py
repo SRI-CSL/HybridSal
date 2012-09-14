@@ -110,6 +110,8 @@ class DNF:
         @staticmethod
         def true():
             return DNF.Region([])
+        def isTrue(self):
+            return self.r == []
         def get_atoms(self):
             return self.r
         def and_atom(self, atom ):
@@ -204,7 +206,7 @@ class DNF:
     def tostr(self):
         if self.fmla == []:
             return 'FALSE'
-        elif self.fmla == [[]]:
+        elif self.fmla[0].isTrue():
             return 'TRUE'
         ans = ''
         first = True
@@ -494,6 +496,11 @@ COPYRIGHT
 -------------------------------------------------------------------------
 """
 
+def main_aux(filename, prop, depth):
+    xmlfilename = HSalRelAbsCons.hsal2hxml(filename)
+    ans = hxml2cegar(xmlfilename, prop, depth)
+    return ans
+
 def main():
     depth = 4
     args = sys.argv[1:]
@@ -521,9 +528,7 @@ def main():
     if not(os.path.isfile(filename)):
         print "File {0} does not exist. Quitting.".format(filename)
         return 1
-    xmlfilename = HSalRelAbsCons.hsal2hxml(filename)
-    ans = hxml2cegar(xmlfilename, prop, depth)
-    return ans
+    return main_aux(filename, prop, depth)
 
 # -----------------------------------------------------------------------------------
 # Second Phase Algorithm:
@@ -543,5 +548,14 @@ def main():
 # -----------------------------------------------------------------------------------
 
 if __name__ == '__main__':
-    main()
+    if 'test' in sys.argv:
+        main_aux('../examples/Linear1.hsal', 'correct', 4)
+        main_aux('../examples/Linear2.hsal', 'correct', 4)
+        main_aux('../examples/Linear3.hsal', 'correct', 4)
+        main_aux('../examples/Linear4.hsal', 'correct', 4)
+        main_aux('../examples/Linear5.hsal', 'correct', 4)
+        main_aux('../examples/Linear6.hsal', 'correct', 4)
+        main_aux('../examples/Linear7.hsal', 'correct', 4)
+    else:
+        main()
 

@@ -57,7 +57,7 @@ def over_approx_region(region, directions):
     '''given a Region, return a DNF that over-approximates it 
        in the given directions'''
     import HSalCegar
-    pass
+    # pass
     return HSalCegar.DNF.true()
 
 def over_approx_dnf(dnf, directions):
