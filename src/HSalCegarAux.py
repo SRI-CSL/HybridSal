@@ -35,10 +35,10 @@ class CDS_Reach:
     def get_directions(self):
         return self.directions
     def set_over_init(self):
-        self.over_init = over_approx_dnf(self.cds.getinit(),self.directions)
+        self.over_init = self.cds.getinit().over_approx(self.directions,self.cds.getmodeinv())
     def set_over_unsafe(self):
         assert self.unsafe != None
-        self.over_unsafe = over_approx_dnf(self.unsafe,self.directions)
+        self.over_unsafe = self.unsafe.over_approx(self.directions,self.cds.getmodeinv())
     def set_all(self):
         self.set_directions()
         self.set_over_init()
@@ -52,21 +52,6 @@ class CDS_Reach:
         for (k,v) in self.over_unsafe.items():
             ans += '{0}->{1}, '.format(k.tostr(),v.tostr())
         return ans
-
-def over_approx_region(region, directions):
-    '''given a Region, return a DNF that over-approximates it 
-       in the given directions'''
-    import HSalCegar
-    # pass
-    return HSalCegar.DNF.true()
-
-def over_approx_dnf(dnf, directions):
-    '''given a DNF, return a mapping 'over' from its regions to DNF s.t.
-       over[region] = over_approx_region(region, directions)'''
-    ans = {}
-    for region in dnf.get_regions():
-        ans[region] = over_approx_region(region, directions)
-    return ans
 
 def safety_check(cds):
     cdsr = CDS_Reach(cds)

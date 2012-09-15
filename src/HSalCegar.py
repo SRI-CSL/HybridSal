@@ -18,7 +18,6 @@ import HSalPreProcess2
 from xmlHelpers import *
 import HSalRelAbsCons
 import copy
-import HSalCegarAux
 #import polyrep2XML
 
 simpleDefinitionLhsVar = HSalExtractRelAbs.SimpleDefinitionLhsVar
@@ -58,6 +57,8 @@ class CDS:
         self.inputs = inputs
     def setinit(self, init):
         self.init = init
+    def getmodeinv(self):
+        return self.modeinv
     def getsafe(self):
         return self.safe
     def getinit(self):
@@ -96,6 +97,8 @@ class Atom:
         return '{0} {1} 0'.format( poly2str( self.p), self.op )
     def get_poly(self):
         return self.p
+    def get_op(self):
+        return self.op
     def deep_copy(self):
         newp = self.get_poly()
         ans = Atom(copy.deepcopy(newp), self.op)
@@ -122,6 +125,15 @@ class DNF:
             ans = DNF.Region()
             for i in self.get_atoms():
                 ans.and_atom( i.deep_copy() )
+            return ans
+        def over_approx(self, directions, other_constraints):
+            '''given a Region, return a DNF that over-approximates it 
+               in the given directions'''
+            ans = {}
+            for d in directions:
+                lb = lp_minimize(d, self.r, other_constraints)
+                ub = lp_maximize(d, self.r, other_constraints)
+                ans[d] = (lb, ub)
             return ans
         def tostr(self):
             ans = ''
@@ -215,6 +227,15 @@ class DNF:
             first = False
             ans += '{0} {1}'.format(sep, i.tostr())
         return ans
+    def over_approx(self, directions, other_constraints):
+        '''over-approximation this dnf in the given directions:
+           return a mapping 'over' from this DNF's regions to DNF s.t.
+           over[region] = over_approx_region(region, directions)'''
+        ans = {}
+        for region in self.get_regions():
+            ans[region] = region.over_approx(directions, other_constraints)
+        return ans
+
 
 def applyBOp(op, f1, f2):
     '''return f1 op f2, where op=OR or op=AND'''
@@ -454,7 +475,7 @@ def hxml2cegar(xmlfilename, prop, depth = 4):
     mydatastructure = handleContext(ctxt, prop)
     print "Cegar: First phase of initialization of data-structures is complete"
     print mydatastructure.toStr()
-    HSalCegarAux.safety_check(mydatastructure)
+    safety_check(mydatastructure)
     print "Cegar: Second phase of CEGAR terminated"
     return 0
 
@@ -546,7 +567,135 @@ def main():
 # refining algo: once you get a point; move it in all eigen-directions as long as it is
 # spurious; get the most internal point ...we get n-factor multiplication...
 # -----------------------------------------------------------------------------------
+def poly2linear(d):
+    "convert polynomial d to linear form"
+    ans = {}
+    for mono in d:
+        c = mono[0]
+        if len(mono[1])==0:
+            ans['_const_'] = ans['_const_'] + c if ans.has_key('_const_') else c
+        else:
+            assert len(mono[1]) == 1, 'error: non-linear direction?'
+            (var,power) = mono[1].items()[0]
+            assert power==1, 'error: non-linear direction?'
+            ans[var] = ans[var] + c if ans.has_key(var) else c 
+    return ans
 
+class Direction:
+    def __init__(self, d, rate, description, buddy = None):
+        '''d = [ [1,{x:1}],[2,{y:1}] ]'''
+        self.d = poly2linear( d )
+        self.rate = rate
+        self.description = description
+        self.buddy = buddy
+    def get_vars(self):
+        return self.d.keys()
+    def tostr(self):
+        ans = self.description
+        for (k,v) in self.d.items():
+            ans += ' + {0} {1}'.format(v,k)
+        return  ans
+
+class CDS_Reach:
+    def __init__(self, cds):
+        self.cds = cds
+        self.over_init = None
+        self.over_unsafe = None
+        self.unsafe = cds.safe.deep_copy()
+        self.unsafe.neg()
+        self.directions = None
+    def set_directions(self):
+        self.directions = []
+        for (vec,val) in self.cds.geteigen():
+            self.directions.append( Direction(vec, val, 'eigen') )
+        for (vec,val) in self.cds.getmulti():
+            self.directions.append( Direction(vec, val, 'multi') )
+        for (vec,wec,val1,val2) in self.cds.getquad():
+            d =  Direction(wec, val2, 'quad2') 
+            self.directions.append( d )
+            self.directions.append( Direction(vec, val1, 'quad1', buddy=d) )
+    def get_directions(self):
+        return self.directions
+    def set_over_init(self):
+        self.over_init = self.cds.getinit().over_approx(self.directions,self.cds.getmodeinv())
+    def set_over_unsafe(self):
+        assert self.unsafe != None
+        self.over_unsafe = self.unsafe.over_approx(self.directions,self.cds.getmodeinv())
+    def set_all(self):
+        self.set_directions()
+        self.set_over_init()
+        self.set_over_unsafe()
+    def toStr(self):
+        def over_tostr( dictOfdictOfpairs ):
+            ans = ''
+            for (k,v) in dictOfdictOfpairs.items():
+                ans += '\n  {0}-> '.format(k.tostr())	# region 
+                for (k1,v1) in v.items():
+                    ans += '{0}:{1}, '.format(k1.tostr(),v1) # direction:(lb,ub)
+            return ans
+        ans = self.cds.toStr()
+        ans += '\nDirections of interest:'
+        for d in self.directions:
+            ans += d.tostr()
+        ans += '\nOverapprox of Init: {0}'.format(over_tostr(self.over_init))
+        ans += '\nOverapprox of Unsafe: {0}'.format(over_tostr(self.over_unsafe))
+        return ans
+
+def safety_check(cds):
+    cdsr = CDS_Reach(cds)
+    cdsr.set_all()
+    print cdsr.toStr()
+# -----------------------------------------------------------------------------------
+
+# -----------------------------------------------------------------------------------
+def lp_minimize(direction, region, dnf_constraint):
+    '''min direction s.t. region and dnf_constraint'''
+    # let us ignore
+    glpk.glp_set_obj_dir(prob, glpk.GLP_MIN)	# maximize or minimize
+    return 0
+
+def lp_maximize(direction, region, dnf_constraint):
+    '''max direction s.t. region and dnf_constraint'''
+    glpk.glp_set_obj_dir(prob, glpk.GLP_MAX)	# maximize or minimize
+    return 0
+
+def lp_optimize(x, direction, region, region1):
+    constraints = region.get_atoms()
+    constraints1 = region1.get_atoms()
+    contraints.extend(constraints1)
+    n = len(constraints)
+    m = len(x)
+    variables = x.keys()
+    prob = glpk.glp_create_prob()
+    glpk.glp_add_rows(prob, n)
+    glpk.glp_add_cols(prob, m)
+    for i in constraints:
+        poly = i.get_poly()
+        rowi = poly2linear(poly)
+        op = i.get_op()
+        assert op != '!=', 'error: cant handle  not-eq yet'
+        gop = glpk.GLP_UP if op in ['<','<='] else (glpk.GLP_LO if op in ['>','>='] else glpk.FX)
+        value = rowi['_const_'] if rowi.has_key('_const_') else 0
+        index = constraints.index(i) + 1
+        glpk.glp_set_row_bnds(prob, index, gop, value, value)
+        l = len(rowi) + 1
+        ind = glpk.intArray(l)
+        val = glpk.doubleArray(l)
+        j = 1
+        for (k,v) in rowi:
+            if k != '_const_':
+                ind[j] = x[k]+1
+                val[j] = v
+            else:
+                ind[j] = 0
+                val[j] = 0
+            j += 1
+        glpk.glp_set_mat_row(prob, index, l, ind, val)
+    # add optimization function....
+    return prob
+# -----------------------------------------------------------------------------------
+
+# -----------------------------------------------------------------------------------
 if __name__ == '__main__':
     if 'test' in sys.argv:
         main_aux('../examples/Linear1.hsal', 'correct', 4)
@@ -558,4 +707,5 @@ if __name__ == '__main__':
         main_aux('../examples/Linear7.hsal', 'correct', 4)
     else:
         main()
+# -----------------------------------------------------------------------------------
 
