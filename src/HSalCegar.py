@@ -1,4 +1,4 @@
-# I did sudo aptitude install python-glpk
+# I did sudi aptitude install python-glpk
 # import sys
 # sys.path.append('/usr/lib/python-support/python-glpk/python2.6')
 # import glpk
@@ -18,6 +18,8 @@ import HSalPreProcess2
 from xmlHelpers import *
 import HSalRelAbsCons
 import copy
+sys.path.append('/usr/lib/python-support/python-glpk/python2.6')
+import glpk
 #import polyrep2XML
 
 simpleDefinitionLhsVar = HSalExtractRelAbs.SimpleDefinitionLhsVar
@@ -126,13 +128,13 @@ class DNF:
             for i in self.get_atoms():
                 ans.and_atom( i.deep_copy() )
             return ans
-        def over_approx(self, directions, other_constraints):
+        def over_approx(self, x, directions, other_constraints):
             '''given a Region, return a DNF that over-approximates it 
                in the given directions'''
             ans = {}
             for d in directions:
-                lb = lp_minimize(d, self.r, other_constraints)
-                ub = lp_maximize(d, self.r, other_constraints)
+                lb = lp_minimize(x, d, self, other_constraints)
+                ub = lp_maximize(x, d, self, other_constraints)
                 ans[d] = (lb, ub)
             return ans
         def tostr(self):
@@ -227,13 +229,13 @@ class DNF:
             first = False
             ans += '{0} {1}'.format(sep, i.tostr())
         return ans
-    def over_approx(self, directions, other_constraints):
+    def over_approx(self, x, directions, other_constraints):
         '''over-approximation this dnf in the given directions:
            return a mapping 'over' from this DNF's regions to DNF s.t.
            over[region] = over_approx_region(region, directions)'''
         ans = {}
         for region in self.get_regions():
-            ans[region] = region.over_approx(directions, other_constraints)
+            ans[region] = region.over_approx(x, directions, other_constraints)
         return ans
 
 
@@ -590,6 +592,8 @@ class Direction:
         self.buddy = buddy
     def get_vars(self):
         return self.d.keys()
+    def get_linear(self):
+        return self.d
     def tostr(self):
         ans = self.description
         for (k,v) in self.d.items():
@@ -617,10 +621,10 @@ class CDS_Reach:
     def get_directions(self):
         return self.directions
     def set_over_init(self):
-        self.over_init = self.cds.getinit().over_approx(self.directions,self.cds.getmodeinv())
+        self.over_init = self.cds.getinit().over_approx(self.cds.x, self.directions,self.cds.getmodeinv())
     def set_over_unsafe(self):
         assert self.unsafe != None
-        self.over_unsafe = self.unsafe.over_approx(self.directions,self.cds.getmodeinv())
+        self.over_unsafe = self.unsafe.over_approx(self.cds.x, self.directions,self.cds.getmodeinv())
     def set_all(self):
         self.set_directions()
         self.set_over_init()
@@ -648,51 +652,120 @@ def safety_check(cds):
 # -----------------------------------------------------------------------------------
 
 # -----------------------------------------------------------------------------------
-def lp_minimize(direction, region, dnf_constraint):
+def lp_minimize(x, direction, region, dnf_constraint):
     '''min direction s.t. region and dnf_constraint'''
-    # let us ignore
-    glpk.glp_set_obj_dir(prob, glpk.GLP_MIN)	# maximize or minimize
-    return 0
+    ans = lp_optimize_dnf(x, glpk.GLP_MIN, direction, region, dnf_constraint)
+    return ans
 
-def lp_maximize(direction, region, dnf_constraint):
+def lp_maximize(x, direction, region, dnf_constraint):
     '''max direction s.t. region and dnf_constraint'''
-    glpk.glp_set_obj_dir(prob, glpk.GLP_MAX)	# maximize or minimize
+    ans = lp_optimize_dnf(x, glpk.GLP_MAX, direction, region, dnf_constraint)
+    return ans
+
+def lp_optimize_dnf(x, minmax, direction, region, dnf):
+    "min/max direction s.t. region and dnf"
+    regions = dnf.get_regions()
+    l = max( [ len(region1.get_atoms()) for region1 in regions ] )
+    ind = glpk.intArray(l)
+    prob = lp_optimize(x, direction, region, regions[0])
+    glpk.glp_set_obj_dir(prob, minmax)	# maximize or minimize
+    ans = []
+    ans.append( lp_solve(prob) )
+    base_index = len(region.get_atoms()) + 1
+    for i in range(1,len(regions)):
+        for j in range(0,len(regions[i-1].get_atoms())):
+            ind[j] = base_index + j
+        glpk.glp_del_rows(prob, len(regions[i-1]), ind)
+        prob = lp_set_rows_from_region(prob, x, regions[i], base_index)
+        ans.append( lp_solve(prob) )
+    if minmax == glpk.GLP_MAX:
+        value = max( ans )
+    else:
+        value = min( ans )
+    glpk.glp_delete_prob(prob)
+    return value
+
+def lp_solve(prob):
+    # ret = glpk.glp_simplex(prob, glpk.NULL)
+    lp_prob_print(prob)
+    ret = glpk.glp_simplex(prob, None)
+    status = glpk.glp_get_status(prob)
+    if ret == 0 and status == glpk.GLP_OPT:
+        return glpk.glp_get_obj_val(prob)
+    elif ret == glpk.GLP_ENOPFS:
+        print 'LP has no Primal feasible solution'
+        sys.exit(1)
+    elif status == glpk.GLP_UNBND:
+        minmax = glpk.glp_get_obj_dir(prob)
+        ans = 1e10 if minmax == glpk.GLP_MAX else -1e10
+        return ans
+    else:
+        lp_prob_print(prob)
+        print 'ERROR: LP failed'
+        print 'return = {0}, status = {1}'.format(ret, status)
+        sys.exit(1)
     return 0
 
-def lp_optimize(x, direction, region, region1):
+def lp_set_rows_from_region(prob, x, region, base):
+    "add constraints from region to prob, starting from base row-index"
     constraints = region.get_atoms()
-    constraints1 = region1.get_atoms()
-    contraints.extend(constraints1)
     n = len(constraints)
-    m = len(x)
-    variables = x.keys()
-    prob = glpk.glp_create_prob()
+    if n == 0:
+        return prob
     glpk.glp_add_rows(prob, n)
-    glpk.glp_add_cols(prob, m)
     for i in constraints:
         poly = i.get_poly()
         rowi = poly2linear(poly)
         op = i.get_op()
         assert op != '!=', 'error: cant handle  not-eq yet'
-        gop = glpk.GLP_UP if op in ['<','<='] else (glpk.GLP_LO if op in ['>','>='] else glpk.FX)
-        value = rowi['_const_'] if rowi.has_key('_const_') else 0
-        index = constraints.index(i) + 1
+        gop = glpk.GLP_UP if op in ['<','<='] else (glpk.GLP_LO if op in ['>','>='] else glpk.GLP_FX)
+        value = -rowi['_const_'] if rowi.has_key('_const_') else 0
+        index = base + constraints.index(i)
+        print 'rowi {2} is being set to {0} {1} 0'.format( rowi, op, index )
         glpk.glp_set_row_bnds(prob, index, gop, value, value)
-        l = len(rowi) + 1
+        l = len(rowi) if rowi.has_key('_const_') else len(rowi) + 1
         ind = glpk.intArray(l)
         val = glpk.doubleArray(l)
         j = 1
-        for (k,v) in rowi:
+        for (k,v) in rowi.items():
             if k != '_const_':
                 ind[j] = x[k]+1
                 val[j] = v
-            else:
-                ind[j] = 0
-                val[j] = 0
-            j += 1
-        glpk.glp_set_mat_row(prob, index, l, ind, val)
-    # add optimization function....
+                j += 1
+        glpk.glp_set_mat_row(prob, index, l-1, ind, val)
     return prob
+
+def lp_optimize(x, direction, region, region1):
+    m = len(x)
+    prob = glpk.glp_create_prob()
+    glpk.glp_add_cols(prob, m)
+    for i in range(1,m+1):
+        glpk.glp_set_col_bnds(prob, i, glpk.GLP_FR, 0, 0)
+    prob = lp_set_rows_from_region(prob, x, region, 1)
+    base_index = glpk.glp_get_num_rows(prob) + 1
+    prob = lp_set_rows_from_region(prob, x, region1, base_index)
+    # add optimization function....check if _const_ treated properly
+    for (k,v) in direction.get_linear().items():
+        ind = x[k] + 1 if x.has_key(k) else 0
+        val = v
+        glpk.glp_set_obj_coef(prob, ind, val)
+    return prob
+
+def lp_prob_print(prob):
+    m = glpk.glp_get_num_cols(prob)
+    n = glpk.glp_get_num_rows(prob)
+    ind = glpk.intArray(10)
+    val = glpk.doubleArray(10)
+    for i in range(1,m+1):
+        print 'obj: {0} {1}'.format(i, glpk.glp_get_obj_coef(prob, i))
+    for i in range(m):
+        print 'col {0} lb = {1} ub = {2}'.format(i+1,glpk.glp_get_col_lb(prob,i+1),glpk.glp_get_col_ub(prob,i+1))
+    for i in range(n):
+        print 'row {0} lb = {1} ub = {2}'.format(i+1,glpk.glp_get_row_lb(prob,i+1),glpk.glp_get_row_ub(prob,i+1))
+        l = glpk.glp_get_mat_row(prob, i+1, ind, val)
+        for j in range(l):
+            print 'row {0}: {1} {2}'.format(i+1, ind[j+1], val[j+1])
+    return
 # -----------------------------------------------------------------------------------
 
 # -----------------------------------------------------------------------------------
