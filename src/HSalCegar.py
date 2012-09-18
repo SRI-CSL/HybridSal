@@ -133,8 +133,7 @@ class DNF:
                in the given directions'''
             ans = {}
             for d in directions:
-                lb = lp_minimize(x, d, self, other_constraints)
-                ub = lp_maximize(x, d, self, other_constraints)
+                (lb,ub) = lp_get_bounds(x, d, self, other_constraints)
                 ans[d] = (lb, ub)
             return ans
         def tostr(self):
@@ -652,16 +651,40 @@ def safety_check(cds):
 # -----------------------------------------------------------------------------------
 
 # -----------------------------------------------------------------------------------
-def lp_minimize(x, direction, region, dnf_constraint):
-    '''min direction s.t. region and dnf_constraint'''
-    ans = lp_optimize_dnf(x, glpk.GLP_MIN, direction, region, dnf_constraint)
-    return ans
+def lp_get_bounds(x, direction, region, dnf_constraint):
+    '''min/max direction s.t. region and dnf_constraint'''
+    # lb = lp_optimize_dnf(x, glpk.GLP_MIN, direction, region, dnf_constraint)
+    # ub = lp_optimize_dnf(x, glpk.GLP_MAX, direction, region, dnf_constraint)
+    (lb,ub) = lp_min_max_dnf(x, 'minmax', direction, region, dnf_constraint)
+    return (lb,ub)
 
-def lp_maximize(x, direction, region, dnf_constraint):
-    '''max direction s.t. region and dnf_constraint'''
-    ans = lp_optimize_dnf(x, glpk.GLP_MAX, direction, region, dnf_constraint)
-    return ans
+def lp_min_max_dnf(x, minmax, direction, region, dnf):
+    "min/max direction s.t. region and dnf"
+    regions = dnf.get_regions()
+    l = max( [ len(region1.get_atoms()) for region1 in regions ] )
+    ind = glpk.intArray(l)
+    prob = lp_optimize(x, direction, region, regions[0])
+    lb,ub = [],[]
+    glpk.glp_set_obj_dir(prob, glpk.GLP_MIN) 
+    lb.append( lp_solve(prob) ) if 'min' in minmax else None
+    glpk.glp_set_obj_dir(prob, glpk.GLP_MAX)	# maximize or minimize
+    ub.append( lp_solve(prob) ) if 'max' in minmax else None
+    base_index = len(region.get_atoms()) + 1
+    for i in range(1,len(regions)):
+        for j in range(0,len(regions[i-1].get_atoms())):
+            ind[j] = base_index + j
+        glpk.glp_del_rows(prob, len(regions[i-1]), ind)
+        prob = lp_set_rows_from_region(prob, x, regions[i], base_index)
+        glpk.glp_set_obj_dir(prob, glpk.GLP_MIN)	# maximize or minimize
+        lb.append( lp_solve(prob) )
+        glpk.glp_set_obj_dir(prob, glpk.GLP_MAX)	# maximize or minimize
+        ub.append( lp_solve(prob) )
+    final_ub = max( ub ) if ub != [] else 1e10
+    final_lb = min( lb ) if lb != [] else -1e10
+    glpk.glp_delete_prob(prob)
+    return (final_lb, final_ub)
 
+# following is obsolete; superseded by lp_min_max_dnf function
 def lp_optimize_dnf(x, minmax, direction, region, dnf):
     "min/max direction s.t. region and dnf"
     regions = dnf.get_regions()
@@ -687,7 +710,7 @@ def lp_optimize_dnf(x, minmax, direction, region, dnf):
 
 def lp_solve(prob):
     # ret = glpk.glp_simplex(prob, glpk.NULL)
-    lp_prob_print(prob)
+    # lp_prob_print(prob)
     ret = glpk.glp_simplex(prob, None)
     status = glpk.glp_get_status(prob)
     if ret == 0 and status == glpk.GLP_OPT:
