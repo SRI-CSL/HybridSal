@@ -4,6 +4,7 @@
 \usepackage{amsmath,amssymb,amsfonts}
 %\usepackage{electComp}
 \pagestyle{plain}
+\usepackage{graphicx}
 
 \title{HybridSAL Relational Abstraction}
 %  \thanks{Tiwari's work supported in part by DARPA under Contract No. FA8650-10-C-7078,
@@ -96,6 +97,13 @@ limited subset of Modelica models into HybridSal.
 The {\tt{modelica2hsal}} tool, its features, and its limitations
 are described in Section~\ref{sec-modelica2hsal}.
 
+\begin{figure}[t]
+\begin{center}
+\includegraphics[angle=0,scale=0.45]{hsal-meta-flow}
+\end{center}
+\caption{Relational Abstraction Tool Flow.}\label{fig-flow}
+\end{figure}
+
 The HybridSal relational abstraction algorithm and implemention is
 described in Section~\ref{sec-ra}.  We also describe the limitations
 of the abstracter in that section.
@@ -104,6 +112,10 @@ The abstraction constructed by the HybridSal relational abstraction tool
 is output as a {\tt{SAL}} model.  We briefly describe the SAL model
 checking tools that can be used to analyze this abstract system 
 in Section~\ref{sec-sal}.
+
+Figure~\ref{fig-flow} shows the overall architecture of our
+verification tool and its three main components.  We describe, in
+detail, these three components in subsequent sections.
 
 % -------------------------------------------------------------------------
 \section{{\tt{modelica2hsal}}: Converting Modelica to HybridSal}
@@ -237,7 +249,7 @@ and the interpolation function.
 Essentially, a table is converted to a large ``if-then-else'' expression.
 
 
-\subsection{Translating Simplified DAEs to HybridSal}
+\subsection{{\tt{modelica2hsal}}: Translating Simplified DAEs to HybridSal}
 
 After the DAEs are simplified using the simplification rules described above,
 the tool attempts to convert them into HybridSal.
@@ -330,8 +342,210 @@ of the model.
 This information can be provided in two different formats: either in 
 XML format, or in JSON format.
 
+Rather than describing the syntax of the json file, we just give an
+example of a sample json file in Figure~\ref{fig-json}.
+Similarly, we give an example of an XML representation of the
+context and property in Figure~\ref{fig-xml}.
+
+\begin{figure}[t]
+\begin{tt}
+\begin{verbatim}
+{"context" : "TRUE",
+ "property" : 
+ {"f"    : "G", 
+  "nargs": 1, 
+  "args" : 
+   [{"f"    : "=>", 
+     "nargs": 2, 
+     "args" : 
+   [{"f"    : ">=", 
+     "nargs": 2, 
+     "args" : ["MassSpringDamper_Mass_Steel_ModelicaModel_s", 1] },
+    {"f"    : "<=", 
+     "nargs": 2, 
+     "args" : ["MassSpringDamper_Damper_Damper_mo_v_rel", -4] } ] } ] } }
+\end{verbatim}
+\end{tt}
+\caption{Example of a context and property description in json format that
+can be used as an optional input to the {\tt{modelica2hsal}} translator.
+The context here is $\mathtt{True}$ and the property is
+$G( s \geq 1 \Rightarrow v_{rel} \leq -4 )$, where $s$ and $v_{rel}$ denote
+the variables whose full names can be found in the json description above.
+$G$ is the ``always'' temporal operator.}
+\label{fig-json}
+\end{figure}
+
+\begin{figure}[t]
+\begin{tt}
+\begin{verbatim}
+<CONTEXTPROPERTY>
+<CONTEXT>
+  <APPLICATION INFIX="YES"> <NAMEEXPR>AND</NAMEEXPR>
+  <TUPLELITERAL>
+    <APPLICATION INFIX="YES" PARENS="1"> <NAMEEXPR>&gt;</NAMEEXPR>
+      <TUPLELITERAL>
+        <NAMEEXPR>u</NAMEEXPR> <NUMERAL>500</NUMERAL>
+      </TUPLELITERAL>
+    </APPLICATION>
+    <APPLICATION INFIX="YES" PARENS="1"> <NAMEEXPR>&lt;</NAMEEXPR>
+      <TUPLELITERAL> 
+        <NAMEEXPR>u</NAMEEXPR> <NUMERAL>1000</NUMERAL>
+      </TUPLELITERAL>
+    </APPLICATION>
+  </TUPLELITERAL>
+  </APPLICATION>
+</CONTEXT>
+<PROPERTY>
+  <APPLICATION> <LTLOP>G</LTLOP>
+    <TUPLELITERAL>
+      <APPLICATION INFIX="YES" PARENS="1"> <NAMEEXPR>&lt;</NAMEEXPR>
+        <TUPLELITERAL> 
+          <NAMEEXPR>J_crank.w</NAMEEXPR> <NUMERAL>2000</NUMERAL> 
+        </TUPLELITERAL>
+      </APPLICATION>
+    </TUPLELITERAL>
+  </APPLICATION>
+</PROPERTY>
+</CONTEXTPROPERTY>
+\end{verbatim}
+\end{tt}
+\caption{Property and context model presented in XML. The {\tt{modelica2hsal}}
+converter can take this as an optional argument and generate HybridSal 
+with necessary information. Here the context is $u \geq 500 \wedge u \leq 1000$,
+and the property is $G( \mathtt{J_crank.w} \leq 2000)$. 
+$G$ is the ``always'' temporal operator.
+}\label{fig-xml}
+\end{figure}
+
+\subsection{{\tt{modelica2hsal}}: Limitations}
+
+The {\tt{modelica2hsal}} converter can successfully 
+convert several OpenModelica generated XML dumps into
+HybridSal.  However, it is also unable to convert
+many more other XML dumps into HybridSal.
+In this section, we discuss the causes for this
+incompleteness.
+
+The big sources of incompleteness are the following:
+\begin{description}
+\item[Trignometric functions.]
+If the Modelica DAEs contain trignometric functions, 
+then the {\tt{modelica2hsal}} translator can fail to 
+generate a HybridSal model. 
+This is because HybridSal does not support trignometric
+functions in its expression language.
+The reason why HybridSal does not include trignometric
+functions is that there is no easily decidable theory for
+them.
+
+\item[Nonlinear models.]
+If the Modelica DAEs contain nonlinear expressions,
+such as $x*y$ or $x^2$ or $\sqrt(x)$, then
+the {\tt{modelica2hsal}} translator can fail to 
+generate a HybridSal model. 
+This is because HybridSal does not support nonlinear
+models.
+
+\item[New user defined functions.]
+If the Modelica DAEs contain calls to user-defined
+functions that are not already handled by
+the {\tt{modelica2hsal}} translator, then
+the {\tt{modelica2hsal}} translator can fail to 
+generate a HybridSal model. 
+This is because the {\tt{modelica2hsal}} translator
+does not parse the C-like code of user-defined functions.
+Rather, handling of certain user-defined functions that
+occur commonly in the models is hard coded into the
+translator.  One such example is 
+the linear interpolation function.
+
+\item[Special variables.]
+If the Modelica DAEs contain special (predefined in Modelica) variables,
+then
+the {\tt{modelica2hsal}} translator can fail to 
+generate a HybridSal model. 
+One such special variable is the {\tt{time}} variable.
+Since this variable occurs frequently, we have added a flag
+{\tt{--addTime}} to the translator that allows handling of 
+Modelica models that contain the {\tt{time}} variable.
+
+Alternatively, there is also an option of ignoring the {\tt{time}}
+variable and {\em{all}} equations that contain the {\tt{time}} variable.
+This is useful when the {\tt{time}} variable is used to create a 
+particular context for performing simulation. 
+The flag {\tt{--removeTime}} should be used in this case.
+
+\item[Processing of DAEs.]
+If the Modelica DAEs are not simplified into a form that can
+be written as a set of switched ODEs with some discrete update,
+then the translator can fail to generate a HybridSal model.
+\end{description}
+
+{\bf{Caveat}}: In some cases, it may happen that the translator terminates
+successfully and creates a HybridSal file, but the generated HybridSal
+file is not well formed.  The translator, currently, does not do a
+well-formedness check on the generated file.  
+For example, if the simplification procedure on the DAEs results in 
+two equations that appear to be both setting the value of $dx/dt$,
+the generated HybridSal file can have two ODEs for $dx/dt$.  The HybridSal
+relational abstraction tool can fail on such models.
+In these cases, a manual inspection of the generated HybridSal file
+may be required.
+
+{\bf{Caveat}}: The {\tt{modelica2hsal}} translator has not been extensively
+tested.  It remains unclear how to validate the translator, because there
+is nothing known about the input Modelica models that can be cross checked
+with the generated HybridSal model.  
+While the translator attempts to perform a {\em{semantic preserving}}
+translation from Modelica to HybridSal, it may not always guarantee the
+equivalence of Modelica model and the HybridSal model.
+In most cases, we expect the output to be equivalent, and in cases when it 
+is not, we expect the HybridSal model to be {\em{more abstract}} than the
+input Modelica model.  This is because, on a few occassions, 
+the translator may ignore some equations in the given DAEs, and hence,
+generate a model with more behaviors.
+
+{\bf{Caveat}}: One issue that arises when translating requirements from
+Modelica to HybridSal is the naming issue.  In the process of model
+transformation and model simplification, variables get renamed, or eliminated,
+or mapped into other variables.  Hence, a single state variable can have
+multiple names in different models.  When translating requirements,
+it is important to ensure that the naming is consistent across the model
+and the properties.  The current implementation of the translator does
+not perform this consistency check.
+
+\subsection{{\tt{modelica2hsal}}: Performance}
+
+The translator simplifies each expression separately, and hence
+it is computationally very fast.  So far, scalability of the
+translator has not been an issue.  On the available benchmarks
+(RC Car component models, Mass Spring, etc.), the translator is
+able to successfully translate about 50\% of the Modelica models
+into HybridSal.  The main cause for failure on the other models
+are trignometric functions.
+
+As a final note, we remark that Modelica may not be a good choice
+for a front-end language that is driving backend verification tools.
+We give two main reasons below.
+\begin{itemize}
+\item Modelica is a language for building simulation models.
+As a result, it does not have some key features -- such as nondeterminism --
+that are essential for a language describing (partial) designs, or
+highly abstract systems.
+\item Modelica does not provide a clean separation of three parts of a
+model -- the context model, the actual system model, and the properties.
+Often, context model is tightly integrated into the system model.
+\end{itemize}
+
 % -------------------------------------------------------------------------
 \section{HybridSal Relational Abstracter}\label{sec-ra}
+
+After the Modelica model is translated into HybridSal, it is
+abstracted into a discrete {\tt{SAL}} model using the
+relational abstraction tool.  
+In this section, we will describe the theory and implementation
+of the relational abstractor.
+
 
 A dynamical system $(\XX, \bra)$  with state space $\XX$ and
 transition relation $\bra\subseteq \XX\times \XX$ 
@@ -398,11 +612,11 @@ transitions defined by differential equations are abstracted.
 
 The HybridSal relational abstracter tool computes such a relational
 abstraction for an input hybrid system. 
-In this paper, we describe the tool, the core algorithm implemented in the
+In this section, we describe the tool, the core algorithm implemented in the
 tool, and we also provide some examples. % and case studies that
 %are part of the tool distribution.
 
-\subsection{Relational Abstraction of Linear Systems}
+\subsection{{\tt{hsal2sal}}: Abstraction Algorithm}
 
 Given a system of linear ordinary differential equation,
 $\frac{d\vec{x}}{dt} = A\vec{x}+\vec{b}$, we describe the
@@ -545,7 +759,7 @@ with mode invariant $\mathit{True}$
 (as defined in Equation~\ref{eqn:sem}), then
 $\ra_{cont}  \;\subseteq\; \phi$.
 \end{proposition}
-%\ignore{
+\ignore{
 \begin{proof}(Sketch)
 First, let $p(\vec{x})$ be the linear expression
 $\vec{c}^T\vec{y}+\vec{d}^T\vec{z}+e$ discovered in Step~(6).
@@ -587,7 +801,7 @@ from $\vec{x}$ following the linear ODE dynamics.
 Hence, all these expressions need to be equal, as stated in Step~(13).
 \qed
 \end{proof}
-%\endignore}
+\endignore}
 
 By applying the above abstraction procedure on to the
 dynamics of each mode of a given hybrid system,
@@ -636,7 +850,7 @@ Then, we can extend $\phi$ by adding the following relation to it:
  & = & p_j(\vec{x}')^{n_i}  p_i(\vec{x})^{n_j}
 \label{eqn:nl}
 \end{eqnarray}
-%\ignore{
+\ignore{
 The above relationship holds for any binary reachable
 pair of states $(\vec{x},\vec{x'})$ 
 because
@@ -647,7 +861,7 @@ $$
  =
  e^{n_in_j\lambda_0 t}
 $$
-%\endignore}
+\endignore}
 However, since $p_i$'s are linear or quadratic 
 expressions, the above relations will be highly
 nonlinear unless $n_i$'s are small.  So, they are
@@ -656,7 +870,7 @@ It is left for future work to see if good and useful
 linear approximations of these highly nonlinear relations
 can be obtained.
 
-\subsection{The HybridSal Relational Abstracter Tool}
+\subsection{{\tt{hsal2sal}}: The Relational Abstracter Tool}
 
 The HybridSal relational abstracter tool, including
 the sources, documentation and examples, is freely available
@@ -1019,18 +1233,22 @@ In~\cite{ST11:CAVsmall} we had used many
 different techniques (not all completely automated at that time)
 to construct the relational abstraction.
 
-\subsection{Strengths and Limitations}
+\subsection{{\tt{hsal2sal}}: Strengths and Limitations}
 
 The HybridSal relational abstracter is a tool for verifying
 hybrid systems.  The other common tools for hybrid
 system verification consist of 
+\\
 (a) tools that iteratively compute
 an overapproximation of the reachable states~\cite{SpaceExsmall},
+\\
 (b) tools that directly search for correctness certificates
 (such as inductive invariants or Lyapunov function)~\cite{sostools,ST11:ISSACsmall},
 or
+\\
 (c) tools that compute an abstraction and then analyze
 the abstraction~\cite{HybridSALsmall,AlurDangIvancic03:TACASsmall,Clarke03:TACASsmall}.
+\\
 Our relational abstraction tool falls in category~(c), but unlike all
 other abstraction tools, it does
 not abstract the state space, but abstracts only the transition relation.
@@ -1061,45 +1279,114 @@ of verification of infinite state transition systems. %k-induction provers.
 %scalability of SMT solving.
 
 We note that our tool is the first in its space and is still
-under active development.  We hope to
-enhance the tool in some of the following ways 
-% to address several of following shortcomings
-in the future. % releases of the tool.
+under active development.  
+We list below some of its shortcomings and ways in which we
+plan to address them in the future.
 % The relational abstraction methodology and tool have certain
 % weaknesses, which we now enumerate.  
-(a) Relational abstraction generates verification 
-problem on a discrete, infinite state space system, which are difficult to
-verify automatically.  
-Nevertheless, dedicated methods for generating 
-invariants and for performing abstract interpretation can be developed
-that are tailored to analyzing relational abstractions.
+\begin{description}
 % There is a need to develop 
-% The use of k-induction can require the need for auxiliary lemmas.  
-% The SMT formulas generated can be very large.
-(b) More precise relational abstractions can be potentially generated
+\item[Precision.]
+While relational abstractions are more precise than purely qualitative
+abstractions, there is occassionally a need for more precise 
+abstraction.  There are several ways forward.  One approach is to
+enhance relational abstractions with qualitative abstractions.
+There are examples where the combination gives a  much better quality
+abstraction than either components.
+Also, more precise relational abstractions can be potentially generated
 by using mode invariants.
 % Our tool does not use the mode invariants when creating
 % relational abstractions.  % The use of mode invariants can lead to
 % discovery of more relational invariants.  
-(c) Numerical errors due to floating point arithmetic need
+\item[Numerical Issues.]
+The computation of relational abstraction is performed using 
+floating point arithmetic computation.  It is well known that
+floating point computations can lead to unsound results.
+In future versions of the tool,
+numerical errors due to floating point arithmetic need
 to be handled properly.
 % can be eliminated
 % by and hence the computed eigenvalues and eigenvectors
 % can have numerical errors.  
-(d) Other techniques for discovering relational
-invariants can be included to complement the current procedure.
-% that are not automated in our tool presently.
-(e) Support for nonlinear differential equations is required to
-analyze more complex hybrid models.
-% Our tool % is restricted to handling linear differential equations.  % It
-% can not handle nonlinear differential equations presently.
-(f) We also need support to efficiently handle platform constraints
-imposed on control systems, such as sampling frequency, 
-sensing and actuation delays, etc~\cite{ZST12:CAV}.% .  The theory of 
+\item[Nonlinearity.]
+Our tool is restricted to handling linear differential equations.  It
+can not handle nonlinear differential equations presently.
+There is a need to develop support for nonlinear differential equations 
+to analyze more complex hybrid models.
+\end{description}
+
+We remark here that scalability is not an issue for
+computing relational abstractions.  It can be shown that relational
+abstractions can be computed in polynomial (cubic) time.
+The process of computing the abstraction is generally fast.
+It is the verification of the abstraction, discussed more in the next section,
+that causes scalability concerns.
 
 
 \section{The SAL Model Checking Tools}
+\label{sec-sal}
 
+The SAL model generated by the relational abstraction tool
+is analyzed using the SAL model checkers.
+In this section, we briefly describe the tools and their 
+available options for analyzing the output of the relational
+abstraction tool.
+
+Recall that the relational abstraction model has the {\em{same}}
+state space as the original model.  Only the transitions are
+abstracted.  Hence, the SAL model is an infinite state system.
+Standard model checkers, which can handle only finite state systems,
+can not be used to verify the abstract models.
+
+The SAL tool suite provides two techniques for verifying infinite
+state systems.
+\begin{description}
+\item[Infinite bounded model checking.]
+Infinite bounded model checking is used to verify the safety property
+upto a fixed finite depth.  If the safety property is not true, and
+there is a violation of the property that is exhibited by a trajectory
+making at most $d$ discrete mode switches, then 
+preforming infinite bounded model checking with depth $d$ will
+discover the violation.
+However, infinite bounded model checking can not, by itself, 
+prove the safety property.  It can only show that there are no
+violations of the safety property for certain bounded behaviors.
+The tool {\tt{sal-inf-bmc}} is an infinite bounded model checker
+for SAL.
+\item[k-induction.]
+A safety property can be proved of a model using k-induction.
+The principle of k-induction is a generalization of the standard
+1-step induction.  A successful proof using k-induction can
+demonstrate that there is no violation of the safety property
+for any {\em{arbitrary}} depth.
+With the {\tt{-i}} flag, the tool {\tt{sal-inf-bmc -i}}
+becomes a k-induction prover.
+\end{description}
+
+\subsection{{\tt{sal-inf-bmc}}: Limitations of SAL Verification Tools}
+
+There are certain limitations of the SAL verification tools.
+\begin{description}
+\item[Scalability.]
+Relational abstraction generates verification 
+problem on a discrete, infinite state space system, which are difficult to
+verify automatically.  
+In this project, we have used k-induction and infinite bounded
+model checking.  The scalability of these techniques is limited
+since 
+the SMT formulas generated (from the SAL model by the infinite
+bounded model checker or the k-induction prover) can be very large.
+The use of k-induction can require the need for auxiliary lemmas.  
+In the future, we plan to develop dedicated methods for generating 
+invariants and for performing abstract interpretation 
+that are tailored to analyzing relational abstractions.
+\item[Expressiveness.]
+The approach of verification based on abstraction and model checking
+can only be used to verification of {\em{safety}} properties.
+While safety properties constitute the majority of the requirements,
+there are other properties (liveness) that are some times useful,
+which presently can not be analyzed using our approach.
+\end{description}
 
 \section{Drivetrain Case Study}
 
@@ -1488,8 +1775,22 @@ SAL tools can be used to analyze the generated abstract file.
 We note that these two tools use Yices as their background 
 satisfiability modulo theory (SMT) constraint solver.
 
-We have described the modeling aspect of the drivetrain case study.
-Analysis results will be presented later.
+\section{Conclusion}
+We presented the three components of the HybridSal relational abstraction
+verification tool: 
+\\
+(a) A translator that converts Modelica models into HybridSal models
+\\
+(b) A relational abstraction tool that converts a HybridSal model into a SAL model
+and
+\\
+(c) An infinite bounded model checking based verification tool for analyzing
+infinite state SAL models.
+\\
+Each of these three components can be used independently. However,
+our verification tool internally composes these three parts and
+directly verifies safety properties of Modelica models.
+It currently runs on all platforms, Linux, Mac, and Windows.
 
 
 \bibliographystyle{abbrv}
@@ -1499,14 +1800,17 @@ Analysis results will be presented later.
 %%\appendix{Proofs of Claims}
 %%\input{proofs}
 
+
 \appendix
 \section{HybridSAL relational abstracter man pages}
 \label{app:1}
 
+\begin{tt}
 \begin{verbatim}
--------------------------------------------------------------------------
+------------------------------------------------------------------
 NAME
-        bin/hsal2hasal - construct relational abstraction of HybridSAL models
+        bin/hsal2hasal - construct relational abstraction of 
+                         HybridSAL models
 
 SYNOPSIS
         bin/hasal [OPTION]... [FILE]
@@ -1514,8 +1818,8 @@ SYNOPSIS
 DESCRIPTION
         Construct a relational abstraction of the model in [FILE].
         Create a new SAL file containing the abstract model.
-        Input file is expected to be in HybridSAL (.hsal) syntax, or
-        HybridSAL's XML representation (.hxml).
+        Input file is expected to be in HybridSAL (.hsal) syntax, 
+        or HybridSAL's XML representation (.hxml).
         The new file will have the same name as [FILE], but
         a different extension, .sal
 
@@ -1542,42 +1846,42 @@ AUTHOR
         Written by Ashish Tiwari
 
 REPORTING BUGS
-        Report bin/hsal2hasal bugs to ashish_dot_tiwari_at_sri_dot_com
+        Report bugs to ashish_dot_tiwari_at_sri_dot_com
 
 COPYRIGHT
         Copyright © 2011 Ashish Tiwari, SRI International.
 
--------------------------------------------------------------------------
+------------------------------------------------------------------
 
 NAME
-        hybridsal2xml/hybridsal2xml - convert hybridsal into XML format
+        hybridsal2xml - convert hybridsal into XML format
 
 SYNOPSIS
-        hybridsal2xml/hybridsal2xml [OPTION]... [FILE]
+        hybridsal2xml [OPTION]... [FILE]
 
 DESCRIPTION
         Parse the HybridSAL file [FILE] (with .hsal extension) and
-        create a new file containing the XML representation of [FILE].
+        create a new file containing its XML representation.
         The new file will have the same name as [FILE], but
         a different extension, namely .hxml.
 
         Options include:
         -o <filename>
-            Save the XML in file <filename>, rather than the default name.
+            Save the XML in file <filename>
 
 AUTHOR
         Written by Ashish Tiwari
 
 REPORTING BUGS
-        Report hybridsal2xml bugs to ashish_dot_tiwari_at_sri_dot_com
+        Report bugs to ashish_dot_tiwari_at_sri_dot_com
 
 COPYRIGHT
         Copyright © 2011 Ashish Tiwari, SRI International.
 
--------------------------------------------------------------------------
+------------------------------------------------------------------
 
 NAME
-        bin/hxml2hsal - convert hybridsal in XML to standard notation
+        bin/hxml2hsal - convert hybridsal XML to standard notation
 
 SYNOPSIS
         bin/hxml2hsal [FILE]
@@ -1594,39 +1898,66 @@ AUTHOR
         Written by Ashish Tiwari
 
 REPORTING BUGS
-        Report bin/hxml2hsal bugs to ashish_dot_tiwari_at_sri_dot_com
+        Report bugs to ashish_dot_tiwari_at_sri_dot_com
 
 COPYRIGHT
         Copyright © 2011 Ashish Tiwari, SRI International.
 
--------------------------------------------------------------------------
+------------------------------------------------------------------
 
 NAME
-        bin/hasal2sal - convert hybridsal in XML to standard notation
+        bin/hasal2sal - Extract SAL from HybridSal
 
 SYNOPSIS
         bin/hasal2sal [FILE]
 
 DESCRIPTION
-        Extract the discrete part of the transition system contained in
-        the hybrid abstract HybridSAL file [FILE], with .hasal extension, 
-        and pretty print it.
+        Extract the discrete part of the transition system 
+        contained in the hybrid abstract HybridSAL file [FILE], 
+        with .hasal extension, and pretty print it.
         The input is assumed to be a file with extension .hasal
         The output is written in a new file that has the same
         name as [FILE], but a different extension, namely .sal.
 
-        There is no analysis performed; it is a purely syntactic extraction.
+        There is no analysis performed; it is a purely 
+        syntactic extraction.
 
 AUTHOR
         Written by Ashish Tiwari
 
 REPORTING BUGS
-        Report bin/hasal2sal bugs to ashish_dot_tiwari_at_sri_dot_com
+        Report bugs to ashish_dot_tiwari_at_sri_dot_com
 
 COPYRIGHT
         Copyright © 2011 Ashish Tiwari, SRI International.
--------------------------------------------------------------------------
+------------------------------------------------------------------
+modelica2hsal -- a converter from Modelica to HybridSal
+
+NAME
+        bin/modelica2hsal - convert Modelica XML to Hybridsal 
+
+SYNOPSIS
+        bin/modelica2hsal <Modelica.xml> [<context-property-file>]
+                [--addTime|--removeTime]
+
+DESCRIPTION
+        Converts Modelica model in <Modelica.xml> to HybridSal. 
+        The optional argument <context-property-file> is a file 
+        containing the context model and property: in json or xml.
+        The optional argument --addTime assumes time as an 
+        implicitly defined variable.
+        The optional argument --removeTime removes the time 
+        variable and all equations containing time before 
+        performing the translation to HybridSal.
+
+AUTHOR
+        Written by Ashish Tiwari
+
+COPYRIGHT
+        Copyright © 2011 Ashish Tiwari, SRI International.
+------------------------------------------------------------------
 \end{verbatim}
+\end{tt}
 
 \ignore{
 \appendix
