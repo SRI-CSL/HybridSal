@@ -4,7 +4,6 @@ BEGIN
 control: MODULE =
 BEGIN
 LOCAL x,y:REAL
-LOCAL xdot,ydot:REAL
 INITIALIZATION
   x = 1; y = 2
 TRANSITION

@@ -101,7 +101,7 @@ def d_identifier_access(s, nodes):
 def d_IDENTIFIER(t, s, nodes):
     'IDENTIFIER :\
         "\\\\[^ ]+ " |\
-        "[a-zA-Z_][a-zA-Z_0-9]*" '
+        "[a-zA-Z_$][a-zA-Z_0-9]*" '
     return s[0]
 
 def d_ACCESS(s, nodes):
@@ -324,6 +324,7 @@ def dae2daexml(filename):
     dom = impl.createDocument(None, "daexml", None)
     with open(filename, 'r') as f:
         x = f.read()
+        # x = x.replace('$','S')	# $dummy variables -> Sdummy variables
     try:
         y = Parser().parse(x)    # y is now a dparser.ParsedStructure instance
     # except Exception, e:

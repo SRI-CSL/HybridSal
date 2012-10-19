@@ -20,11 +20,13 @@ import HSalRelAbsCons
 import copy
 sys.path.append('/usr/lib/python-support/python-glpk/python2.6')
 import glpk
+import math
 #import polyrep2XML
 
 simpleDefinitionLhsVar = HSalExtractRelAbs.SimpleDefinitionLhsVar
 isCont = HSalExtractRelAbs.isCont
 
+INFTY = 1e10
 # def mystr(k):
     # """return floating value k as a string; str(k) uses e notation
        # use 8 decimal places"""
@@ -593,11 +595,145 @@ class Direction:
         return self.d.keys()
     def get_linear(self):
         return self.d
+    def get_description(self):
+        return self.description
+    def get_rate(self):
+        return self.rate
     def tostr(self):
         ans = self.description
         for (k,v) in self.d.items():
-            ans += ' + {0} {1}'.format(v,k)
+            ans += '+ {0:.2}{1:.2} '.format(float(v),k)
         return  ans
+
+def time2reach(rate, lb1, ub1, lb2, ub2, kind):
+    if kind == 'eigen':
+        (tmin, tmax) = time2reach_eigen(rate, lb1, ub1, lb2, ub2)
+    elif kind == 'multi':
+        (tmin, tmax) = time2reach_multi(rate, lb1, ub1, lb2, ub2)
+    return (tmin, tmax)
+
+def intersect(lb1, ub1, lb2, ub2):
+    ub = min(ub1, ub2)
+    lb = max(lb1, lb2)
+    return (lb,ub) if (lb <= ub) else False
+
+def time2reach_multi(rate, lb1, ub1, lb2, ub2):
+    lb1_r = -INFTY if rate < 0 else lb1
+    ub1_r =  INFTY if rate > 0 else ub1
+    reachAndUnsafe = intersect(lb1_r, ub1_r, lb2, ub2)
+    if reachAndUnsafe == False or ub1 < lb1 or ub2 < lb2:
+        return (INFTY, 0)
+    elif rate > 0:
+        tmin = max( [0, (reachAndUnsafe[0] - ub1)/rate ] )
+        tmax = (reachAndUnsafe[1] - lb1)/rate if reachAndUnsafe[1] != INFTY and lb1 != -INFTY else INFTY
+    elif rate < 0:
+        tmin = max( [0, (reachAndUnsafe[1] - lb1)/rate ] )
+        tmax = (reachAndUnsafe[0] - ub1)/rate if reachAndUnsafe[0] != -INFTY and ub1 != INFTY else INFTY
+    else: # rate == 0
+        tmin, tmax = 0, INFTY
+    return (tmin, tmax)
+
+def time2reach_eigen(rate, lb1, ub1, lb2, ub2):
+    '''if undefined, then lb1 is INFTY'''
+    def reach_set(rate, lb, ub):
+        '''compute interval representing all reachable states'''
+        newlb = lb
+        newub = ub
+        if rate > 0:
+            newub = INFTY if ub > 0 and lb <= ub else newub
+            newlb = -INFTY if lb < 0 and lb <= ub else newlb
+        elif rate < 0:
+            newub = 0 if ub <= 0 and lb <= ub else newub
+            newlb = 0 if lb >= 0 and lb <= ub else newlb
+        return (newlb, newub)
+    (lb1_r, ub1_r) = reach_set(rate, lb1, ub1)
+    reachUnsafe = intersect(lb1_r, ub1_r, lb2, ub2)
+    if reachUnsafe == False or lb1 > ub1 or lb2 > ub2:
+        tmin, tmax = INFTY, 0
+        return (tmin, tmax)
+    initUnsafe = intersect(lb1, ub1, lb2, ub2)
+    if initUnsafe != False:
+        tmin = 0	# min-time-to-reach is zero
+    elif ub1 < lb2:	# lb2,ub2 is on the RIGHT 
+        tmin = math.log(lb2/ub1)/rate if lb2 != 0 else INFTY
+    elif ub2 < lb1:	# lb2,ub2 is on the LEFT
+        tmin = math.log(ub2/lb1)/rate if ub2 != 0 else INFTY
+    else:
+        assert False, 'Unreachable code'
+    if rate == 0:
+        tmax = INFTY if tmin == 0 else 0
+    elif reachUnsafe[0] <= 0 and reachUnsafe[1] >= 0:
+        tmax = INFTY	# can not exit 0 in finite time
+    elif reachUnsafe[0] == -INFTY or reachUnsafe[1] == INFTY:
+        tmax = INFTY
+    elif rate > 0 and reachUnsafe[0] > 0:
+        tmax = math.log(reachUnsafe[1]/lb1)/rate if lb1 > 0 else INFTY
+    elif rate > 0 and reachUnsafe[1] < 0:
+        tmax = math.log(reachUnsafe[0]/ub1)/rate if ub1 < 0 else INFTY
+    elif rate < 0 and reachUnsafe[0] > 0:
+        tmax = math.log(reachUnsafe[0]/ub1)/rate if ub1 != INFTY else INFTY
+    elif rate < 0 and reachUnsafe[1] < 0:
+        tmax = math.log(reachUnsafe[1]/lb1)/rate if lb1 != -INFTY else INFTY
+    else: # rate != 0 and reachUnsafe limits are not INFTY and are on ONLY one side of 0 !!
+        assert False, 'Unreachable code lb1={0},ub1={1},lb2={2},ub2={3}'.format(lb1,ub1,lb2,ub2)
+    return (tmin, tmax)
+
+# over_approx = map from region to BoxTreeNode
+# BoxTreeNode = dictionary from directions to (lb,ub); + children=refinements
+# over_approx can be refined as we progress; i.e.,
+# BoxTreeNode can spawn new children
+class BoxTreeNode:
+    def __init__(self, d, region):
+        self.d = d		# dict from direction to (lb,ub)
+        self.children = []
+        self.n = 0		# number of children
+        self.region = region	# back pointer to the region I am approximating
+    def get_children(self):
+        return self.children
+    def is_refined(self):
+        return self.n != 0
+    def get_box(self):
+        return self.d
+    def set_children(self, boxes):
+        assert self.n == 0 and self.children == []
+        self.n = len(boxes)
+        self.children = boxes
+    def intersects(self, btn):
+        '''does self intersect the given btn in any future time?'''
+        ans = True
+        unsafe = btn.get_box()
+        tlbs, tubs = [], []
+        for (d, (lb,ub)) in self.d.items():
+            (lb1,ub1) = unsafe[d]
+            kind = d.get_description()
+            if kind == 'eigen' or kind == 'multi':
+                rate = d.get_rate()
+                (tmin,tmax) = time2reach(rate, lb, ub, lb1, ub1, kind)
+                if tmin == INFTY:
+                    ans = False
+                    break
+                tlbs.append( tmin )
+                tubs.append( tmax )
+            else:
+                print 'Warning: Quadratic case code missing'
+        if ans == False:
+            return False
+        tmin = max( tlbs )
+        tmax = min( tubs )
+        if tmin > tmax:
+            return False
+        elif tmin == tmax:
+            print 'Warning: Potentially unsafe after T = {0} time units, assuming safe'.format(tmin)
+            return False
+        return (tmin,tmax)
+    def tostr(self):
+        ans = ''
+        for (k1,v1) in self.d.items():		# k1 = direction, v1 = (lb,ub)
+            ans += '  {0} : ({1[0]:.2},{1[1]:.2}),\n'.format(k1.tostr(),v1)
+        ans += ' Number of children = {0}'.format(self.n)
+        for c in self.children:
+            ans += c.tostr()
+        return ans
 
 class CDS_Reach:
     def __init__(self, cds):
@@ -619,11 +755,20 @@ class CDS_Reach:
             self.directions.append( Direction(vec, val1, 'quad1', buddy=d) )
     def get_directions(self):
         return self.directions
+    def over_dnf(self, dnf ):
+        ddp = dnf.over_approx( self.cds.x, self.directions, self.cds.getmodeinv() )
+        for k in ddp.keys():	# for each region
+            ddp[k] = BoxTreeNode(ddp[k], k)
+        return ddp
+    def get_over_init(self):
+        return self.over_init
     def set_over_init(self):
-        self.over_init = self.cds.getinit().over_approx(self.cds.x, self.directions,self.cds.getmodeinv())
+        self.over_init = self.over_dnf(self.cds.getinit())
+    def get_over_unsafe(self):
+        return self.over_unsafe
     def set_over_unsafe(self):
         assert self.unsafe != None
-        self.over_unsafe = self.unsafe.over_approx(self.cds.x, self.directions,self.cds.getmodeinv())
+        self.over_unsafe = self.over_dnf(self.unsafe)
     def set_all(self):
         self.set_directions()
         self.set_over_init()
@@ -631,10 +776,10 @@ class CDS_Reach:
     def toStr(self):
         def over_tostr( dictOfdictOfpairs ):
             ans = ''
-            for (k,v) in dictOfdictOfpairs.items():
-                ans += '\n  {0}-> '.format(k.tostr())	# region 
-                for (k1,v1) in v.items():
-                    ans += '{0}:{1}, '.format(k1.tostr(),v1) # direction:(lb,ub)
+            for (k,v) in dictOfdictOfpairs.items():		# k=region; v=BoxTreeNode
+                ans += '\n  {0} -> [\n'.format(k.tostr())	# region 
+                ans += v.tostr()				# BoxTreeNode
+                ans += ']\n'
             return ans
         ans = self.cds.toStr()
         ans += '\nDirections of interest:'
@@ -648,6 +793,23 @@ def safety_check(cds):
     cdsr = CDS_Reach(cds)
     cdsr.set_all()
     print cdsr.toStr()
+    # call btn.intersects...
+    over_init = cdsr.get_over_init()	# map from region to BoxTreenode
+    over_unsafe = cdsr.get_over_unsafe()
+    isSafe = True
+    for (region, btn) in over_init.items():
+        for (region2, btn2) in over_unsafe.items():
+            ans = btn.intersects(btn2)
+            isSafe = isSafe and ans == False
+            if ans != False:
+                print 'Need refinement: intersection = {0}'.format(ans)
+                print 'Potential counter-example:'
+                print 'Starting region: {0}'.format(region.tostr())
+                print 'Unsafe region: {0}'.format(region2.tostr())
+    if isSafe:
+        print 'Property proved!'
+    else:
+        print 'Need refinement to get concrete CE or proof'.format(ans)
 # -----------------------------------------------------------------------------------
 
 # -----------------------------------------------------------------------------------
@@ -679,8 +841,8 @@ def lp_min_max_dnf(x, minmax, direction, region, dnf):
         lb.append( lp_solve(prob) )
         glpk.glp_set_obj_dir(prob, glpk.GLP_MAX)	# maximize or minimize
         ub.append( lp_solve(prob) )
-    final_ub = max( ub ) if ub != [] else 1e10
-    final_lb = min( lb ) if lb != [] else -1e10
+    final_ub = max( ub ) if ub != [] else INFTY
+    final_lb = min( lb ) if lb != [] else -INFTY
     glpk.glp_delete_prob(prob)
     return (final_lb, final_ub)
 
@@ -720,7 +882,7 @@ def lp_solve(prob):
         sys.exit(1)
     elif status == glpk.GLP_UNBND:
         minmax = glpk.glp_get_obj_dir(prob)
-        ans = 1e10 if minmax == glpk.GLP_MAX else -1e10
+        ans = INFTY if minmax == glpk.GLP_MAX else -INFTY
         return ans
     else:
         lp_prob_print(prob)
@@ -789,6 +951,9 @@ def lp_prob_print(prob):
         for j in range(l):
             print 'row {0}: {1} {2}'.format(i+1, ind[j+1], val[j+1])
     return
+# -----------------------------------------------------------------------------------
+
+# -----------------------------------------------------------------------------------
 # -----------------------------------------------------------------------------------
 
 # -----------------------------------------------------------------------------------

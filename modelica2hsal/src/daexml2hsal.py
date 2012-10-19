@@ -69,7 +69,9 @@ def getPredsInConds(contEqns):
             s11 = valueOf(getArg(a1,1)).strip()
             a11 = getArg(a1,2)
             a12 = getArg(a1,3)
-            if a12.tagName == 'identifier' and a11.tagName == 'number':
+            if (a12.tagName == 'identifier' and a11.tagName == 'number') or (a12.tagName == 'number' and a11.tagName == 'identifier'):
+                if (a12.tagName == 'number' and a11.tagName == 'identifier'):
+                    a11, a12 = a12, a11
                 name = valueOf(a12).strip()
                 val1 = float(valueOf(a11))
                 val2 = float(valueOf(a2))
@@ -91,7 +93,7 @@ def getPredsInConds(contEqns):
                 val = float(valueOf(a2))
                 return add2Preds(preds, (s11,name1,name2), val)
             else:
-                assert False, 'MISSING BAPP CODE: Found {0} expression.'.format(daexmlPP.ppExpr(c))
+                assert False, 'MISSING BAPP CODE: Found {0} expression...'.format(daexmlPP.ppExpr(c))
         elif s1 in ['>', '<'] and a2.tagName == 'number' and a1.tagName == 'number':
             return preds
         else:
@@ -300,7 +302,7 @@ def preprocessEqnNEW(eL,cstate,dstate):
                 p[x] = c/d
             return p
         else:
-            assert False, 'Error: Unknown binary operator {0}; cannot handle'.format(op)
+            assert False, 'Error: Unknown binary operator {0} applied on {1},{2}; cannot handle'.format(op, p, q)
     def polyrepUOp(op,p):
         if op == '-':
             for (x,c) in p.items():
@@ -1027,11 +1029,11 @@ def createPlant(state, ceqns, oeqns, iEqns = {}):
     others[:] = filter(None, others)
     # now I have the substitution in others; apply it to ode
     # ans += others2saldef(others)
-    print '#####-----****************ode', ode
+    # print '#####-----****************ode', ode
     newode = [(var,applySubstitution(val, others)) for (var,val) in ode]
-    print '#####-----****************newode', newode
+    # print '#####-----****************newode', newode
     finalode = myproduct(newode)
-    print '#####-----****************finalode', finalode
+    # print '#####-----****************finalode', finalode
     ans  += "\n  TRANSITION\n  ["
     first = True
     for (p,n,vvl) in finalode:
@@ -1083,8 +1085,10 @@ def convert2hsal(dom1, dom2, dom3 = None):
      return (HSal,PropHSal) as strings'''
     def alpha_rename_aux(ans, ans2, bools):
         for i in bools:
-            if i.find('.') is not -1:
-                j = i.replace('.','_')
+            j = i.replace('.','_')
+            j = j.replace('$','S')
+            if i != j:
+                # j = i.replace('.','_')
                 ans = ans.replace(i, j)
                 ans2 = ans2.replace(i, j)
         return (ans, ans2)
@@ -1321,7 +1325,9 @@ def create_output_file(filename, hsalstr, propStr = ''):
             print >> sys.stderr, "Renaming old file to {0}.".format(filename+"~")
             shutil.move(filename, filename + "~")
     basename,ext = os.path.splitext(filename)
-    basename = basename.replace('.','_')
+    dirname, filebasename = os.path.split(basename)
+    filebasename = filebasename.replace('.','_')
+    basename = os.path.join(dirname, filebasename)
     basename += "Model"
     outfile = basename + ".hsal"
     moveIfExists(outfile)

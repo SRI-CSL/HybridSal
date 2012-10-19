@@ -22,6 +22,8 @@ all : HybridSalTokenTypes.class \
       HybridSalParser.class \
       XmlAst.class \
       HybridSal2Xml.class
+	# ln -s antlr-2.7.1/antlr antlr
+	jar cfm hybridsal2xml.jar Manifest.txt *.class antlr
 
 install: all
 	sed -e "s|__HYBRIDSAL_PATH__|${PWD}|g;s|__ANTLRPATH__|${ANTLRPATH}|g" hybridsal2xml.template > hybridsal2xml

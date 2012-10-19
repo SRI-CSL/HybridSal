@@ -1,6 +1,11 @@
 %% This is HYBRID SAL, differs from standard SAL.
 SimpleThermo4:CONTEXT = 
 BEGIN
+
+flap_config: TYPE = {retracted, extended};
+
+% posreal: TYPE = {x: REAL | x >= 0};
+
 control : MODULE =
  BEGIN
  LOCAL state : BOOLEAN
@@ -11,11 +16,14 @@ control : MODULE =
 %% 71 <= x AND x <= 79
  INITFORMULA
 	70 <= x AND x <= 80 AND state = TRUE
+ DEFINITION xdot = 3 ;
  TRANSITION
 	[
+        d1:
 	state = TRUE AND x >= 80 -->
 		state' = FALSE
 	[]
+        d2:
 	state = FALSE AND x <= 70 -->
 		state' = TRUE
 	[]

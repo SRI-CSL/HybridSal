@@ -18,6 +18,12 @@
 // --------------------------------------------------------------------
 
 // ASHISH: 2.3.12: Added 'elseexpression' to correctly parse "ELSE -->" in SAL
+// ASHISH: 10.18.13: CHANGED typedef - setpredexp/setlistexpr replace scalartype
+// ASHISH: 10.19.13: Changed 'definitions' to allow for trailing SEMI
+// ASHISH: 10.19.13: Introduced NT definitionorcommands 
+// ASHISH: 10.19.13: Changed rule for transdecl and initdecl
+// ASHISH: 10.19.13: ALL above changes were done to enable trailing SEMI
+
 
 /* -*- Mode: Java -*- */
 // HybridSAL Parser
@@ -662,8 +668,12 @@ moduleDeclaration! :
 
 // Types
 
+// ASHISH: ADDING setexpression to typedef to parse John's a320sp.sal
+// ASHISH: REMOVING scalartype since it is subsumed by setexpression?
+// Originally it was:  type | scalartype | datatype ;
+// datatype includes scalartype???
 typedef :
-  type | scalartype | datatype ;
+  type | setexpression | datatype ;
 
 type :
   basictype
@@ -1132,8 +1142,13 @@ foralldefinition
 definition :
   simpleDefinition | foralldefinition ;
 
+// ASHISH: Originally it was  // definition (SEMI! definition)* ;
+// ASHISH: Changed it to below to allow trailing SEMI
 definitions :
-  definition (SEMI! definition)* ;
+  ( (definition SEMI definition)=> definition SEMI! definitions
+  | (definition SEMI)=> definition SEMI!
+  | definition
+  );
 
 guard :
   (expression | elseexpression)
@@ -1141,7 +1156,10 @@ guard :
    setPlaceAttribute(#guard);};
 
 assignments :
-  simpleDefinition (SEMI! simpleDefinition)*
+  // simpleDefinition (SEMI! simpleDefinition)* 
+  ((simpleDefinition SEMI simpleDefinition)=> simpleDefinition SEMI! assignments
+  | (simpleDefinition SEMI)=> simpleDefinition SEMI!
+  | simpleDefinition)
     {#assignments = #(#[ASSIGNMENTS,"ASSIGNMENTS"],#assignments);
      setPlaceAttribute(#assignments);};
 
@@ -1182,8 +1200,13 @@ basemodule
 {#basemodule=#(#[BASEMODULE,"BASEMODULE"],#basemodule);
  setPlaceAttribute(#basemodule,sLine,sCol,eLine,eCol);};
 
+// ASHISH: Initially it was just (basedeclaration)* ;
+// I changed it to below to accomodate EXTRA ; at end of declarations
 basedeclarations :
   (basedeclaration)* ;
+  // ( (basedeclaration SEMI)=> basedeclaration SEMI basedeclarations
+  // | basedeclaration basedeclarations
+  // );
 
 basedeclaration :
   inputdecl | outputdecl | globaldecl | localdecl | defdecl | invardecl
@@ -1330,7 +1353,8 @@ initfordecl
 initdecl 
   {int sLine=0, sCol=0;} :
   "INITIALIZATION"! {sLine = LT(0).getLine(); sCol = LT(0).getColumn();}     
-  definitionorcommand (SEMI! definitionorcommand)*
+   // definitionorcommand (SEMI! definitionorcommand)*
+   definitionorcommands
   { XmlAst tmp = #initdecl;
     setPlaceAttribute(tmp);
     #initdecl = #(#[INITDECL,"INITDECL"], #initdecl);
@@ -1339,7 +1363,8 @@ initdecl
 transdecl 
   {int sLine=0, sCol=0;} :
   "TRANSITION"! {sLine = LT(0).getLine(); sCol = LT(0).getColumn();}     
-  definitionorcommand (SEMI! definitionorcommand)*
+   //definitionorcommand (SEMI! definitionorcommand)*
+   definitionorcommands
   { XmlAst tmp = #transdecl;
     setPlaceAttribute(tmp);
     #transdecl = #(#[TRANSDECL,"TRANSDECL"],#transdecl);
@@ -1367,6 +1392,12 @@ multicommand :
   LB! guardedcommand (SYNC! guardedcommand)* RB!
   {#multicommand = #(#[MULTICOMMAND,"MULTICOMMAND"],#multicommand);
    setPlaceAttribute(#multicommand);};
+
+definitionorcommands:
+  ( (definitionorcommand SEMI definitionorcommand)=> definitionorcommand SEMI! definitionorcommands
+  | (definitionorcommand SEMI)=> definitionorcommand SEMI!
+  | definitionorcommand
+  ) ;
 
 definitionorcommand
   {int sLine=0, sCol=0, eLine=0, eCol=0;} :

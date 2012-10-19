@@ -52,10 +52,12 @@ BEGIN
      direction' = FALSE
  [] vx >= 0 AND vx' >= 0 AND x' >= 1 AND x' <= 3/2 -->
      direction' = TRUE  
- [] vx > 0 AND vx' = 0 AND x' >= x -->
- [] vx < 0 AND vx' = 0 AND x' <= x -->
- [] (vx <= 0 AND vx' <= 0 AND x' <= x) OR (vx >= 0 AND vx' >= 0 AND x' >= x) -->
-     flag' = FALSE
+ [] vx >= 0 AND vx' >= 0 AND x' >= x -->
+ [] vx <= 0 AND vx' <= 0 AND x' <= x -->
+ % [] vx > 0 AND vx' = 0 AND x' >= x -->
+ % [] vx < 0 AND vx' = 0 AND x' <= x -->
+ %[] (vx <= 0 AND vx' <= 0 AND x' <= x) OR (vx >= 0 AND vx' >= 0 AND x' >= x) -->
+     %flag' = FALSE
  ]
  END;
 

@@ -1207,18 +1207,18 @@ def simplifydaexml(dom1, filename):
         eqns.appendChild(i)
     # end of additional code
     dom = SimplifyEqnsPPDaeXML(dom, cstate, dstate)
-    print '-------------Simplification Phase 1 over...printing equations...'
-    daexmlPP.source_textPP(dom)
-    print '-----------------------------------------------------------------'
+    print '-------------Simplification Phase 1 over......'
+    # daexmlPP.source_textPP(dom)
+    # print '-----------------------------------------------------------------'
     # dom = SimplifyEqnsPhase2(dom)
     # dom = SimplifyEqnsPhase3(dom)
     print 'cstate = {0}'.format(cstate)
     print 'dstate = {0}'.format(dstate)
     dom = SimplifyEqnsPhase4(dom, cstate, dstate)
-    print '-----------------------------------------------------------------'
-    print 'Simplification Phase 2 over...printing equations...'
-    daexmlPP.source_textPP(dom)
-    print '-----------------------------------------------------------------'
+    #print '-----------------------------------------------------------------'
+    print '-------------Simplification Phase 2 over......'
+    # daexmlPP.source_textPP(dom)
+    # print '-----------------------------------------------------------------'
     dom = SimplifyEqnsPhase5(dom, cstate, dstate)
     print '-----------------------------------------------------------------'
     print 'Simplification Phase 3 over...printing equations...'
