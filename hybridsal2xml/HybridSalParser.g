@@ -1500,9 +1500,9 @@ protected ALPHANUM: (ALPHA|'0'..'9'|'?'|'_');
 
 // logical operators
 AND : ("AND" ALPHANUM) => "AND" (ALPHANUM)+ {$setType(IDENTIFIER);}
-    | "AND" ;
+    | "AND" | "and" ;
 OR : ("OR" ALPHANUM) => "OR" (ALPHANUM)+ {$setType(IDENTIFIER);}
-   | "OR";
+   | "OR" | "or" ;
 XOR : ("XOR" ALPHANUM) => "XOR" (ALPHANUM)+ {$setType(IDENTIFIER);}
     | "XOR";
 NOT : ("NOT" ALPHANUM) => "NOT" (ALPHANUM)+ {$setType(IDENTIFIER);}

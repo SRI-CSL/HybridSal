@@ -216,7 +216,7 @@ tryAgain:
 					break;
 				}
 				default:
-					if ((LA(1)=='A') && (LA(2)=='N') && (LA(3)=='D')) {
+					if ((LA(1)=='A'||LA(1)=='a') && (LA(2)=='N'||LA(2)=='n') && (LA(3)=='D'||LA(3)=='d')) {
 						mAND(true);
 						theRetToken=_returnToken;
 					}
@@ -248,7 +248,7 @@ tryAgain:
 						mRECEXE(true);
 						theRetToken=_returnToken;
 					}
-					else if ((LA(1)=='O') && (LA(2)=='R') && (true)) {
+					else if ((LA(1)=='O'||LA(1)=='o') && (LA(2)=='R'||LA(2)=='r') && (true)) {
 						mOR(true);
 						theRetToken=_returnToken;
 					}
@@ -872,6 +872,9 @@ tryAgain:
 		else if ((LA(1)=='A') && (LA(2)=='N') && (LA(3)=='D')) {
 			match("AND");
 		}
+		else if ((LA(1)=='a')) {
+			match("and");
+		}
 		else {
 			throw new NoViableAltForCharException((char)LA(1), getFilename(), getLine());
 		}
@@ -927,6 +930,9 @@ tryAgain:
 		}
 		else if ((LA(1)=='O') && (LA(2)=='R') && (true)) {
 			match("OR");
+		}
+		else if ((LA(1)=='o')) {
+			match("or");
 		}
 		else {
 			throw new NoViableAltForCharException((char)LA(1), getFilename(), getLine());

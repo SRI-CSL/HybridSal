@@ -909,10 +909,11 @@ def handleBasemodule(basemod, ctxt):
     for i in cbody:
         if isCont(i):
             absGC = absGuardedCommand(i, inputs, basemod)
+            if absGC == None:
+                continue
             parentNode = i.parentNode
             if parentNode.localName == 'MULTICOMMAND':
-                if not(absGC == None):
-                    parentNode.appendChild(absGC)
+                parentNode.appendChild(absGC)
                 # print "Parent is a multicommand"
             elif parentNode.localName == 'SOMECOMMANDS':
                 # print "Parent is SOMECOMMANDS"
@@ -921,6 +922,24 @@ def handleBasemodule(basemod, ctxt):
                 newnode.appendChild(oldChild)
                 newnode.appendChild(absGC)
                 parentNode.replaceChild(newChild=newnode, oldChild=i)
+            elif parentNode.localName == 'LABELEDCOMMAND':
+                absGCNew = ctxt.createElement("LABELEDCOMMAND")
+                label = parentNode.getElementsByTagName('LABEL')[0]
+                newlabel = label.cloneNode(True)
+                absGCNew.appendChild(newlabel)
+                absGCNew.appendChild(absGC)
+                absGC = absGCNew
+                grandparentNode = parentNode.parentNode
+                if grandparentNode.localName == 'MULTICOMMAND':
+                    grandparentNode.appendChild(absGC)	# should add LABELED
+                elif grandparentNode.localName == 'SOMECOMMANDS':
+                    newnode = ctxt.createElement("MULTICOMMAND")
+                    oldChild = parentNode.cloneNode(True)
+                    newnode.appendChild(oldChild)
+                    newnode.appendChild(absGC)
+                    grandparentNode.replaceChild(newChild=newnode, oldChild=parentNode)
+                else:
+                    print "Unknown grandparent node type"
             else:
                 print "Unknown parent node type"
 

@@ -33,7 +33,10 @@ def isCont(gcmd):
         return(1)
 
 def handleTransDecl(tdecl):
-    somecmds = tdecl.getElementsByTagName("SOMECOMMANDS")[0]
+    somecmds = tdecl.getElementsByTagName("SOMECOMMANDS")
+    if somecmds == None or len(somecmds) == 0:
+        return	# in this case, tdecl just has SIMPLEDEFINITIONS, so continue
+    somecmds = somecmds[0]
     cmds = somecmds.childNodes
     for i in cmds:
         #if i.localName == "GUARDEDCOMMAND":

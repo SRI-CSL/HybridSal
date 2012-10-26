@@ -12,7 +12,7 @@ import sys
 #   From this file, you can safely use HSalPPContext; 
 #   For using other functions, need to set fp
 
-precedence = ['/', '*', '-', '+', '>', '>=', '<', '<=', '=', '/=', 'NOT', 'AND', 'OR', 'XOR', '=>', '<=>']
+precedence = ['/', '*', '-', '+', '>', '>=', '<', '<=', '=', '/=', 'NOT', 'AND', 'and', 'OR', 'or', 'XOR', '=>', '<=>']
 
 def valueOf(node):
     """return text value of node"""
@@ -132,6 +132,17 @@ def HSalPPSetPredExpr(node):
     str0 += HSalPPExpr(getArg(node,3))
     str0 += " }"
     return str0
+
+def HSalPPSetListExpr(node):
+    first = True
+    str1 = "{ "
+    for i in node.getElementsByTagName("NAMEEXPR"):
+        if first:
+            first = False
+        else:
+            str1 += " , "
+        str1 += valueOf(i)
+    return str1+" }"
 
 def HSalPPConditional(node):
     str0 = "IF "
@@ -262,6 +273,13 @@ def HSalPPAssgns(assgns):
         flag = True
     print >> fp, "\n",
 
+def HSalPPLabeledCommand(node):
+    global fp
+    label = node.getElementsByTagName("LABEL")[0]
+    print >> fp, "{0}: ".format(valueOf(label))
+    gc = node.getElementsByTagName("GUARDEDCOMMAND")[0]
+    HSalPPGuardedCommand(gc)
+
 def HSalPPGuardedCommand(node):
     global fp
     guard = node.getElementsByTagName("GUARD")[0]
@@ -286,13 +304,17 @@ def HSalPPMultiCommand(node):
 def HSalPPTransDecl(transdecl):
     global fp
     print >> fp, "TRANSITION"
-    HSalPPSomecommands(transdecl)
+    cmds = transdecl.getElementsByTagName("SOMECOMMANDS")
+    if cmds != None and len(cmds) > 0:
+        HSalPPSomecommands(cmds[0])
+        return
+    # transdecl is a list of simpledefinitions...
+    HSalPPAssgns(transdecl)
 
-def HSalPPSomecommands(transdecl):
+def HSalPPSomecommands(cmds):
     global fp
     print >> fp, "["
     j = 0
-    cmds = transdecl.getElementsByTagName("SOMECOMMANDS")[0]
     if not(cmds == None):
         cmds = cmds.childNodes
     for i in cmds:
@@ -305,6 +327,10 @@ def HSalPPSomecommands(transdecl):
             if not(j == 1):
                 print >> fp, "[]"
             HSalPPMultiCommand(i)
+        elif i.localName == "LABELEDCOMMAND":
+            if not(j == 1):
+                print >> fp, "[]"
+            HSalPPLabeledCommand(i)
         else:
             j -= 1
     print >> fp, "]"
@@ -462,6 +488,10 @@ def HSalPPType(node,str1,str2):
         str0 = HSalPPSubrange(node)
     elif node.localName == "ARRAYTYPE":
         str0 = HSalPPArrayType(node)
+    elif node.localName == "SETPREDEXPRESSION":
+        str0 = HSalPPSetPredExpr(node)
+    elif node.localName == "SETLISTEXPRESSION":
+        str0 = HSalPPSetListExpr(node)
     else:
         print node.toxml()
         print 'Node TYPE %s not handled. Missing code' % node.localName
