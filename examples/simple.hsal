@@ -1,0 +1,40 @@
+simple: CONTEXT = 
+BEGIN
+
+system: MODULE =
+BEGIN
+LOCAL time:REAL
+OUTPUT x:REAL,y:REAL
+INITIALIZATION
+	time = 0 ; x IN {z:REAL| -1 <= z AND z <= 1} ; y IN {z:REAL| z >= 2}
+TRANSITION
+[
+ TRUE --> xdot' = -2*x; ydot' = -3*(y-0.5); timedot' = 1
+]
+END ;
+
+system2: MODULE =
+BEGIN
+LOCAL time:REAL
+OUTPUT x:REAL,y:REAL
+INITIALIZATION
+	time = 0 ; x IN {z:REAL| 1 <= z AND z <= 2} ; y = 0
+TRANSITION
+[
+ TRUE --> xdot' = -2*x-y; ydot' = x-2*y; timedot' = 1
+]
+END ;
+
+correct: LEMMA
+ 	system |- G(x <= y);
+
+wrong: LEMMA
+ 	system |- G(1 <= y);
+
+correct2: LEMMA
+ 	system2 |- G(x >= -1/10);
+
+wrong2: LEMMA
+ 	system2 |- G(y <= 1/10);
+
+END

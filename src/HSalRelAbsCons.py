@@ -60,6 +60,7 @@ import shutil
 import subprocess
 import HSalPreProcess
 import HSalPreProcess2
+import HSalTimeAwareAux
 from xmlHelpers import *
 #import polyrep2XML
 
@@ -455,12 +456,25 @@ def createCallToEigenInv(xnew, xold, lamb):
         ans = createEigenInv(nodePnew, nodePold1, lamb)
         return ans
 
+    def createTimeAwareEigenInv(nodePnew,nodePold,lamb,time):
+        """eigenInvTime(nodePold,nodePnew,lamb>0,time[0],time[0]')"""
+        lambNode = createNodeTag("NUMERAL", mystr(abs(lamb)))
+        told = createNodeTag("NAMEEXPR", time[0])
+        tnew = createNodeTagChild("NEXTOPERATOR", told.cloneNode(True))
+        if lamb < 0:
+            ans = createNodeApp("eigenInvTime", [ nodePnew, nodePold, lambNode, told, tnew ], infix=False)
+        else:
+            ans = createNodeApp("eigenInvTime", [ nodePold, nodePnew, lambNode, told, tnew ], infix=False)
+        return ans
+
     if equal(lamb, 0):
         ans = createNodeInfixApp('=', xold, xnew)
     elif opt & 0x8 != 0:
         ans = createTimedEigenInv(xnew,xold,lamb,time)
     elif opt & 0x10 != 0:
         ans = createMinDwellEigenInv(xnew,xold,lamb,time)
+    elif opt & 0x20 != 0:
+        ans = createTimeAwareEigenInv(xnew,xold,lamb,time)
     else:
         ans = createEigenInv(xnew,xold,lamb)
     return ans
@@ -507,10 +521,27 @@ def createCallToQuadInv(xnew,xold,ynew,yold,a,b):
         yold1 = createNodeApp("+", [ yold11, yold12], infix=True)
         return (xold1, yold1)
 
+    def createCallToTimeAwareQuadInv(xnew,xold,ynew,yold,a,b,time):
+        """quadInvTime(nodePold,nodeQold,nodePnew,nodeQnew,a>0,b>0,t,t')"""
+        anode = createNodeTag("NUMERAL", mystr(abs(a)))
+        bnode = createNodeTag("NUMERAL", mystr(abs(b)))
+        told = createNodeTag("NAMEEXPR", time[0])
+        tnew = createNodeTagChild("NEXTOPERATOR", told.cloneNode(True))
+        if a > 0 and b > 0:
+            return createNodeApp("quadInvTime", [ xold, yold, xnew, ynew, anode, bnode, told, tnew ])
+        elif a > 0 and b < 0:
+            return createNodeApp("quadInvTime", [ yold, xold, ynew, xnew, anode, bnode, told, tnew ])
+        elif a < 0 and b < 0:
+            return createNodeApp("quadInvTime", [ ynew, xnew, yold, xold, anode, bnode, told, tnew ])
+        else:
+            return createNodeApp("quadInvTime", [ xnew, ynew, xold, yold, anode, bnode, told, tnew ])
+
     global opt
     global time
     if (opt & 0x8 != 0):
         return createCallToTimedQuadInv(xnew, xold, ynew, yold, a, b, time)
+    if (opt & 0x20 != 0):
+        return createCallToTimeAwareQuadInv(xnew, xold, ynew, yold, a, b, time)
     if (opt & 0x10 != 0):
         (xold,yold) = createCallToMinDwellQuadInv(xnew, xold, ynew, yold, a, b, time)
     if equal(a, 0):
@@ -944,7 +975,15 @@ def handleBasemodule(basemod, ctxt):
                 print "Unknown parent node type"
 
 def handleContext(ctxt):
+    global dom
     global opt
+    global time
+
+    def createTimeAwareAux(time):
+        newnode = dom.createElement("VERBATIM")
+        newnode.appendChild( dom.createTextNode( HSalTimeAwareAux.createSALAuxFunc( time[1][0], time[1][1], time[1][2]) ) )
+        return newnode
+
     basemodules = ctxt.getElementsByTagName("BASEMODULE")
     for i in basemodules:
         handleBasemodule(i, ctxt)
@@ -956,6 +995,8 @@ def handleContext(ctxt):
         cbody[0].insertBefore(newChild=createNodeQuadInvNonlinear(),refChild=cbody[0].firstChild)
     if (opt & 0x2 == 0):
         cbody[0].insertBefore(newChild=createNodeQuadInv(),refChild=cbody[0].firstChild)
+    if (opt & 0x20 != 0):
+        cbody[0].insertBefore(newChild=createTimeAwareAux(time),refChild=cbody[0].firstChild)
     if (opt & 0x8 != 0):
         cbody[0].insertBefore(newChild=createTimedNodeQuadInv(),refChild=cbody[0].firstChild)
         cbody[0].insertBefore(newChild=createTimedNodeEigenInv(),refChild=cbody[0].firstChild)
@@ -1135,6 +1176,22 @@ def main():
             time = float(args[index+1])
         except ValueError:
             print "-t|--time should be followed by a float"
+            printUsage()
+            return 1
+    if ('-ta' in args) | ('--timeaware' in args) :
+        opt |= 0x20
+        if ('-ta' in args):
+            index = args.index('-ta')
+        else:
+            index = args.index('--timeaware')
+        try:
+            assert len(args) > index+1
+            timeNML = args[index+1]
+	    timeNMLlist = timeNML.split(',')
+            assert len(timeNMLlist) == 4
+            time = (timeNMLlist[0], [ int(x) for x in timeNMLlist[1:] ])
+        except : # AssertionError ValueError
+            print "-ta|--timeaware should be followed by (timeVarName,M,N,L)"
             printUsage()
             return 1
     # for i in sys.argv[1:]:

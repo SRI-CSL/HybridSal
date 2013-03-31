@@ -519,6 +519,10 @@ def HSalPPTypeDecl(node):
     print >> fp, HSalPPType(getArg(node,2), "", ""),
     print >> fp, ";\n"
 
+def HSalPPVerbatim(node):
+    global fp
+    print >> fp, valueOf(node)
+
 def HSalPPNode(node):
     if node.localName == "MODULEDECLARATION":
         HSalPPModDecl(node)
@@ -528,6 +532,8 @@ def HSalPPNode(node):
         HSalPPAssertionDecl(node)
     elif node.localName == "CONSTANTDECLARATION":
         HSalPPCnstDecl(node)
+    elif node.localName == "VERBATIM":
+        HSalPPVerbatim(node)
     elif node.nodeType == node.ELEMENT_NODE:
         print "Missing code for Node %s" % node.localName
 
