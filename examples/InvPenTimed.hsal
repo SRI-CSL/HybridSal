@@ -8,7 +8,8 @@ BEGIN
  BEGIN
   OUTPUT x, y: REAL
   INPUT u: REAL
-  INITFORMULA -1/2 <= x AND x <= 1/2 AND y = 0
+  % INITFORMULA -1/2 <= x AND x <= 1/2 AND y = 0
+  INITIALIZATION y = 0; x IN {z: REAL | -1/2 <= z AND z <= 1/2 }
   INVARIANT 16*x - y <= 11 AND 16*x - y >= -11 AND y <= 22/10 AND y >= -22/10
   TRANSITION 
   [
@@ -39,7 +40,8 @@ BEGIN
  BEGIN
   OUTPUT x, y: REAL
   INPUT u: REAL
-  INITFORMULA -1/2 <= x AND x <= 1/2 AND y = 0
+  %INITFORMULA -1/2 <= x AND x <= 1/2 AND y = 0
+  INITIALIZATION y = 0; x IN {z: REAL | -1/2 <= z AND z <= 1/2 }
   TRANSITION 
   [
    TRUE --> xdot' = y; ydot' = 20*x + 16*y + 4*u
