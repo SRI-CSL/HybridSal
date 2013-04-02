@@ -1,0 +1,106 @@
+% Model of a PID controller
+% Source: Control tutorials for Matlab and simulink
+% How to analyze?
+% bin/hsal2hasal -da -tvn time examples/activeSuspension2.hsal
+% sal-inf-bmc -d 4 activeSuspension2 correct
+
+pid:CONTEXT = 
+BEGIN
+
+ plant: MODULE =
+ BEGIN
+ LOCAL time: REAL
+ OUTPUT xint, x, xder: REAL
+ INITIALIZATION
+  time = 0; xint = 0; x = 0; xder = 0
+ TRANSITION
+ [  
+  TRUE -->		% step response for a linear system
+     	xintdot' = x; xdot' = xder; xderdot' = -10*xder - 20*x + 1; 
+	timedot' = 1
+ ]
+ END;
+ 
+ plant_ss: LEMMA   plant |- G( x < 0.9 );		% steady-state within 10%
+ plant_overshoot: LEMMA plant |- G( x <= 1.1 );		% overshoot less than 10%
+ plant_risetime: LEMMA plant |- G( time > 0.5 => x >= 0.9);	% rist to 90% by 0.5s 
+ % proportional controller: Kp = 300
+ pplant: MODULE =
+ BEGIN
+ LOCAL time: REAL
+ OUTPUT xint, x, xder: REAL
+ INITIALIZATION
+  time = 0; xint = 0; x = 0; xder = 0
+ TRANSITION
+ [  
+  TRUE -->		% step response for a linear system
+     	xintdot' = x; xdot' = xder; xderdot' = -10*xder - 320*x + 300;
+	timedot' = 1
+ ]
+ END;
+
+ pplant_ss: LEMMA   pplant |- G( x <= 0.9 );		% steady-state within 10%
+ pplant_overshoot: LEMMA pplant |- G( x <= 1.1 );		% overshoot less than 10%
+ pplant_risetime: LEMMA pplant |- G( time > 0.5 => x >= 0.9);	% rist to 90% by 0.5s 
+
+ % proportional derivative controller: Kp = 300; Kd = 10
+ pdplant: MODULE =
+ BEGIN
+ LOCAL time: REAL
+ OUTPUT xint, x, xder: REAL
+ INITIALIZATION
+  time = 0; xint = 0; x = 0; xder = 0
+ TRANSITION
+ [  
+  TRUE -->		% step response for a linear system
+     	xintdot' = x; xdot' = xder; xderdot' = -20*xder - 320*x + 300; % ignoring u, uder; else 300*u+10*uder;
+	timedot' = 1
+ ]
+ END;
+
+ pdplant_ss: LEMMA   pdplant |- G( x <= 0.9 );		% steady-state within 10%
+ pdplant_overshoot: LEMMA pdplant |- G( x <= 1.1 );		% overshoot less than 10%
+ pdplant_risetime: LEMMA pdplant |- G( time > 0.5 => x >= 0.9);	% rist to 90% by 0.5s 
+
+ % proportional integral controller: Kp = 30; Ki = 70
+ piplant: MODULE =
+ BEGIN
+ LOCAL time: REAL
+ OUTPUT xint, x, xder: REAL
+ INITIALIZATION
+  time = 0; xint = 0; x = 0; xder = 0
+ TRANSITION
+ [  
+  TRUE -->		% step response for a linear system
+     	xintdot' = x; xdot' = xder; xderdot' = -10*xder - 50*x - 70*xint+ 30 + 70*time; % ignoring u, uder; else 300*u+10*uder;
+	timedot' = 1
+ ]
+ END;
+
+ piplant_ss: LEMMA   piplant |- G( x <= 0.9 );		% steady-state within 10%
+ piplant_overshoot: LEMMA piplant |- G( x <= 1.1 );		% overshoot less than 10%
+ piplant_risetime: LEMMA piplant |- G( time > 0.5 => x >= 0.9);	% rist to 90% by 0.5s 
+
+ % proportional integral derivative controller: Kp = 350; Ki = 300; Kd = 50;
+ pidplant: MODULE =
+ BEGIN
+ LOCAL time: REAL
+ OUTPUT xint, x, xder: REAL
+ INITIALIZATION
+  time = 0; xint = 0; x = 0; xder = 0
+ TRANSITION
+ [  
+  TRUE -->		% step response for a linear system
+     	xintdot' = x; xdot' = xder; xderdot' = -60*xder - 370*x - 300*xint+ 350 + 300*time; % ignoring u, uder; else 300*u+10*uder;
+	timedot' = 1
+ ]
+ END;
+
+ pidplant_ss: LEMMA   pidplant |- G( x <= 0.9 );		% steady-state within 10%
+ pidplant_overshoot: LEMMA pidplant |- G( x <= 1.1 );		% overshoot less than 10%
+ pidplant_risetime: LEMMA pidplant |- G( time > 0.5 => x >= 0.9);	% rist to 90% by 0.5s 
+
+END
+
+
+
