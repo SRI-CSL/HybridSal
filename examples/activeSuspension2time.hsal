@@ -4,7 +4,7 @@
 % 03/25/2013: adding an explicit time variable
 % 
 % How to analyze?
-% bin/hsal2hasal -ta time,3,4,2 examples/activeSuspension2time.hsal
+% bin/hsal2hasal -ta time,3,1,1 examples/activeSuspension2time.hsal
 % sal-inf-bmc -d 4 activeSuspension2time correct
 activeSuspension2time:CONTEXT = 
 BEGIN
@@ -18,8 +18,8 @@ BEGIN
  LOCAL time: REAL
  OUTPUT xs, xu, vs, vu: REAL
  INITIALIZATION
-  xs IN {z:REAL| -0.04 <= z AND z <= 0.04 }; 
-  xu IN {z:REAL| -0.04 <= z AND z <= 0.04 }; 
+  xs IN {z:REAL| -0.02 <= z AND z <= 0.02 }; 
+  xu IN {z:REAL| -0.02 <= z AND z <= 0.02 }; 
   vs = 0; vu = 0; time = 0
  TRANSITION
  [  
@@ -78,7 +78,7 @@ BEGIN
   (xs' - xu' <= 0 AND xu' - xs' < 0.05) OR (xs' - xu' >= 0 AND xs' - xu' < 0.05) -->
 	mode' = smooth
  []
-  NOT(mode = roughest) AND
+  %NOT(mode = roughest) AND
   (xu' - xs' > 0.08 OR xs' - xu' > 0.08) -->
 	mode' = roughest
  []
@@ -108,6 +108,8 @@ BEGIN
  correct: THEOREM
      system |- G( -0.1 <= xs - xu AND xs - xu <= 0.1 );
 
+ reachable: THEOREM
+     system |- G( NOT(mode = roughest) );
 END
 
 

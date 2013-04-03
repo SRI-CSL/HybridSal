@@ -1,0 +1,143 @@
+% Model of a 1/4-car active suspension
+% Source: Road adaptive active suspension design using linear parameter-varying gain-scheduling
+% Ian Fialho and Gary J. Balas, IEEE Trans on Control Sys Tech., 10(1), 2002.
+% 03/25/2013: adding an explicit time variable
+% 
+% How to analyze?
+% bin/hsal2hasal -ta time,3,1,1 examples/activeSuspension3.hsal
+% sal-inf-bmc -d 4 activeSuspension3 correct
+activeSuspension3:CONTEXT = 
+BEGIN
+
+ gvNR: REAL = -5000;
+ gvR: REAL = 0;
+ gxss: REAL = 25;
+ gxsr1: REAL = 25/4;
+ gxsr2: REAL = 25/8;
+ gxsr3: REAL = 0;
+ gxs: REAL = 0;
+ gxr1: REAL = 30;
+ gxr2: REAL = 1000/8;
+ gxr3: REAL = 0;
+
+ GainSchedule: TYPE = { smooth, rough, rougher, roughest };
+
+ plant: MODULE =
+ BEGIN
+ INPUT mode : GainSchedule 
+ INPUT r : REAL  % road disturbance
+ LOCAL time: REAL
+ OUTPUT xs, xu, vs, vu: REAL
+ INITIALIZATION
+  xs IN {z:REAL| -0.02 <= z AND z <= 0.02 }; 
+  xu IN {z:REAL| -0.02 <= z AND z <= 0.02 }; 
+  vs = 0; vu = 0; time = 0
+ TRANSITION
+ [  
+  mode = smooth AND 
+  (-0.05 <= xs  - xu  AND xs  - xu  <= 0.05) AND
+  (-0.05 <= xs' - xu' AND xs' - xu' <= 0.05) -->
+     	xsdot' = vs;
+	vsdot' = -1/250 * (20000 * (xs - xu) + 1000 * (vs - vu) - (gvNR*(vs-vu)+500*(gxss*xs + gxs*(xs-xu)))) ;
+	xudot' = vu;
+	vudot' = 1/50 * (20000 * (xs - xu) + 1000 * (vs - vu) - 190000*(xu - r) - (gvNR*(vs-vu)+500*(gxss*xs + gxs*(xs-xu)))) ;
+	timedot' = 1
+ []
+  mode = rough AND
+  ((xu  - xs  >= 0.05 AND xu  - xs  <= 0.065) OR 
+   (xs  - xu  >= 0.05 AND xs  - xu  <= 0.065)) AND
+  ((xu' - xs' >= 0.05 AND xu' - xs' <= 0.065) OR 
+  (xs' - xu' >= 0.05 AND xs' - xu' <= 0.065)) -->
+     	xsdot' = vs;
+	vsdot' = -1/250 * (20000 * (xs - xu) + 1000 * (vs - vu) - (gvNR*(vs-vu)+500*(gxsr1*xs + gxr1*(xs-xu)))) ;
+	xudot' = vu;
+	vudot' = 1/50 * (20000 * (xs - xu) + 1000 * (vs - vu) - 190000*(xu - r) - (gvNR*(vs-vu)+500*(gxsr1*xs + gxr1*(xs-xu)))) ;
+	timedot' = 1
+ []
+  mode = rougher AND
+  ((xu  - xs  >= 0.065 AND xu  - xs  <= 0.08) OR 
+   (xs  - xu  >= 0.065 AND xs  - xu  <= 0.08)) AND
+  ((xu' - xs' >= 0.065 AND xu' - xs' <= 0.08) OR 
+  (xs' - xu' >= 0.065 AND xs' - xu' <= 0.08)) -->
+     	xsdot' = vs;
+	vsdot' = -1/250 * (20000 * (xs - xu) + 1000 * (vs - vu) - (gvNR*(vs-vu)+500*(gxsr2*xs + gxr2*(xs-xu)))) ;
+	xudot' = vu;
+	vudot' = 1/50 * (20000 * (xs - xu) + 1000 * (vs - vu) - 190000*(xu - r) - (gvNR*(vs-vu)+500*(gxsr2*xs + gxr2*(xs-xu)))) ;
+	timedot' = 1
+ []
+  mode = roughest AND 
+  (xu  - xs  >= 0.08 OR xs  - xu  >= 0.08) AND
+  (xu' - xs' >= 0.08 OR xs' - xu' >= 0.08) -->
+     	xsdot' = vs;
+	vsdot' = -1/250 * (20000 * (xs - xu) + 1000 * (vs - vu) - (gvR*(vs-vu)+500*(gxsr3*xs + gxr3*(xs-xu)))) ;
+	xudot' = vu;
+	vudot' = 1/50 * (20000 * (xs - xu) + 1000 * (vs - vu) - 190000*(xu - r) - (gvR*(vs-vu)+500*(gxsr3*xs + gxr3*(xs-xu)))) ;
+	timedot' = 1
+ ]
+ END;
+ 
+ % gain scheduled controller
+ controller: MODULE =
+ BEGIN
+ OUTPUT mode : GainSchedule
+ INPUT xs, xu, vs, vu: REAL
+ INITIALIZATION
+  mode = IF xs-xu<=0 AND xu-xs<0.05 OR xs-xu>=0 AND xs-xu<0.05 THEN smooth
+         ELSIF xu-xs>0.08 OR xs-xu>0.08 THEN roughest
+         ELSIF xu-xs>0.065 AND xu-xs<=0.08 OR xs-xu>=0.065 AND xs-xu<=0.08 THEN rougher
+         ELSE rough ENDIF 
+ TRANSITION
+ [ 
+  %NOT(mode = smooth) AND
+  (xs' - xu' <= 0 AND xu' - xs' < 0.05) OR (xs' - xu' >= 0 AND xs' - xu' < 0.05) -->
+	mode' = smooth
+ []
+  %NOT(mode = roughest) AND
+  (xu' - xs' > 0.08 OR xs' - xu' > 0.08) -->
+	mode' = roughest
+ []
+  %NOT(mode = rougher) AND
+  (xu' - xs' >= 0.065 AND xu' - xs' <= 0.08) OR 
+  (xs' - xu' >= 0.065 AND xs' - xu' <= 0.08) -->
+	mode' = rougher
+ []
+  %NOT(mode = rough) AND
+  (xu' - xs' >= 0.05 AND xu' - xs' <= 0.065) OR 
+  (xs' - xu' >= 0.05 AND xs' - xu' <= 0.065) -->
+	mode' = rough
+ ]
+ END;
+
+ contextModel: MODULE = 
+ BEGIN
+ OUTPUT r: REAL
+ INITIALIZATION r IN {z: REAL | -0.12 <= z AND z <= 0.12 }
+ TRANSITION
+ [ TRUE --> r' IN {z: REAL | -0.12 <= z AND z <= 0.12 }
+ ]
+ END;
+
+ system: MODULE = plant || controller || contextModel ;
+
+ correct: THEOREM
+     system |- G( -0.1 <= xs - xu AND xs - xu <= 0.1 );
+
+ % sal-inf-bmc -v 3 -d 0 activeSuspension3 reachable 
+ % sal-inf-bmc -v 3 -d 1 activeSuspension3 reachable
+ reachable: THEOREM
+     system |- G( NOT(mode = rough) );
+
+ % sal-inf-bmc -v 3 -d 0 activeSuspension3 reachable1 
+ % sal-inf-bmc -v 3 -d 1 activeSuspension3 reachable1
+ % sal-inf-bmc -v 3 -d 2 activeSuspension3 reachable1
+ reachable1 : THEOREM system |- G(NOT(mode = rougher));
+
+ % sal-inf-bmc -v 3 -d 0 activeSuspension3 reachable2
+ % sal-inf-bmc -v 3 -d 1 activeSuspension3 reachable2
+ % sal-inf-bmc -v 3 -d 2 activeSuspension3 reachable2
+ % sal-inf-bmc -v 3 -d 3 activeSuspension3 reachable2
+ reachable2 : THEOREM system |- G(NOT(mode = roughest));
+END
+
+
+

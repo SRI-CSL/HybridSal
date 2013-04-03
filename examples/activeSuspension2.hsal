@@ -65,16 +65,20 @@ BEGIN
  INPUT xs, xu, vs, vu: REAL
  TRANSITION
  [ 
+  NOT(mode = smooth) AND
   (xs' - xu' <= 0 AND xu' - xs' < 0.05) OR (xs' - xu' >= 0 AND xs' - xu' < 0.05) -->
 	mode' = smooth;
  []
+  %NOT(mode = roughest) AND
   (xu' - xs' > 0.08 OR xs' - xu' > 0.08) -->
 	mode' = roughest;
  []
+  NOT(mode = rougher) AND
   (xu' - xs' >= 0.065 AND xu' - xs' <= 0.08) OR 
   (xs' - xu' >= 0.065 AND xs' - xu' <= 0.08) -->
 	mode' = rougher;
  []
+  NOT(mode = rough) AND
   (xu' - xs' >= 0.05 AND xu' - xs' <= 0.065) OR 
   (xs' - xu' >= 0.05 AND xs' - xu' <= 0.065) -->
 	mode' = rough;
