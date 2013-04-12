@@ -1025,7 +1025,7 @@ def hxml2sal(xmlfilename, optarg = 0, timearg = None):
     ctxt = HSalPreProcess.handleContext(dom)
     ctxt = HSalPreProcess2.handleContext(ctxt)
     newctxt = handleContext(ctxt)
-    absfilename = basename + ".haxml"
+    '''absfilename = basename + ".haxml"
     moveIfExists(absfilename)
     with open(absfilename, "w") as fp:
         print >> fp, newctxt.toxml()
@@ -1035,6 +1035,7 @@ def hxml2sal(xmlfilename, optarg = 0, timearg = None):
     with open(absfilename, "w") as fp:
         HSalXMLPP.HSalPPContext(newctxt, fp)
     print "Created file %s containing the original+abstract model" % absfilename
+    '''
     absXMLFile = basename + ".xml"
     moveIfExists(absXMLFile)
     with open(absXMLFile, "w") as fp:

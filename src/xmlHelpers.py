@@ -7,7 +7,7 @@ def mystr(k):
        use 8 decimal places"""
     for i in range(6):
         if abs(k) >= pow(10,-i):
-            fmt = '{0:.' + str(i+2) + 'f}'
+            fmt = '{0:.' + str(i+1) + 'f}'
             return fmt.format(k)
     print 'WARNING: Very small number detected'
     return '0'

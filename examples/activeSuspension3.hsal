@@ -29,8 +29,8 @@ BEGIN
  LOCAL time: REAL
  OUTPUT xs, xu, vs, vu: REAL
  INITIALIZATION
-  xs IN {z:REAL| -0.02 <= z AND z <= 0.02 }; 
-  xu IN {z:REAL| -0.02 <= z AND z <= 0.02 }; 
+  xs IN {z:REAL| -0.3 <= z AND z <= 0.3 }; 
+  xu IN {z:REAL| -0.3 <= z AND z <= 0.3 }; 
   vs = 0; vu = 0; time = 0
  TRANSITION
  [  

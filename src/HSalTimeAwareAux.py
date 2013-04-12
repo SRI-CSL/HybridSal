@@ -1,18 +1,19 @@
 
 import math
+from xmlHelpers import mystr
 
 def createLogLB( m, n ):
     "m,n are integers; LB for ln on intervals [-infty,e^-m, ...,e^n, infty]"
     ans = "loglb(x:REAL): REAL =\n"
     lbi = math.exp(n)
     eminus1inv = 1/(math.e - 1)
-    ans += " IF ({0:7.4} <= x) THEN {1}\n".format( lbi, n )
+    ans += " IF ({0} <= x) THEN {1}\n".format( mystr(lbi), n )
     for i in range(n, -m, -1):
         ubi = lbi
         lbi = math.exp(i-1)
         coeff = 1/lbi  * eminus1inv
-        ans += " ELSIF ({0:7.4} <= x AND x < {1:7.4}) THEN ".format( lbi, ubi )
-        ans += "{0} + {1:7.4}*x - 0.58\n".format(i-1, coeff)
+        ans += " ELSIF ({0} <= x AND x < {1}) THEN ".format( mystr(lbi), mystr(ubi) )
+        ans += "{0} + {1}*x - 0.58\n".format(i-1, mystr(coeff))
     ans += " ELSE 0 ENDIF;\n\n"
     return ans
  
@@ -22,19 +23,19 @@ def createLogUB( m, n):
     ub = math.exp(n)
     slopeatlb = 1/math.exp(-m)
     slopeatub = 1/math.exp(n)
-    ans += " IF ({0:7.4} <= x AND x < {1:7.4}) THEN loglb(x) + 0.12\n".format(lb,ub)
-    ans += " ELSIF x < {0:7.4} THEN {1:7.4}*x - {2}\n".format(lb, slopeatlb, m+1)
-    ans += " ELSE {0:7.4}*x + {1} ENDIF;\n\n".format(slopeatub, n-1)
+    ans += " IF ({0} <= x AND x < {1}) THEN loglb(x) + 0.12\n".format(mystr(lb),mystr(ub))
+    ans += " ELSIF x < {0} THEN {1}*x - {2}\n".format(mystr(lb), mystr(slopeatlb), m+1)
+    ans += " ELSE {0}*x + {1} ENDIF;\n\n".format(mystr(slopeatub), n-1)
     return ans
 
 def createExpTimeBnd1( m ):
     ans = "expTimeBnd1(x:REAL, y:REAL, z:REAL): BOOLEAN =\n"
-    ans+= " (x < {0:7.4} OR loglb(x) - logub(y) <= z);\n\n".format(math.exp(-m))
+    ans+= " (x < {0} OR loglb(x) - logub(y) <= z);\n\n".format(mystr(math.exp(-m)))
     return ans
 
 def createExpTimeBnd2( m ):
     ans = "expTimeBnd2(x:REAL, y:REAL, z:REAL): BOOLEAN =\n"
-    ans+= " (x < {0:7.4} OR y < {0:7.4} OR z <= logub(x) - loglb(y));\n\n".format(math.exp(-m))
+    ans+= " (x < {0} OR y < {0} OR z <= logub(x) - loglb(y));\n\n".format(mystr(math.exp(-m)))
     return ans
 
 def createEigenInvTime():
