@@ -102,6 +102,24 @@ def simplify1(node):
                     print '==',
     return done
 
+def simplify2_arrayselect(node):
+    "<arrayselect> id1 id2 </arrayselect> --> id if id2 is a number"
+    done = True
+    sas = node.getElementsByTagName('arrayselect')
+    for i in sas:
+        # check if this node is already deleted somehow...
+        set1 = getArg(i, 1)
+        set2 = getArg(i, 2)
+        if set1.localName == 'identifier' and set2.localName == 'number':
+            access0 = valueOf(set1).strip()
+            access1 = valueOf(set2).strip()
+	    answer = access0 + '[' + access1 + ']'
+            ans = helper_create_tag_val('identifier', answer)
+            node = replace(i, ans, node)
+            done = False
+            print 's',
+    return done
+ 
 def simplify2(node):
     "setaccess <set> arg1 arg2 arg3 </set><access> 2</access> --> arg2"
     done = True
@@ -124,7 +142,8 @@ def simplify2(node):
                 node = replace(i, set1, node)
                 done = False
                 print 's',
-    return done
+    done2 = simplify2_arrayselect( node )
+    return done and done2
  
 def vector2list(v):
     "v = set n1 n2 n2 /set --> [n1 n2 n3] or None"

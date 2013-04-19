@@ -3,14 +3,15 @@ BEGIN
 
 control: MODULE =
 BEGIN
-LOCAL x,y:REAL
+LOCAL x,y,time:REAL
 INITIALIZATION
-  x = 1; y = 2
+  x = 1; y = 2; time = 0
 TRANSITION
 [
 y >= 0 AND y' >= 0 --> 
   xdot' = -y + x ;
-  ydot' = -y - x
+  ydot' = -y - x ;
+  timedot' = 0
 ]
 END;
 

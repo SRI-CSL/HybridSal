@@ -1118,10 +1118,20 @@ DESCRIPTION
         -mdt <T>, --mindwelltime <T>
             Create a relational abstraction assuming a minimum of 
             <T> time units is spent in each mode.
+        -ta <time,l,m,n>
+            Create a time-aware relational abstraction assuming <time> 
+            to be the time variable, l, m, n as the parameters 
+            l = number of intervals left of e^0 for real eigenvalues to use
+            m = number of intervals right of e^0 for real eigenvalues to use
+            n = number of cycles for complex eigenvalues to use 
 
 EXAMPLE
         bin/hsal2hasal examples/Linear1.hsal
         This command creates a file examples/Linear1.sal
+
+        bin/hsal2hasal -ta time,3,4,2 examples/Linear1.hsal
+        This command creates a file examples/Linear1.sal containing a more
+        precise abstraction 
 
 AUTHOR
         Written by Ashish Tiwari

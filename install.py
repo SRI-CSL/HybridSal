@@ -4,16 +4,7 @@ import os
 import subprocess
 import shutil
 
-files = '''
-./bin
-./bin/hsal2Tsal
-./bin/modelica2hsal
-./bin/hybridsal2xml.template
-./bin/hasal2sal
-./bin/hsal2hasal
-./bin/hxml2hsal
-./bin/hsal2hxml
-./bin/modelica2sal
+files_modelica = '''
 ./modelica2hsal
 ./modelica2hsal/bin
 ./modelica2hsal/bin/modelica2hsal
@@ -40,6 +31,18 @@ files = '''
 ./modelica2hsal/examples/MassSpringDamperTest.MassSpringDamperTest_init.xml
 ./modelica2hsal/examples/MassSpringDamperTest.property.json
 ./modelica2hsal/examples/Transfer_Case2.Transfer_Case2.xml
+./bin/modelica2hsal
+./bin/modelica2sal
+'''
+
+files_hsal = '''
+./bin
+./bin/hsal2Tsal
+./bin/hybridsal2xml.template
+./bin/hasal2sal
+./bin/hsal2hasal
+./bin/hxml2hsal
+./bin/hsal2hxml
 ./COPYRIGHT
 ./INSTALL.txt
 ./doc
@@ -151,6 +154,8 @@ files = '''
 ./examples/nav15.hsal
 ./examples/Heating.hsal
 '''
+
+files = files_hsal + files_modelica
 
 def printUsage():
     return 'Usage: python install.py [--withmodelica] [--withsal] [--cygwin <cygwin root directory>] [--sal <sal-root-directory>] [dist] [win32]'
@@ -858,6 +863,9 @@ def createRelease(srcdir):
     'create directory for release purposes'
     distdir = os.path.join(srcdir, 'HybridSal')
     distdirold = os.path.join(srcdir, 'HybridSal~')
+    files = files_hsal
+    if '--withmodelica' in sys.argv:
+        files += files_modelica
     allFiles = files.splitlines()
     if os.path.isdir(distdir):
         try:

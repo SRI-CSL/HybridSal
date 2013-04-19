@@ -464,16 +464,39 @@ def findState(Eqn, cstate, dstate, var_details):
         print 'ERROR: Unknown variable found! Can not handle.'
         assert False, "Model Error: Variable {0} is not declared".format(name)
         return None
+    def getEnums(allvars):
+        enums = {}
+        for i in allvars:
+            typ = i.getAttribute('type')
+            if typ.startswith('enumeration'):
+                evals = typ[12:-1]	# 12 is the length of 'enumeration(' -1 is for ')'
+                evals = [x.strip() for x in evals.split(',')]
+                enums[i.getAttribute('name')] = evals
+        return enums
+    def isEnumValue(name, enums):
+        for k in enums.keys():
+            for v in enums[k]:
+                if name.endswith('.'+v) or name==v:
+                    return v
+        return None
     ids = Eqn.getElementsByTagName('identifier')
     #print 'Number of equations in Eqn is {0}'.len(Eqn.getElementsByTagName('equation'))
     #sys.stdout.flush()
     bools, reals, integers = [], [], []
     nonstates, inputs = [], []
     varmap = {}
+    enums = getEnums(var_details)
+    print enums
     for identifier in ids:
         name = valueOf(identifier).strip()
         # print name,
         # sys.stdout.flush()
+        val = isEnumValue(name, enums)
+        if val:
+            newid = helper_create_tag_val('identifier', val)
+            parentnode = identifier.parentNode
+            parentnode.replaceChild(newChild=newid,oldChild=identifier)
+            continue
         ovar = find(name, var_details)
         vtype = ovar.getAttribute('type')
         variability = ovar.getAttribute('variability')
@@ -490,7 +513,8 @@ def findState(Eqn, cstate, dstate, var_details):
         elif vtype == 'Integer':
             myappend(integers, name)
         else:
-            assert False, "Type {0} not found".format(vtype)
+            # assert False, "Type {0} not found".format(vtype)
+            print >> sys.stderr, "IGNORING variable of Type {0}".format(vtype)
     print >> sys.stderr, 'bools', bools
     print >> sys.stderr, 'reals', reals
     print >> sys.stderr, 'integers', integers
@@ -498,7 +522,7 @@ def findState(Eqn, cstate, dstate, var_details):
     print >> sys.stderr, 'nonstates', nonstates
     print >> sys.stderr, 'cstate', cstate
     print >> sys.stderr, 'dstate', dstate
-    return (bools, reals, integers, inputs, nonstates, varmap)
+    return (bools, reals, integers, inputs, nonstates, varmap, enums)
  
 # -----------------------------------------------------------------
 def expr2sal(node, flag=True):
@@ -594,13 +618,15 @@ def createControl(state, deqns, guard, iEqns = {}):
     def extractInit(deqns):
         return [ extractInitE(i) for i in deqns ]
     ans = "\n control: MODULE = \n BEGIN"
-    (bools,reals,ints,inputs,nonstates,vmap) = state
+    (bools,reals,ints,inputs,nonstates,vmap,enums) = state
     for i in bools:
         ans += "\n  OUTPUT {0}: BOOLEAN".format(i)
     for i in ints:
         ans += "\n  OUTPUT {0}: NATURAL".format(i)
     for i in reals:
         ans += "\n  INPUT  {0}: REAL".format(i)
+    for (k,v) in enums.items():
+        ans += "\n  OUTPUT {0}: {1}".format(k,k+'Type')
     varValInitL = extractInit(deqns)
     first = True
     for (var, val, init) in varValInitL:
@@ -982,11 +1008,13 @@ def createPlant(state, ceqns, oeqns, iEqns = {}):
                 ans.append( (x,y,z) )
         return myproductAux( pnvvlll[1:], ans )
     ans = "\n plant: MODULE = \n BEGIN"
-    (bools,reals,ints,inputs,nonstates,vmap) = state
+    (bools,reals,ints,inputs,nonstates,vmap,enums) = state
     for i in bools:
         ans += "\n  INPUT {0}: BOOLEAN".format(i)
     for i in ints:
         ans += "\n  INPUT {0}: NATURAL".format(i)
+    for (k,v) in enums.items():
+        ans += "\n  INPUT {0}: {1}".format(k, k+'Type')
     for i in reals:
         if i in inputs:
             ans += "\n  INPUT {0}: REAL".format(i)
@@ -1093,7 +1121,7 @@ def convert2hsal(dom1, dom2, dom3 = None):
                 ans2 = ans2.replace(i, j)
         return (ans, ans2)
     def alpha_rename(ans, ans2, state):
-        (bools,reals,ints,inputs,nonstates,vmap) = state
+        (bools,reals,ints,inputs,nonstates,vmap,enums) = state
         (ans, ans2) = alpha_rename_aux(ans, ans2, bools)
         (ans, ans2) = alpha_rename_aux(ans, ans2, ints)
         (ans, ans2) = alpha_rename_aux(ans, ans2, reals)
@@ -1107,6 +1135,16 @@ def convert2hsal(dom1, dom2, dom3 = None):
     def printE(eqns):
         for i in eqns:
             printEqn(i)
+    def createEnumDecl(enums):
+        ans = ''
+        for k in enums.keys():
+            ans += '{0}: TYPE = '.format(k+'Type')
+            first = True
+            for v in enums[k]:
+                ans += '{0}{1}'.format(',' if not(first) else '{', v)
+                first = False
+            ans += '};\n'
+        return ans
     # decide later if creating hsal XML or hsal string
     cstate = getIdentifiersIn(dom1,'continuousState')
     dstate = getIdentifiersIn(dom1,'discreteState')
@@ -1123,7 +1161,7 @@ def convert2hsal(dom1, dom2, dom3 = None):
     var_details.extend(var_details2)
     # find and classify all variables that occur in Eqn -- do this before classifyEqns becos it messes up eqns
     state = findState(Eqn,cstate,dstate,var_details)
-    (bools,reals,ints,inputs,nonstates,vmap) = state
+    (bools,reals,ints,inputs,nonstates,vmap,enums) = state
     print >> sys.stderr, 'Found {0} bools, {1} reals, {2} ints'.format(len(bools),len(reals),len(ints))
     print >> sys.stderr, 'Found {0} inputs, {1} non-states'.format(len(inputs),len(nonstates))
     print >> sys.stderr, 'State: {0}'.format(state)
@@ -1145,6 +1183,7 @@ def convert2hsal(dom1, dom2, dom3 = None):
     preds = getPredsInConds(eqns)
     print >> sys.stderr, 'Found {0} preds'.format(len(preds))
     print >> sys.stderr, 'Preds: {0}'.format(preds)
+    ans = createEnumDecl(enums)
     ans0 = createEventsFromPreds(preds, reals, inputs)	# Should events on inputs be included?
     print >> sys.stderr, 'created events from preds'
     ans1 = createControl(state, discEqns, ans0, iEqns)
@@ -1152,7 +1191,7 @@ def convert2hsal(dom1, dom2, dom3 = None):
     ans2 = createPlant(state, contEqns, oEqns, iEqns)
     print >> sys.stderr, 'created plant'
     # replace varname.var -> varname_var
-    ans = ans1 + ans2
+    ans += ans1 + ans2
     propStr = createProperty(dom3)
     (ans, propStr) = alpha_rename(ans, propStr, state)
     return (ans, propStr)

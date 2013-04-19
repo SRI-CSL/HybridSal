@@ -167,6 +167,7 @@ def d_expression(s, nodes):
         'initial' '(' ')' |\
         expression BINARY_OPERATOR expression |\
         UNARY_OPERATOR '(' expression ')' |\
+        identifier '[' identifier ']' |\
         '{' expression ( ',' expression)* '}' ACCESS? |\
         'if' expression 'then' expression 'else' expression"
     if len(s) == 1:
@@ -181,8 +182,10 @@ def d_expression(s, nodes):
         return helper_create_app('INITIAL', [ ], nodes[0].start_loc )
     elif len(s) == 3:
         return helper_create_app('BAPP', [ s[1], s[0], s[2] ], nodes[0].start_loc )
-    elif len(s) == 4: 	# unary_operator
+    elif len(s) == 4 and s[1] == '(': 	# unary_operator
         return helper_create_app('UAPP', [ s[0], s[2] ], nodes[0].start_loc )
+    elif len(s) == 4 and s[1] == '[': 	# array access
+        return helper_create_app('arrayselect', [ s[0], s[2] ], nodes[0].start_loc )
     elif len(s) == 5 and s[0] == '{': 	# { expr (, expr)* } ACCESS
         n = 1
         children = [  s[1] ]
