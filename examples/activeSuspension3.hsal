@@ -29,8 +29,8 @@ BEGIN
  LOCAL time: REAL
  OUTPUT xs, xu, vs, vu: REAL
  INITIALIZATION
-  xs IN {z:REAL| -0.3 <= z AND z <= 0.3 }; 
-  xu IN {z:REAL| -0.3 <= z AND z <= 0.3 }; 
+  xs IN {z:REAL| -0.03 <= z AND z <= 0.03 }; 
+  xu IN {z:REAL| -0.03 <= z AND z <= 0.03 }; 
   vs = 0; vu = 0; time = 0
  TRANSITION
  [  
@@ -89,11 +89,11 @@ BEGIN
  TRANSITION
  [ 
   %NOT(mode = smooth) AND
-  (xs' - xu' <= 0 AND xu' - xs' < 0.05) OR (xs' - xu' >= 0 AND xs' - xu' < 0.05) -->
+  (xs' - xu' <= 0 AND xu' - xs' <= 0.05) OR (xs' - xu' >= 0 AND xs' - xu' <= 0.05) -->
 	mode' = smooth
  []
   %NOT(mode = roughest) AND
-  (xu' - xs' > 0.08 OR xs' - xu' > 0.08) -->
+  (xu' - xs' >= 0.08 OR xs' - xu' >= 0.08) -->
 	mode' = roughest
  []
   %NOT(mode = rougher) AND

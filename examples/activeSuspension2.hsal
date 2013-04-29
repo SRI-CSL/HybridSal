@@ -13,8 +13,8 @@ BEGIN
  INPUT r : REAL  % road disturbance
  OUTPUT xs, xu, vs, vu: REAL
  INITIALIZATION
-  xs IN {z:REAL| -0.04 <= z AND z <= 0.04 }; 
-  xu IN {z:REAL| -0.04 <= z AND z <= 0.04 }; 
+  xs IN {z:REAL| -0.03 <= z AND z <= 0.03 }; 
+  xu IN {z:REAL| -0.03 <= z AND z <= 0.03 }; 
   vs = 0; vu = 0;
  TRANSITION
  [  
