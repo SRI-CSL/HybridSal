@@ -40,14 +40,6 @@ Installation instructions for HybridSAL Relational Abstractor:
 
 (3) Run 
 
-    make sal2xml
-
-    This will test if the hybridsal2xml is installed properly
-    Nothing works if hybridsal2xml is not installed properly
-
-
-(4) Run 
-
     make test
 
     This will test if the relational abstraction is installed properly.
