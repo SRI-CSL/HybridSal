@@ -398,6 +398,9 @@ def compile_hybridsal2xml( hybridsal2xml, shell, rtjar, jikespath ):
     hybridsal2xml1 = os.path.join( '..', 'bin' )
     shutil.copy( hybridsal2xml, hybridsal2xml1 )
     print "Created script {0}; also saved in directory {1}.".format(hybridsal2xml, hybridsal2xml1)
+    if not os.path.lexists('antlr'):
+        os.symlink( os.path.join('antlr-2.7.1', 'antlr'), 'antlr')
+    subprocess.call([ 'jar', 'cfm', 'hybridsal2xml.jar', 'Manifest.txt', '*.class', 'antlr' ])
     return os.path.join('hybridsal2xml', hybridsal2xml)
 
 def installmodelica():
@@ -559,13 +562,31 @@ def main():
     else:
         pwd = output
     #hybridsal2xml = os.path.normpath(pwd + "/hybridsal2xml")
-    hybridsal2xml = os.path.normpath(os.path.join(pwd, "hybridsal2xml"))
-    if os.path.isdir(os.path.join(pwd,'src')) and os.path.isdir(hybridsal2xml):
-        print 'Found {0}'.format(hybridsal2xml)
-    else:
-        print 'Failed.'
+    hybridsal2xml = os.path.normpath(pwd)
+    jarfile = os.path.join(hybridsal2xml,'hybridsal2xml.jar')
+    if not os.path.isfile( jarfile ):
+        hybridsal2xml = os.path.normpath(os.path.join(pwd, "hybridsal2xml"))
+        jarfile = os.path.join(hybridsal2xml,'hybridsal2xml.jar')
+    if not os.path.isfile( jarfile ) and not os.path.isdir(hybridsal2xml):
+        print 'Failed to find hybridsal2xml.jar '
         print '***Error: RUN THIS SCRIPT FROM THE HSAL ROOT DIRECTORY'
-        print '***The HSAL root directory is the directory created by tar -xz'
+        print '***The HSAL root directory is the directory created by tar -xz or unzip'
+        return 1
+    if not os.path.isfile( jarfile ):
+        rtjar = searchForrtjar(sys.argv, javapath )
+        jikespath = searchForjikes()
+        hybridsal2xml = compile_hybridsal2xml( hybridsal2xml, shell, rtjar, jikespath )
+        os.chdir( pwd )
+        hybridsal2xml = os.path.normpath(pwd)
+        jarfile = os.path.join(hybridsal2xml,'hybridsal2xml.jar')
+    if os.path.isfile( jarfile ):
+        if os.environ.has_key('CLASSPATH'):
+            os.environ['CLASSPATH'] = hybridsal2xml + os.pathsep + os.environ['CLASSPATH']
+        else:
+            os.environ['CLASSPATH'] = '.' + os.pathsep + hybridsal2xml + os.pathsep + os.pathsep
+        print 'Found hybridsal2xml.jar at {0}'.format(jarfile)
+    else:
+        print '***Failed to create hybridsal2xml. Giving up.'
         return 1
     # print '-------------------------'
 
@@ -576,32 +597,29 @@ def main():
 
     # Test hybridsal2xml converter
     print 'Testing hybridsal2xml...',
-    jarfile = os.path.join(hybridsal2xml,'hybridsal2xml.jar')
-    hsal = os.path.join(hybridsal2xml, 'examples', 'SimpleThermo4.hsal')
-    hxml = os.path.join(hybridsal2xml, 'examples', 'SimpleThermo4.hxml')
-    if os.path.isfile(hxml):
-        os.remove(hxml)
-    if os.path.isfile(hsal) and os.path.isfile(jarfile):
+    hsal = os.path.join('examples', 'Linear1.hsal')
+    hxml = os.path.join('examples', 'Linear1.hxml')
+    if not os.path.isfile( hsal ):
+        print '***Failed to find an example (examples/Linear1.hsal) for testing'
+    else:
+        if os.path.isfile(hxml):
+            os.remove(hxml)
         try:
             subprocess.call([ 'java', '-jar', jarfile, '-o', hxml, hsal ])
         except Exception, e:
             print 'Failed.'
             print '***Failed to run hybridsal2xml using the precompiled jar file and antlr'
-            print '***Trying to compole hybridsal2xml from sources...'
+            print '***Trying to compile hybridsal2xml from sources...'
             if os.path.isfile(hxml):
                 os.remove(hxml)
-    if os.path.isfile( hxml ):
-        print 'Successful.'
-        hybridsal2xml = create_hybridsal2xml_exe( pwd, shell, jarfile )
-    else:
-        rtjar = searchForrtjar(sys.argv, javapath )
-        jikespath = searchForjikes()
-        hybridsal2xml = compile_hybridsal2xml( hybridsal2xml, shell, rtjar, jikespath )
-        os.chdir( pwd )
+        if os.path.isfile( hxml ):
+            print 'Successful.'
+            hybridsal2xml = create_hybridsal2xml_exe( pwd, shell, jarfile )
 
     #
     # Run a test
     #
+    '''
     print "Testing hybridsal2xml...",
     ex4 = os.path.join('examples','SimpleThermo4.hxml')
     if os.path.isfile(ex4):
@@ -623,36 +641,42 @@ def main():
             print '***hybridsal2xml installation failed. See earlier warnings/error messages to determine cause of failure.'
             return 1
     # os.chdir('..')
+    '''
 
     #
     # create bin/ files
     #
-    print 'Creating bin/ files...',
-    bindir = os.path.join(pwd, "bin")
-    if not(os.path.isdir(bindir)):
-        os.makedirs(bindir)
-        #print 'Error: Directory %s does not exist; create it and rerun install.' % bindir
-        #return 1
-    #os.chdir(pwd + "/bin")
-    topshell = '' if sys.platform.startswith('win') else '#!{0}'.format(shell)
-    try:
-        createBinFile(topshell, pwd, bindir, 'hxml2hsal', os.path.join('src','HSalXMLPP.py'))
-        createBinFile(topshell, pwd, bindir, 'hsal2hasal', os.path.join('src','HSalRelAbsCons.py'))
-        createBinFile(topshell, pwd, bindir, 'hasal2sal', os.path.join('src','HSalExtractRelAbs.py'))
-        createBinFile(topshell, pwd, bindir, 'hsal2Tsal', os.path.join('src','HSalTimedRelAbsCons.py'))
-        createBinFile(topshell, pwd, bindir, 'modelica2hsal', os.path.join('modelica2hsal', 'src','modelica2hsal.py'))
-        createBinFile(topshell, pwd, bindir, 'modelica2sal', os.path.join('modelica2hsal', 'src','modelica2sal.py'))
-    #filename = os.path.join(pwd, 'bin', 'hsal2hxml')
-    #if os.path.isfile(filename):
-        #os.remove(filename)
-    #subprocess.call(['ln', '-s', os.path.join('..','hybridsal2xml',hybridsal2xml), os.path.join(pwd, 'bin', 'hsal2hxml')])
-    except Exception, e:
-        print 'Failed.'
-        print '***Unable to create executable scripts. Perhaps permission issues??'
-        print e
-        return 1
+    srcdir = os.path.join(pwd, 'src')
+    if os.path.isdir(srcdir):
+        # sources downloaded; so I will create more bin/ files just to give more tools to user
+        print 'Creating bin/ files...',
+        bindir = os.path.join(pwd, "bin")
+        if not(os.path.isdir(bindir)):
+            os.makedirs(bindir)
+            #print 'Error: Directory %s does not exist; create it and rerun install.' % bindir
+            #return 1
+        #os.chdir(pwd + "/bin")
+        topshell = '' if sys.platform.startswith('win') else '#!{0}'.format(shell)
+        try:
+            createBinFile(topshell, pwd, bindir, 'hxml2hsal', os.path.join('src','HSalXMLPP.py'))
+            createBinFile(topshell, pwd, bindir, 'hsal2hasal', os.path.join('src','HSalRelAbsCons.py'))
+            createBinFile(topshell, pwd, bindir, 'hasal2sal', os.path.join('src','HSalExtractRelAbs.py'))
+            createBinFile(topshell, pwd, bindir, 'hsal2Tsal', os.path.join('src','HSalTimedRelAbsCons.py'))
+            createBinFile(topshell, pwd, bindir, 'modelica2hsal', os.path.join('modelica2hsal', 'src','modelica2hsal.py'))
+            createBinFile(topshell, pwd, bindir, 'modelica2sal', os.path.join('modelica2hsal', 'src','modelica2sal.py'))
+        #filename = os.path.join(pwd, 'bin', 'hsal2hxml')
+        #if os.path.isfile(filename):
+            #os.remove(filename)
+        #subprocess.call(['ln', '-s', os.path.join('..','hybridsal2xml',hybridsal2xml), os.path.join(pwd, 'bin', 'hsal2hxml')])
+        except Exception, e:
+            print 'Failed.'
+            print '***Unable to create executable scripts. Perhaps permission issues??'
+            print e
+            return 1
+        else:
+            print 'Successful.'
     else:
-        print 'Successful.'
+        pass
 
     # 
     # python version test
@@ -700,11 +724,17 @@ def main():
     if sys.platform.startswith('win'):
         hsal2hasal += '.bat'
     exe = os.path.join('bin',hsal2hasal)
+    if not os.path.isfile(exe):
+        exe = 'hsalRA.exe'
+    if not os.path.isfile(exe):
+        print 'Failed.'
+        print '***Unable to find executable for abstracting example Linear1.hsal'
+        return 1
     try:
         subprocess.call([ exe, os.path.join('examples','Linear1.hsal') ])
     except Exception, e:
         print 'Failed.'
-        print '***Failed to execute generated script {0} using python subprocess.call'.format(hsal2hasal)
+        print '***Failed to execute generated script {0} using python subprocess.call'.format(exe)
         print '***Check if the script looks ok; and if you can execute it from command line'
         return 1
     else:
@@ -712,15 +742,17 @@ def main():
             print 'Successful.'
         else:
             print 'Failed.'
-            print '***Executed the generated script {0}, but it did not generate expected output'.format(hsal2hasal)
+            print '***Executed the generated script {0}, but it did not generate expected output'.format(exe)
             return 1
     
     #
     # Test dparser and swig for modelica2hxml converter
     #
 
-    if '--withmodelica' in sys.argv:
-        installmodelica()
+    exe = 'hsalRA.exe'
+    if not os.path.isfile(exe):
+        if '--withmodelica' in sys.argv:
+            installmodelica()
 
     if '--withsal' in sys.argv:
         installsal( sys.argv )
