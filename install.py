@@ -306,9 +306,11 @@ def searchForjikes():
 def create_hybridsal2xml_exe( pwd, shell, jarfile ):
     # create file hybridsal2xml
     bindir = os.path.join(pwd, "bin")
-    if not(os.path.isdir(bindir)):
-        os.makedirs(bindir)
-    print "Installing hybridsal2xml at {0}...".format(bindir),
+    hybridsal2xml = os.path.join(bindir, 'hybridsal2xml')
+    hybridsal2xmltemplate = os.path.join(bindir, 'hybridsal2xml.template')
+    if not(os.path.isdir(bindir)) and not os.path.isfile(hybridsal2xmltemplate):
+        return # os.makedirs(bindir)
+    print "Creating script hybridsal2xml at {0}...".format(bindir),
     scriptArgs = ''
     topshell = ''
     if sys.platform.startswith('win'):  # windows
@@ -319,8 +321,6 @@ def create_hybridsal2xml_exe( pwd, shell, jarfile ):
         classpathsep = ':'
         scriptArgs = '$*'
         topshell = '#!{0}'.format(shell)
-    hybridsal2xml = os.path.join('bin', 'hybridsal2xml')
-    hybridsal2xmltemplate = os.path.join('bin', 'hybridsal2xml.template')
     if sys.platform.startswith('win'):
         if os.path.isfile(hybridsal2xml):
             os.remove(hybridsal2xml)
