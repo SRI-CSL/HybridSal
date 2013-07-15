@@ -474,6 +474,9 @@ def getVariableValue(var):
             value = val[0].getAttribute('string')
             return (value, i == 'initialValue')
     #print >> sys.stderr, 'Note: value for variable {0} not fixed'.format(var.getAttribute('name'))
+    name = var.getAttribute('name')
+    if name.endswith('OnFileRead'):
+        return ('1', False)
     return (None, False)
 
 def printFixedParameters(varList, varTypeList):
@@ -486,10 +489,18 @@ def printFixedParameters(varList, varTypeList):
         if param in varTypeList and inout != 'input':
             (value, isInit) = getVariableValue(i)
             name = i.getAttribute('name')
-            if value != None and (not(isInit) or isfixed == 'true' or isfixed == 'True'):
+            if value != None: # and (not(isInit) or isfixed == 'true' or isfixed == 'True'):
                 print >> fp, '{0} = {1}'.format(name, value)
             else:
                 ans.append(name)
+    return ans
+
+def printFixedParametersZero(varList):
+    '''This is a hack. Set remaining params to ZERO'''
+    ans = []
+    for i in varList:
+        print 'WARNING: Unknown parameter {0} set to 0'.format(i)
+        print >> fp, '{0} = 0'.format(i)
     return ans
 
 def HSalPPContext(dom, filepointer=sys.stdout):
@@ -524,7 +535,8 @@ def HSalPPContext(dom, filepointer=sys.stdout):
     # print constants or parameters with their values
     print >> fp, '#####{0}'.format('knownVariables')
     leftOutVars1 = printFixedParameters(kvars, ['parameter', 'constant', 'discrete'])
-    assert len(leftOutVars1) == 0, 'ERROR: Some fixed param  equation missed'
+    leftOutVars1 = printFixedParametersZero(leftOutVars1)
+    assert len(leftOutVars1) == 0, 'ERROR: Some fixed param  equation missed {0}'.format(leftOutVars1)
     leftOutVars1  = printFixedParameters(kvars, ['continuous'])
     assert len(leftOutVars1) == 0, 'ERROR: Some fixed cont equation missed {0}'.format(leftOutVars1)
     leftOutVars  = printFixedParameters(ovars, ['continuous'])

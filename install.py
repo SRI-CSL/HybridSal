@@ -69,6 +69,7 @@ files_hsal = '''
 ./src/HSalPreProcess.py
 ./src/Makefile
 ./src/HSalTimedRelAbsCons.py
+./src/HSalTimeAwareAux.py
 ./hybridsal2xml
 ./hybridsal2xml/hybridsal2xml.template
 ./hybridsal2xml/HybridSalParser.g.bkp
@@ -308,7 +309,7 @@ def create_hybridsal2xml_exe( pwd, shell, jarfile ):
     bindir = os.path.join(pwd, "bin")
     hybridsal2xml = os.path.join(bindir, 'hybridsal2xml')
     hybridsal2xmltemplate = os.path.join(bindir, 'hybridsal2xml.template')
-    if not(os.path.isdir(bindir)) and not os.path.isfile(hybridsal2xmltemplate):
+    if not(os.path.isdir(bindir)) or not os.path.isfile(hybridsal2xmltemplate):
         return # os.makedirs(bindir)
     print "Creating script hybridsal2xml at {0}...".format(bindir),
     scriptArgs = ''
@@ -522,6 +523,7 @@ def installsal(args):
 def main():
     if '-h' in sys.argv or '--help' in sys.argv:
         printHelp()
+        return 0
 
     if 'dist' in sys.argv:
         createRelease('.')
