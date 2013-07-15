@@ -84,8 +84,6 @@ files_hsal = '''
 ./hybridsal2xml/HybridSal2Xml.java
 ./hybridsal2xml/Makefile
 ./hybridsal2xml/examples
-./hybridsal2xml/examples/SimpleThermo4.sal
-./hybridsal2xml/examples/SimpleThermo3.sal
 ./hybridsal2xml/HybridSalParser.java
 ./hybridsal2xml/HybridSalLexer.java
 ./hybridsal2xml/hybridsal2xml.jar
@@ -579,8 +577,8 @@ def main():
     # Test hybridsal2xml converter
     print 'Testing hybridsal2xml...',
     jarfile = os.path.join(hybridsal2xml,'hybridsal2xml.jar')
-    hsal = os.path.join(hybridsal2xml, 'examples', 'SimpleThermo4.sal')
-    hxml = os.path.join(hybridsal2xml, 'examples', 'SimpleThermo4.xml')
+    hsal = os.path.join(hybridsal2xml, 'examples', 'SimpleThermo4.hsal')
+    hxml = os.path.join(hybridsal2xml, 'examples', 'SimpleThermo4.hxml')
     if os.path.isfile(hxml):
         os.remove(hxml)
     if os.path.isfile(hsal) and os.path.isfile(jarfile):
@@ -844,7 +842,7 @@ def createReleaseExe(srcdir):
     make_readme(currdir, distdir)
     # make examples/ directory
     allFiles1 = ['MassSpringDamperTest.MassSpringDamperTest.xml','MassSpringDamperTest.property.json']
-    allFiles2 = ['Linear1.hsal','SimpleThermo4.hsal','SimpleThermo4.sal','SimpleThermo4.xml']
+    allFiles2 = ['Linear1.hsal','SimpleThermo4.hsal']
     os.mkdir( os.path.join(distdir,'examples'), 0755 )
     for i in allFiles1:
         src = os.path.join( currdir, 'modelica2hsal', 'examples', i)
