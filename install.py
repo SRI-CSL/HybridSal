@@ -717,7 +717,6 @@ def main():
     # 
     # Test relational abstracter itself
     # 
-    print "Testing HybridSal relational abstracter...",
     ex4 = os.path.join('examples','Linear1.sal')
     if os.path.isfile(ex4):
         os.remove( ex4 )
@@ -726,26 +725,38 @@ def main():
     if sys.platform.startswith('win'):
         hsal2hasal += '.bat'
     exe = os.path.join('bin',hsal2hasal)
-    if not os.path.isfile(exe):
-        exe = 'hsalRA.exe'
-    if not os.path.isfile(exe):
-        print 'Failed.'
-        print '***Unable to find executable for abstracting example Linear1.hsal'
-        return 1
-    try:
-        subprocess.call([ exe, os.path.join('examples','Linear1.hsal') ])
-    except Exception, e:
-        print 'Failed.'
-        print '***Failed to execute generated script {0} using python subprocess.call'.format(exe)
-        print '***Check if the script looks ok; and if you can execute it from command line'
-        return 1
-    else:
+    if os.path.isfile(exe):
+        print "Testing HybridSal relational abstracter...",
+        try:
+            subprocess.call([ exe, os.path.join('examples','Linear1.hsal') ])
+        except Exception, e:
+            print 'Failed.'
+            print '***Failed to execute generated script {0} using python subprocess.call'.format(exe)
+            print '***Check if the script looks ok; and if you can execute it from command line'
+            return 1
         if os.path.isfile( ex4 ):
             print 'Successful.'
         else:
             print 'Failed.'
             print '***Executed the generated script {0}, but it did not generate expected output'.format(exe)
             return 1
+
+
+    #
+    # Test hsalRA.exe
+    #
+    exe = 'hsalRA.exe'
+    ex1 = os.path.join('examples','MassSpringDamperTest.MassSpringDamperTest.xml')
+    prop1 = os.path.join('examples','MassSpringDamperTest.property.json')
+    if os.path.isfile(exe) and os.path.isfile(ex1) and os.path.isfile(prop1):
+        print "Testing hsalRA.exe ...",
+        try:
+            subprocess.call([ exe, ex1, prop1 ])
+        except Exception, e:
+            print 'Failed.'
+            print '***Failed to execute hsalRA.exe'
+            return 1
+        print 'Successful.'
     
     #
     # Test dparser and swig for modelica2hxml converter
