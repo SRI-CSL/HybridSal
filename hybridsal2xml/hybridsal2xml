@@ -1,2 +1,2 @@
 #!/bin/sh
-java -jar /export/u1/homes/tiwari/sal/sal-devel/ashish-tools/hybridsal2xml/hybridsal2xml.jar  $* 
+java -jar /Users/linda/src/ashish-tools/hybridsal2xml/hybridsal2xml.jar  $* 
