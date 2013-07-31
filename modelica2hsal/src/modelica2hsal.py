@@ -136,7 +136,7 @@ def modelica2hsal(filename, pfilename = None, options = []):
     if '--removeTime' in options:
         dom1 = removeTime(dom1)
     dom1 = daeXML.simplifydaexml(dom1,daexmlfilename)
-    os.remove(daexmlfilename)	# this is .daexml file
+    #os.remove(daexmlfilename)	# this is .daexml file
     print >> sys.stderr, 'Finished simplification steps.'
     # with open('tmp','w') as fp:
         # daexmlPP.source_textPP(dom1, filepointer=fp)

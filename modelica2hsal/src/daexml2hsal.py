@@ -93,11 +93,15 @@ def getPredsInConds(contEqns):
                 val = float(valueOf(a2))
                 return add2Preds(preds, (s11,name1,name2), val)
             else:
-                assert False, 'MISSING BAPP CODE: Found {0} expression...'.format(daexmlPP.ppExpr(c))
+                #assert False, 'MISSING BAPP CODE: Found {0} expression...'.format(daexmlPP.ppExpr(c))
+                print 'Warning: MISSING BAPP CODE: Found {0} expression...'.format(daexmlPP.ppExpr(c))
+                return preds	# CHECK here ASHISH Ashish
         elif s1 in ['>', '<'] and a2.tagName == 'number' and a1.tagName == 'number':
             return preds
         else:
-            assert False, 'MISSING BAPP CODE: Found {0} expression.'.format(daexmlPP.ppExpr(c))
+            # assert False, 'MISSING BAPP CODE: Found {0} expression.'.format(daexmlPP.ppExpr(c))
+            print 'Warning: MISSING BAPP CODE: Found {0} expression.'.format(daexmlPP.ppExpr(c))
+            return preds
     def getPredsInExpr(c, preds):
         # print 'entering', preds
         if c.tagName == 'identifier':
@@ -270,6 +274,8 @@ def preprocessEqnNEW(eL,cstate,dstate):
             if ans == None:
                 return c
             ans = mkBOp('+',ans,c)
+        if ans == None:
+            ans = mkc(0)
         return ans
     def isOp(v, tagName, op):
         return v.tagName==tagName and valueOf(getArg(v,1)).strip()==op
@@ -287,7 +293,11 @@ def preprocessEqnNEW(eL,cstate,dstate):
                     p.pop(x)
             return p
         elif op=='*':
-            assert ispolyrepc(p) or ispolyrepc(q), 'ERROR: Nonlinear expression found'
+            if not(ispolyrepc(p) or ispolyrepc(q)):
+                print 'ERROR: Nonlinear expression found {0}*{1}'.format(p,q)
+                print 'ERROR: Nonlinear expression found. UNSOUND'
+                return p
+            #assert ispolyrepc(p) or ispolyrepc(q), 'ERROR: Nonlinear expression found {0}*{1}'.format(p,q)
             (p,q) = (q,p) if ispolyrepc(p) else (p,q)
             d = q[None]
             if d==0:
@@ -296,10 +306,22 @@ def preprocessEqnNEW(eL,cstate,dstate):
                 p[x] = c*d
             return p
         elif op=='/':
-            assert ispolyrepc(q), 'ERROR: Dividing by non-constant; cannot handle.'
+            if not ispolyrepc(q):
+                print 'ERROR: Dividing by non-constant; cannot handle {0}/{1}'.format(p,q)
+                return p
+            assert ispolyrepc(q), 'ERROR: Dividing by non-constant; cannot handle {0}/{1}'.format(p,q)
             d = q[None]
             for (x,c) in p.items():
                 p[x] = c/d
+            return p
+        elif op=='max' or op=='min':
+            print 'WARNING: Max/Min applied to polynomial. Unsound handling'
+            return p
+        elif op=='>' or op=='>=':
+            print 'WARNING: >/>= applied to polynomial. Unsound handling'
+            return None
+        elif op=='^':
+            print 'WARNING: ^ applied to polynomial. Unsound handling'
             return p
         else:
             assert False, 'Error: Unknown binary operator {0} applied on {1},{2}; cannot handle'.format(op, p, q)
@@ -322,10 +344,16 @@ def preprocessEqnNEW(eL,cstate,dstate):
         elif e.tagName == 'BAPP':
             e1 = expr2polyrep( getArg(e,2) )
             e2 = expr2polyrep( getArg(e,3) )
-            return polyrepBOp( valueOf(getArg(e,1)).strip(), e1, e2 )
+            if e1 != None and e2 != None:
+                return polyrepBOp( valueOf(getArg(e,1)).strip(), e1, e2 )
+            else:
+                return None
         elif e.tagName == 'UAPP':
             e1 = expr2polyrep( getArg(e,2) )
-            return polyrepUOp( valueOf(getArg(e,1)).strip(), e1 )
+            if e1 != None:
+                return polyrepUOp( valueOf(getArg(e,1)).strip(), e1 )
+            else:
+                return None
         elif e.tagName == 'IF':
             c = getArg(e, 1)
             if evalCond(c) == True:
@@ -392,6 +420,9 @@ def preprocessEqnNEW(eL,cstate,dstate):
         q = expr2polyrep(rhs)
         print p, '=', q
         print 'debuggin printing ......................................'
+        if p == None or q == None:
+            print 'WARNING: Ignoring equation'
+            continue
         p = polyrepapplySub(p, subL)
         q = polyrepapplySub(q, subL)
         (sub,ode,others) = moveDerLeft(p,q)
@@ -551,7 +582,9 @@ def expr2sal(node, flag=True):
         a1 = getArg(node, 2)
         a2 = getArg(node, 3)
         s1 = op2sal(op)
+        print s1
         s2 = expr2sal(a1, flag)
+        print s2
         s3 = expr2sal(a2, flag)
         if s2 == '':	# hack to deal with initial()
             return s3
@@ -569,7 +602,9 @@ def expr2sal(node, flag=True):
         v1 = getArg(node, 2)
         v2 = getArg(node, 3)
         s1 = expr2sal(c, flag)
+        print s1
         s2 = expr2sal(v1, flag)
+        print s2
         s3 = expr2sal(v2, flag)
         return 'IF ' + s1 + ' THEN ' + s2 + ' ELSE ' + s3 + ' ENDIF '
     elif node.tagName == 'set':
@@ -704,7 +739,9 @@ def simplifyITEeq(e1, e2, var=None):
             a1 = getArg(v1,2)
             return solve(a1, mkUOp('-',v2), var)
         print 'Unable to solve equation'
-        assert False, 'Expr is {0}'.format(daexmlPP.ppExpr(v1))
+        # assert False, 'Expr is {0}'.format(daexmlPP.ppExpr(v1))
+        print 'WARNING: UNABLE TO SOLVE Expr {0}'.format(daexmlPP.ppExpr(v1))
+        return None
     assert len(e1) > 0, 'Error: expecting nonempty list'
     if var == None:
         allX = xml2vars(e1[0][2])
@@ -714,6 +751,9 @@ def simplifyITEeq(e1, e2, var=None):
             if len(allX) == 0:
                 print 'Failed to find variable to solve'
                 return None
+        if len(allX) == 0:
+            print 'Failed to find variable to solve'
+            return None
         var = allX.pop()
     # assert var != None, 'Error: Cant handle arbitrary equations'
     if var == None:
@@ -726,7 +766,8 @@ def simplifyITEeq(e1, e2, var=None):
             ai.extend(c1i)
             bi.extend(d1i)
             vi = solve(v0i, v1i, var)
-            ans.append((ai,bi,vi))
+            if vi != None:
+                ans.append((ai,bi,vi))
     print >> sys.stderr, 'SimplifyITEeq input has {0} = {1} cases'.format(len(e1),len(e2))
     print >> sys.stderr, 'SimplifyITEeq output has {0} cases'.format(len(ans))
     return (var, ans)
@@ -753,8 +794,12 @@ def others2salmonitorNew(oeqns, bools, ints, reals):
         variables = variables.union( xml2vars( lhs ))	# a set
         variables = variables.union( xml2vars( rhs ))	# a set
     for v in variables:
-        assert v in reals or v in bools or v in ints
-        tval = 'REAL' if v in reals else ('BOOLEAN' if v in bools else 'NATURAL')
+        # assert v in reals or v in bools or v in ints
+        if not(v in reals or v in bools or v in ints):
+            print 'WARNING: VARIABLE {0} not in reals/bools/ints'.format(v)
+            tval = 'REAL'
+        else:
+            tval = 'REAL' if v in reals else ('BOOLEAN' if v in bools else 'NATURAL')
         ans += '\n  INPUT {0}: {1}'.format(v, tval)
     ans += '\n  TRANSITION\n  ['
     ans += '\n  {0} --> '.format(guard)
@@ -1389,7 +1434,7 @@ def printUsage():
     print '''
 daexml2hsal -- a converter from differential algebraic equations to HybridSal
 
-Usage: python daexml2hsal <daexml_file> <modelica_xmlfile>
+Usage: python daexml2hsal <daexml_file> <modelica_xmlfile> [--addTime|--removeTime]
     '''
 
 def daexml2hsal(dom1, dom2, filename, dom3):
@@ -1405,9 +1450,52 @@ def daexml2hsal(dom1, dom2, filename, dom3):
         sys.exit(-1)
     return create_output_file(filename, hsalstr, propStr)
 
+def addTime(dom2):
+    'add time as a new continuousState variable in the model'
+    node = dom2.createElement('variable')
+    node.setAttribute('name', 'time')
+    node.setAttribute('variability', 'continuousState')
+    node.setAttribute('direction', 'none')
+    node.setAttribute('type', 'Real')
+    node.setAttribute('index', '-1')
+    node.setAttribute('fixed', 'false')
+    node.setAttribute('flow', 'NonConnector')
+    node.setAttribute('stream', 'NonStreamConnector')
+    orderedVars_varlists = getElementsByTagTagName(dom2, 'orderedVariables', 'variablesList')
+    assert orderedVars_varlists != None and len(orderedVars_varlists) > 0
+    orderedVars_varlist = orderedVars_varlists[0]
+    orderedVars_varlist.appendChild(node)
+    equations = dom2.getElementsByTagName('equations')
+    newequation = dom2.createElement('equation')
+    newequation.appendChild( dom2.createTextNode('der(time) = 1') )
+    assert equations != None and len(equations) > 0
+    equations[0].appendChild(newequation)
+    return dom2
+
+def removeTime(dom1):
+    'remove all equations that mention time in them'
+    def hasTime(e):
+        ids = e.getElementsByTagName('identifier')
+        for identifier in ids:
+            name = valueOf(identifier).strip()
+	    if name.strip() == 'time':
+                return True
+        return False
+    Eqn = dom1.getElementsByTagName('equations')[0]
+    eqns = Eqn.getElementsByTagName('equation')
+    for e in eqns:
+        if hasTime(e):
+            Eqn.removeChild(e)
+    Eqn = dom1.getElementsByTagName('knownVariables')[0]
+    eqns = Eqn.getElementsByTagName('variablevalue')
+    for e in eqns:
+        if hasTime(e):
+            Eqn.removeChild(e)
+    return dom1
+
 def main():
     global dom
-    if not len(sys.argv) == 3:
+    if not len(sys.argv) >= 3:
         printUsage()
         return -1
     basename,ext1 = os.path.splitext(sys.argv[1])
@@ -1422,6 +1510,10 @@ def main():
         return -1
     dom1 = xml.dom.minidom.parse(sys.argv[1])
     dom2 = xml.dom.minidom.parse(sys.argv[2])
+    if '--addTime' in sys.argv[1:]:
+        dom2 = addTime(dom2)
+    if '--removeTime' in sys.argv[1:]:
+        dom1 = removeTime(dom1)
     dom = dom1
     (hsalstr,propStr) = convert2hsal(dom1, dom2)
     create_output_file(sys.argv[1], hsalstr)

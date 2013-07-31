@@ -202,6 +202,10 @@ def simplify_tapp(node,done):
                 cols = tmp if cols == -1 else cols
                 assert cols == tmp
                 a = vector2list(rowi)
+                if a == None:
+                    print 'ERROR: Table row does not simplify to a constant'
+                    print rowi
+                    a = [1]*cols
                 table.append(a)
         return (table, rows, cols)
     def compressTable(rows, cols, table, icol):
@@ -1249,7 +1253,8 @@ def simplifydaexml(dom1, filename):
 if __name__ == "__main__":
     #xmlparser = xml.parsers.expat.ParserCreate()
     dom = xml.dom.minidom.parse(sys.argv[1])
-    simplifydaexml(dom, sys.argv[1])
+    dom = simplifydaexml(dom, sys.argv[1])
+    create_output_file(sys.argv[1], dom) # do not create .dae_flat_xml file
     #xmlparser.StartElementHandler = start_element
     #xmlparser.ElementDeclHandler = elmtdeclhandle
     #xmlparser.AttlistDeclHandler = attlistdeclhandler
