@@ -234,7 +234,8 @@ def simplify_tapp(node,done):
         set1 = getArg(i, 3)
         n = getArg(i, 2)
         m = getArg(i, 4)
-        if func.localName == 'TERNARY_OPERATOR' and valueOf(func).strip() == 'Modelica.Math.tempInterpol1' and set1.localName == 'set' and m.localName == 'number':
+        fname = valueOf(func).strip()
+        if fname == 'Modelica.Math.tempInterpol1' and set1.localName == 'set' and m.localName == 'number':
             (table,rows,cols) = table2table(set1)
             icol = int(valueOf(m))# column that computes output 
             assert icol <= cols
@@ -266,7 +267,7 @@ def simplify_tapp(node,done):
                 node = replace(i, ans, node)
                 done = False
                 print 'T',
-        elif func.localName == 'TERNARY_OPERATOR' and valueOf(func).strip() == 'Modelica.Blocks.Tables.CombiTable1D.tableIpo':
+        elif fname == 'Modelica.Blocks.Tables.CombiTable1D.tableIpo':
             tableId = getArg(i, 2)
             col = getArg(i, 3)
             var = getArg(i, 4)
@@ -294,12 +295,13 @@ def simplify3(node):
     sas = node.getElementsByTagName('QAPP')
     for i in sas:
         func = getArg(i, 1)
-        if func.localName == 'QUAD_OPERATOR' and valueOf(func).strip() == 'Modelica.Mechanics.MultiBody.Visualizers.Advanced.Shape.PackMaterial':
+        fname = valueOf(func).strip()
+        if fname == 'Modelica.Mechanics.MultiBody.Visualizers.Advanced.Shape.PackMaterial':
             ans = helper_create_tag_val('number', str(0))
             node = replace(i, ans, node)
             done = False
             print 'd',
-        elif func.localName == 'QUAD_OPERATOR' and valueOf(func).strip() == 'Modelica.Blocks.Tables.CombiTable1D.tableInit':
+        elif fname == 'Modelica.Blocks.Tables.CombiTable1D.tableInit':
             arg1 = getArg(i, 2)
             arg2 = getArg(i, 3)
             arg3 = getArg(i, 4)
@@ -316,10 +318,8 @@ def simplify3(node):
         func = getArg(i, 1)
         set1 = getArg(i, 2)
         set2 = getArg(i, 3)
-        if func.localName == 'SPECIAL_BINARY_OPERATOR' and set1.localName == 'set' and set2.localName == 'set':
-            fname =  valueOf(func).strip()
-            if fname != 'Modelica.Mechanics.MultiBody.Frames.TransformationMatrices.from_nxy':
-                continue
+        fname =  valueOf(func).strip()
+        if fname == 'Modelica.Mechanics.MultiBody.Frames.TransformationMatrices.from_nxy' and set1.localName == 'set' and set2.localName == 'set':
             (a,b) = (vector2list(set1), vector2list(set2))
             if a == None or b == None:
                 continue
@@ -1213,9 +1213,71 @@ def create_output_file(filename, z):
         # print >> fp, z.toprettyxml()
     print "Created file %s containing XML representation" % xmlfilename
 
-def simplifydaexml(dom1, filename):
+def SubstituteLibraryFunctions(dom, library):
+    def f2name_args_val(f):
+        fname = valueOf(getArg(f, 1)).strip()
+        fargs = getArg(f, 2)
+        if fargs.tagName == 'formals':
+            fval  = getArg(f, 3)
+        else:
+            fval = fargs
+            fargs = None
+        args = []
+        if fargs != None:
+            arity = int(fargs.getAttribute('arity'))
+            for i in range(arity):
+                args.append( valueOf(getArg(fargs, i+1)).strip() )
+        return (fname, args, fval)
+    def substituteFunction(dom, fname, fargs, fval):
+        "fname = string, fargs = list of strings, fval = a DOM element"
+        arity = len(fargs)
+        tagNames = ['IDENTIFIER', 'UAPP', 'BAPP', 'TAPP', 'QAPP', 'NAPP']
+        tagName = tagNames[arity] if arity >= 0 and arity <= 5 else 'NAPP'
+        instances = dom.getElementsByTagName(tagName)
+        for node in instances:
+            if arity >= 1:
+                actualfname = valueOf(getArg(node, 1)).strip()
+            else:
+                actualfname = valueOf(node).strip()
+            if actualfname != fname:
+                continue
+            print 'Replacing {0} by its definition in library'.format(fname)
+            dom = replaceNodeByNewNode(dom, node, fargs, fval)
+        return dom
+    def replaceNodeByNewNode(dom, node, fargs, fval):
+        "replace node by fval, but after replacing formals in fval by actuals"
+        arity = len(fargs)
+        newnode = fval.cloneNode(True)
+        if arity == 0:
+            dom = replace(node, newnode, dom)
+            return dom
+        mapping = {}
+        for i in range(arity):
+            mapping[fargs[i]] = getArg( node, i+2)
+        newnode = substitute(newnode, mapping)
+        dom = replace(node, newnode, dom)
+        return dom
+    if library == None:
+        print 'Warning: No library being used for simplification'
+        return dom
+    # library is a dom file
+    print library.toxml()
+    allfunctions = library.getElementsByTagName('libequation')
+    if len(allfunctions) == 0:
+        print 'Warning: No function definitions found in the library'
+    for f in allfunctions:
+        (fname, fargs, fval) = f2name_args_val(f)
+        print 'Found definition of function {0} in library'.format(fname)
+        dom = substituteFunction(dom, fname, fargs, fval)
+    return dom
+
+def simplifydaexml(dom1, filename, library = None):
     global dom
-    dom = dom1
+    dom = dom1		# daexml dom
+    print '-------------Simplification Phase 0 starting......'
+    dom = SubstituteLibraryFunctions(dom, library)
+    print '-------------Simplification Phase 0 over......'
+    #print dom.toxml()
     tmp = dom.getElementsByTagName('continuousState')[0]
     tmp2 = tmp.getElementsByTagName('identifier')
     cstate = [ valueOf(i).strip() for i in tmp2 ]
@@ -1229,6 +1291,7 @@ def simplifydaexml(dom1, filename):
     for i in initeqns:
         eqns.appendChild(i)
     # end of additional code
+    print '-------------Simplification Phase 1 starting......'
     dom = SimplifyEqnsPPDaeXML(dom, cstate, dstate)
     print '-------------Simplification Phase 1 over......'
     # daexmlPP.source_textPP(dom)

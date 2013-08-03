@@ -21,7 +21,35 @@ import os.path
 import pprint
 from ModelicaXML import getArg
 
-# /* Source Text */
+# ------------------------------------------------------------------
+# /* LIBRARY Source Text */
+def d_library(s, nodes):
+    "library : libequation*"
+    return helper_create_app('library', s[0], nodes[0].start_loc)
+
+def d_libequation(s, nodes):
+    "libequation: identifier formals? '=' expression"
+    # print 'equation for {0} processed'.format(s[0].toprettyxml())
+    if len(s[1]) > 0:
+        args = [s[0], s[1][0], s[3]]
+    else:
+        args = [s[0], s[3]]
+    return helper_create_app('libequation', args, nodes[0].start_loc)
+
+def d_formals(s, nodes):
+    "formals: '(' identifier (',' identifier)* ')' "
+    args = [ s[1] ]
+    for i in s[2]:
+        args.append(i[1])
+    node = helper_create_app('formals', args, nodes[0].start_loc)
+    node.setAttribute('arity', str(len(args)))
+    return node
+
+# /* End of LIBRARY Source Text */
+# ------------------------------------------------------------------
+
+# ------------------------------------------------------------------
+# /* Source Text for dae files */
 def d_source_text(s, nodes):
     "source_text : cstate dstate knownVariables equations initializations"
     return helper_create_app('source_text', [s[0],s[1],s[2],s[3],s[4]], nodes[0].start_loc)
@@ -130,7 +158,33 @@ def d_REAL_NUMBER(t, s, nodes):
     return s[0]
 
 
-# Expressions
+# Expressions: Modified Aug 2, 2013: generalized
+def d_prefix_expression(s, nodes):
+    "prefix_expression :\
+        identifier |\
+        identifier '(' expression (',' expression)+ ')' ACCESS?"
+    if len(s) == 1:
+        return s[0]
+    fname = s[0]
+    allargs = [ fname, s[2] ]
+    for i in s[3]:
+        allargs.append(i[1])
+    if len(allargs) == 2:
+        node = helper_create_app('UAPP', allargs, nodes[0].start_loc )
+    elif len(allargs) == 3:
+        node = helper_create_app('BAPP', allargs, nodes[0].start_loc )
+    elif len(allargs) == 4:
+        node = helper_create_app('TAPP', allargs, nodes[0].start_loc )
+    elif len(allargs) == 5:
+        node = helper_create_app('QAPP', allargs, nodes[0].start_loc )
+    else:
+        node = helper_create_app('NAPP', allargs, nodes[0].start_loc )
+    if len(s[5]) == 0:
+        return node
+    else:
+        return helper_create_app('setaccess', [ node, s[5][0] ])
+
+'''
 def d_prefix_expression(s, nodes):
     "prefix_expression :\
         identifier |\
@@ -155,6 +209,7 @@ def d_prefix_expression(s, nodes):
     else:
         print 'ERROR: prefix_expression missing code {0} {1}'.format(len(s),s)
         sys.exit()
+'''
 
 def d_expression(s, nodes):
     "expression :\
@@ -292,10 +347,10 @@ def moveIfExists(filename):
 
 def create_output_file(filename, z):
     basename,ext = os.path.splitext(filename)
-    if ext != '.dae':
-        print 'ERROR: Unknown file extension; expecting .dae ... Quitting'
+    if ext != '.dae' and ext != '.pl':
+        print 'ERROR: Unknown file extension; expecting .dae|.pl ... Quitting'
         return 1
-    xmlfilename = basename + ".daexml"
+    xmlfilename = basename + ext + "xml"
     moveIfExists(xmlfilename)
     with open(xmlfilename, "w") as fp:
         print >> fp, z.toprettyxml()
@@ -303,11 +358,15 @@ def create_output_file(filename, z):
 
 def printUsage():
     print """
-NAME: dae2daexml - converter from DAE to XML
-SYNOPSIS: bin/dae2daexml <filename.dae>
+NAME: python src/ddae.py - converter from DAE to XML
+SYNOPSIS: python src/ddae.py <filename> [start_symbol]
 DESCRIPTION: ...
- Output is written to a file named <filename.daexml>
-EXAMPLE: ...
+ Parse the file <filename> and create its XML representation.
+ Optional argument is the start_symbol: it can be source_text or library.
+ Default value for start_symbol is source_text.
+ Output is written to a file named <filename+xml>
+EXAMPLE: python src/ddae.py examples/no_controls_dae_sri.dae
+         python src/ddae.py examples/library.pl library
 CAVEATS:
 """
     sys.exit()
@@ -321,40 +380,47 @@ def parse_expr(x):
     return z
     #print z.toprettyxml()
 
-def dae2daexml(filename):
+def daestring2daexml(filedata, startsymbol):
     global dom
     impl = getDOMImplementation()
     dom = impl.createDocument(None, "daexml", None)
-    with open(filename, 'r') as f:
-        x = f.read()
-        # x = x.replace('$','S')	# $dummy variables -> Sdummy variables
     try:
-        y = Parser().parse(x)    # y is now a dparser.ParsedStructure instance
+        y = Parser().parse(filedata,start_symbol=startsymbol)    # y is now a dparser.ParsedStructure instance
     # except Exception, e:
     except SyntaxError, e:
         print e
         # print sys.exc_info()[0]
         print 'DAE Parse Error: Unable to handle this model currently'
-        sys.exit(-1)
+        #sys.exit(-1)
     except Exception, e:
         print e
         print 'DAE Parser Unknown Error: Unable to handle this model currently'
-        sys.exit(-1)
+        #sys.exit(-1)
     z = y.getStructure()
+    #create_output_file(filename, z)
+    return (dom,z)
+
+def dae2daexml(filename, startsymbol = 'source_text'):
+    with open(filename, 'r') as f:
+        x = f.read()
+        # x = x.replace('$','S')	# $dummy variables -> Sdummy variables
+    (dom,z) = daestring2daexml(x, startsymbol)
     create_output_file(filename, z)
     return (dom,z)
 
 def main():
     args = sys.argv[1:]
-    if len(args) < 1 or len(args) > 1 or args[0][0] == '-':
+    if len(args) < 1 or len(args) > 2 or args[0][0] == '-':
         printUsage()
         # print 'Need filename'
         return 1
+    start_symbol = 'source_text' if len(args) < 2 else args[1]
+    print 'start symbol = {0}'.format(start_symbol)
     filename = args[0]
     if not(os.path.isfile(filename)):
         print "File does not exist. Quitting."
         return 1
-    (dom,z) = dae2daexml(filename)
+    (dom,z) = dae2daexml(filename, start_symbol)
     return (dom,z)
 
 if __name__ == '__main__':

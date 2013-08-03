@@ -7,6 +7,12 @@ import daeXML		# daexml -> simplified daexml
 import daexmlPP
 import daexml2hsal	# daexml -> hsal
 
+libraryStr = '''
+Modelica.Fluid.Utilities.regStep(x,y1,y2,e) = if (x >= e) then y1 else (if (x <= -e) then y2 else (y1+y2)/2 )
+Modelica.Fluid.Utilities.regRoot(x,y) = if (x >= 0) then sqrt(x) else -(sqrt(-x))
+tester(a, b) = der(a)
+'''
+
 def printUsage():
     print '''
 modelica2hsal -- a converter from Modelica to HybridSal
@@ -102,6 +108,11 @@ def removeTime(dom1):
     return dom1
 
 def modelica2hsal(filename, pfilename = None, options = []):
+    def existsAndNew(filename1, filename2):
+        if os.path.isfile(filename1) and os.path.getctime(filename1) >= os.path.getctime(filename2):
+            print "File {0} exists and is new".format(filename1)
+            return True
+        return False
     basename,ext = os.path.splitext(filename)
     try:
         dom = xml.dom.minidom.parse(filename)
@@ -117,16 +128,22 @@ def modelica2hsal(filename, pfilename = None, options = []):
     if '--addTime' in options:
         dom2 = addTime(dom2)
     daefilename = basename + '.dae'
-    moveIfExists(daefilename)
     print >> sys.stderr, 'Parsing Modelica XML file......'
-    with open(daefilename,'w') as fp:
-        ModelicaXML.HSalPPContext(dom, fp)   # create a .dae file
-    print >> sys.stderr, 'Parsing complete. Created file {0}'.format(daefilename)
+    if not existsAndNew(daefilename, filename):
+        with open(daefilename,'w') as fp:
+            ModelicaXML.HSalPPContext(dom, fp)   # create a .dae file
+        print >> sys.stderr, 'Parsing complete. Created file {0}'.format(daefilename)
+    else:
+        print >> sys.stderr, 'Using existing {0} file'.format(daefilename)
     # now parse the dae into daexml
-    (dom,daexml) = ddae.dae2daexml(daefilename)
-    os.remove(daefilename)	# this is .dae file
     daexmlfilename = basename + '.daexml'
-    print >> sys.stderr, 'Created file {0}'.format(daexmlfilename)
+    if not existsAndNew(daexmlfilename, daefilename):
+        (dom,daexml) = ddae.dae2daexml(daefilename)
+        # neither dom nor daexml are used below; used for side-effect to create file!!
+        print >> sys.stderr, 'Created file {0}'.format(daexmlfilename)
+    else:
+        print >> sys.stderr, 'Using existing {0} file'.format(daexmlfilename)
+    # os.remove(daefilename)	# this is .dae file
     print >> sys.stderr, 'Trying to simplify the Modelica model...'
     try:
         dom1 = xml.dom.minidom.parse(daexmlfilename)
@@ -135,8 +152,17 @@ def modelica2hsal(filename, pfilename = None, options = []):
         sys.exit(-1)
     if '--removeTime' in options:
         dom1 = removeTime(dom1)
-    dom1 = daeXML.simplifydaexml(dom1,daexmlfilename)
-    #os.remove(daexmlfilename)	# this is .daexml file
+    # Now try to parse the library file
+    try:
+        print 'Trying to parse the libraryString...'
+        (libdom,libdaexml) = ddae.daestring2daexml(libraryStr,'library')
+        print 'Successfully parsed the libraryString...'
+        # print libdaexml.toxml()
+    except:
+        print 'Library in wrong syntax. Unable to handle.'
+        sys.exit(-1)
+    dom1 = daeXML.simplifydaexml(dom1,daexmlfilename,library=libdaexml)
+    os.remove(daexmlfilename)	# this is .daexml file
     print >> sys.stderr, 'Finished simplification steps.'
     # with open('tmp','w') as fp:
         # daexmlPP.source_textPP(dom1, filepointer=fp)
