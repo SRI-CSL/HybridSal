@@ -37,7 +37,7 @@ def d_libequation(s, nodes):
     return helper_create_app('libequation', args, nodes[0].start_loc)
 
 def d_formals(s, nodes):
-    "formals: '(' identifier (',' identifier)* ')' "
+    "formals: '(' expression (',' expression)* ')' "
     args = [ s[1] ]
     for i in s[2]:
         args.append(i[1])
@@ -139,9 +139,10 @@ def d_ACCESS(s, nodes):
     return helper_create_tag_val('access', s[1], nodes[0].start_loc)
 
 def d_NUMBER(t, s, nodes):
-    'NUMBER : "[0-9]+[,0-9]*"'
+    'NUMBER : "[0-9]+[, 0-9]*"'
     # print 'number = {0}'.format(s[0])
-    return s[0]
+    ans = s[0].replace(' ','')
+    return ans
     #return helper_create_tag_val('NUMBER', s[0], nodes[0].start_loc)
 
 def d_number(s, nodes):
@@ -170,15 +171,15 @@ def d_prefix_expression(s, nodes):
     for i in s[3]:
         allargs.append(i[1])
     if len(allargs) == 2:
-        node = helper_create_app('UAPP', allargs, nodes[0].start_loc )
+        node = helper_create_app('UAPP', allargs, nodes[0].start_loc, 1 )
     elif len(allargs) == 3:
-        node = helper_create_app('BAPP', allargs, nodes[0].start_loc )
+        node = helper_create_app('BAPP', allargs, nodes[0].start_loc, 2 )
     elif len(allargs) == 4:
-        node = helper_create_app('TAPP', allargs, nodes[0].start_loc )
+        node = helper_create_app('TAPP', allargs, nodes[0].start_loc, 3 )
     elif len(allargs) == 5:
-        node = helper_create_app('QAPP', allargs, nodes[0].start_loc )
+        node = helper_create_app('QAPP', allargs, nodes[0].start_loc, 4 )
     else:
-        node = helper_create_app('NAPP', allargs, nodes[0].start_loc )
+        node = helper_create_app('NAPP', allargs, nodes[0].start_loc, len(allargs)-1 )
     if len(s[5]) == 0:
         return node
     else:
@@ -230,15 +231,15 @@ def d_expression(s, nodes):
     elif len(s) == 2 and s[0] == 'noEvent':
         return s[1]
     elif len(s) == 2:
-        return helper_create_app('UAPP', [ s[0], s[1] ], nodes[0].start_loc )
+        return helper_create_app('UAPP', [ s[0], s[1] ], nodes[0].start_loc, 1 )
     elif len(s) == 3 and s[0] == '(':
         return s[1]
     elif len(s) == 3 and s[0] == 'initial':
         return helper_create_app('INITIAL', [ ], nodes[0].start_loc )
     elif len(s) == 3:
-        return helper_create_app('BAPP', [ s[1], s[0], s[2] ], nodes[0].start_loc )
+        return helper_create_app('BAPP', [ s[1], s[0], s[2] ], nodes[0].start_loc, 2 )
     elif len(s) == 4 and s[1] == '(': 	# unary_operator
-        return helper_create_app('UAPP', [ s[0], s[2] ], nodes[0].start_loc )
+        return helper_create_app('UAPP', [ s[0], s[2] ], nodes[0].start_loc,1 )
     elif len(s) == 4 and s[1] == '[': 	# array access
         return helper_create_app('arrayselect', [ s[0], s[2] ], nodes[0].start_loc )
     elif len(s) == 5 and s[0] == '{': 	# { expr (, expr)* } ACCESS
@@ -260,7 +261,7 @@ def d_expression(s, nodes):
         sys.exit()
 
 def d_UNARY_OPERATOR(t, s, nodes):
-    "UNARY_OPERATOR : '-' | 'sqrt' | 'abs' | 'cos' | 'sin' | 'Real' | 'not' "
+    "UNARY_OPERATOR : '-' | 'sqrt' | 'abs' | 'cos' | 'sin' | 'Real' | 'not' | 'max' | 'sign' | 'exp' | 'log' "
     # print s[0]
     return helper_create_tag_val('UNARY_OPERATOR', s[0], nodes[0].start_loc)
 
@@ -307,9 +308,11 @@ def d_equation(s, nodes):
     # print 'equation for {0} processed'.format(s[0].toprettyxml())
     return helper_create_app('equation', [s[0], s[2]], nodes[0].start_loc)
 
-def helper_create_app(tag, childs, position = None):
+def helper_create_app(tag, childs, position = None, arity = None):
     global dom
     node = dom.createElement(tag)
+    if arity != None:
+        node.setAttribute('arity', str(arity))
     if position != None:
         node.setAttribute('col', str(position.col))
         node.setAttribute('line', str(position.line))
@@ -391,11 +394,11 @@ def daestring2daexml(filedata, startsymbol):
         print e
         # print sys.exc_info()[0]
         print 'DAE Parse Error: Unable to handle this model currently'
-        #sys.exit(-1)
+        sys.exit(-1)
     except Exception, e:
         print e
         print 'DAE Parser Unknown Error: Unable to handle this model currently'
-        #sys.exit(-1)
+        sys.exit(-1)
     z = y.getStructure()
     #create_output_file(filename, z)
     return (dom,z)

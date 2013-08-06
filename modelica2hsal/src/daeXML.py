@@ -650,21 +650,21 @@ def simplify0bapp(node):
                 val = float(arg1)
             elif func == 'atan2':
                 val = math.atan2(float(arg1),float(arg2))
-            elif (func == '<' or func == '&lt;') and float(arg1) < float(arg2):
+            elif (func in ['<', '&lt;', 'lt']) and float(arg1) < float(arg2):
                 val = 'true'
-            elif (func == '<' or func == '&lt;') and float(arg1) >= float(arg2):
+            elif (func in ['<', '&lt;', 'lt']) and float(arg1) >= float(arg2):
                 val = 'false'
-            elif (func == '>' or func == '&gt;') and float(arg1) > float(arg2):
+            elif (func in ['>', '&gt;', 'gt']) and float(arg1) > float(arg2):
                 val = 'true'
-            elif (func == '>' or func == '&gt;') and float(arg1) <= float(arg2):
+            elif (func in ['>', '&gt;', 'gt']) and float(arg1) <= float(arg2):
                 val = 'false'
-            elif func == '>=' and float(arg1) >= float(arg2):
+            elif func in ['>=','geq'] and float(arg1) >= float(arg2):
                 val = 'true'
-            elif func == '>=' and float(arg1) < float(arg2):
+            elif func in ['>=','geq'] and float(arg1) < float(arg2):
                 val = 'false'
-            elif func == '<=' and float(arg1) <= float(arg2):
+            elif func in ['<=','leq'] and float(arg1) <= float(arg2):
                 val = 'true'
-            elif func == '<=' and float(arg1) > float(arg2):
+            elif func in ['<=','leq'] and float(arg1) > float(arg2):
                 val = 'false'
             elif func == '==' and float(arg1) == float(arg2):
                 val = 'true'
@@ -1226,10 +1226,10 @@ def SubstituteLibraryFunctions(dom, library):
         if fargs != None:
             arity = int(fargs.getAttribute('arity'))
             for i in range(arity):
-                args.append( valueOf(getArg(fargs, i+1)).strip() )
+                args.append( getArg(fargs, i+1) )
         return (fname, args, fval)
     def substituteFunction(dom, fname, fargs, fval):
-        "fname = string, fargs = list of strings, fval = a DOM element"
+        "fname = string, fargs = list of EXPRS-XML, fval = a DOM element"
         arity = len(fargs)
         tagNames = ['IDENTIFIER', 'UAPP', 'BAPP', 'TAPP', 'QAPP', 'NAPP']
         tagName = tagNames[arity] if arity >= 0 and arity <= 5 else 'NAPP'
@@ -1244,6 +1244,44 @@ def SubstituteLibraryFunctions(dom, library):
             print 'Replacing {0} by its definition in library'.format(fname)
             dom = replaceNodeByNewNode(dom, node, fargs, fval)
         return dom
+    def match(formal, actual, mapping):
+        "formal,actual are XML nodes, mapping is a dict from str to expr"
+        # base case, if formal is an identifier
+        if formal.tagName == 'identifier':
+            var_name = valueOf(formal).strip()
+            assert not mapping.has_key(var_name),'Nonlinear library definition'
+            mapping[var_name] = actual
+            return mapping
+        elif formal.tagName == 'number':
+            if actual.tagName == 'number':
+                formal_val = float(valueOf(formal).strip())
+                actual_val = float(valueOf(actual).strip())
+                if abs(formal_val-actual_val) < 1e-3:
+                    return mapping
+                else:
+                    return None
+            else:
+                return None # matching failed!!!
+        elif formal.tagName.endswith('APP'): # UAPP,BAPP,TAPP,QAPP,NAPP...
+            if actual.tagName != formal.tagName:
+                return None # matching failed!!!
+            formal_fname_node = getArg(formal, 1)
+            formal_fname = valueOf(formal_fname_node).strip() 
+            actual_fname_node = getArg(actual, 1)
+            actual_fname = valueOf(actual_fname_node).strip() 
+            if actual_fname != formal_fname:
+                return None # matching failed!!!
+            arity = int(formal.getAttribute('arity'))
+            for i in range(arity):
+                formali = getArg(formal, i+2)
+                actuali = getArg(actual, i+2)
+                mapping = match(formali, actuali, mapping)
+                if mapping == None:
+                    return None # matching failed!!!
+            return mapping
+        else:
+            print 'missing code? {0} {1}'.format(formal.tagName,actual.tagName)
+            return None # matching failed!!!
     def replaceNodeByNewNode(dom, node, fargs, fval):
         "replace node by fval, but after replacing formals in fval by actuals"
         arity = len(fargs)
@@ -1253,7 +1291,10 @@ def SubstituteLibraryFunctions(dom, library):
             return dom
         mapping = {}
         for i in range(arity):
-            mapping[fargs[i]] = getArg( node, i+2)
+            mapping = match( fargs[i], getArg(node,i+2), mapping )
+            if mapping == None:
+                return dom	# match failed
+            # mapping[fargs[i]] = getArg( node, i+2)
         newnode = substitute(newnode, mapping)
         dom = replace(node, newnode, dom)
         return dom

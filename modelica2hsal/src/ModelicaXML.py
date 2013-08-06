@@ -504,6 +504,12 @@ def printFixedParametersZero(varList):
     return ans
 
 def HSalPPContext(dom, filepointer=sys.stdout):
+    def removeComment(estr):
+        i = estr.find('/*')
+        if i == -1:
+            return estr
+        j = estr.index('*/')
+        return estr[0:i]+estr[j+2:]
     global fp 
     fp = filepointer
     ctxt = dom.getElementsByTagName('dae')[0]
@@ -547,6 +553,7 @@ def HSalPPContext(dom, filepointer=sys.stdout):
     eqns = []
     for i in equationL:
         eqni = valueOf(i)
+        eqni = removeComment(eqni)
         eq_index = eqni.index('=')
         lhs = eqni[0:eq_index].strip()
         if lhs in leftOutVars:
