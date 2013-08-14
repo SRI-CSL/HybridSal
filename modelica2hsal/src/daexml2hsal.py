@@ -489,9 +489,13 @@ def findState(Eqn, cstate, dstate, var_details):
         return lst
     def find(name, allvars):
         for i in allvars:
-            name1 = i.getAttribute('name')
+            name1 = i.getAttribute('name').strip()
             if name1 == name:
                 return i
+            if name1[0:10] == name[0:10]:
+                print 'name1[0:10] == name[0:10] == {0}'.format(name1)
+            if name1[10:20] == name[10:20]:
+              print 'name1[10:20] == name[10:20] == {0}'.format(name1)
         print 'ERROR: Unknown variable found! Can not handle.'
         assert False, "Model Error: Variable {0} is not declared".format(name)
         return None
@@ -1205,6 +1209,7 @@ def convert2hsal(dom1, dom2, dom3 = None):
     var_details2 = getElementsByTagTagName(dom2, 'knownVariables', 'variable')
     var_details.extend(var_details2)
     # find and classify all variables that occur in Eqn -- do this before classifyEqns becos it messes up eqns
+    print 'var_details has {0} elmnts'.format(len(var_details))
     state = findState(Eqn,cstate,dstate,var_details)
     (bools,reals,ints,inputs,nonstates,vmap,enums) = state
     print >> sys.stderr, 'Found {0} bools, {1} reals, {2} ints'.format(len(bools),len(reals),len(ints))

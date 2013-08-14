@@ -203,8 +203,8 @@ def simplify_tapp(node,done):
                 assert cols == tmp
                 a = vector2list(rowi)
                 if a == None:
-                    print 'ERROR: Table row does not simplify to a constant'
-                    print rowi
+                    print 'SERIOUS ERROR: Table row does not simplify to a constant'
+                    print rowi.toprettyxml()
                     a = [1]*cols
                 table.append(a)
         return (table, rows, cols)
@@ -420,6 +420,7 @@ def simplify0bool(node):
         arg2 = getArg(parentnode, 3)
         if arg1 == None or arg2 == None:
             print 'Critical Overlap Case', parentnode.toxml()
+            assert False, 'critical overlap case'
             sys.exit(1)
         func = valueOf(getArg(parentnode, 1)).strip()
         v1 = valueOf(arg1).strip() if arg1.tagName == 'string' else ''
@@ -464,8 +465,11 @@ def simplify0uapp(node):
             val = math.cos(float(arg1))
         elif func == 'sin':
             val = math.sin(float(arg1))
-        elif func == 'Real':
+        elif func == 'Real' or func == 'real':
             val = float(arg1)
+        elif func == 'sign':
+            val = float(arg1)
+            val = 1 if val >= 0 else -1
         elif func == 'noEvent':
             print 'Dont know what to do with noEvent'
             val = float(arg1)
@@ -474,6 +478,7 @@ def simplify0uapp(node):
             val = 0.0
         else:
             print 'WARNING: Dont know what to do with {0}'.format(func)
+            assert False, 'WARNING: node = {0}'.format(node.toxml())
             continue
         ans = helper_create_tag_val('number', str(val))
         node = replace(parentnode, ans, node)
@@ -638,7 +643,7 @@ def simplify0bapp(node):
                 val = float(arg1) + float(arg2)
             elif func == '-':
                 val = float(arg1) - float(arg2)  # todo: atan2/ cross
-            elif func == '^':
+            elif func == '^' or func == 'power':
                 val = float(arg1) ** float(arg2)  # todo: atan2/ cross
             elif func == 'max' and float(arg1) > float(arg2):
                 val = float(arg1)
@@ -699,7 +704,10 @@ def replace(node, newnode, root):
 
 def substitute(expr, mapping):
     '''replace identifiers by their mapped values in expr'''
-    ids = expr.getElementsByTagName('identifier')
+    if expr.tagName == 'identifier':
+        ids = [ expr ]
+    else:
+        ids = expr.getElementsByTagName('identifier')
     for i in ids:
         varname = valueOf(i).strip()
         if mapping.has_key(varname):
@@ -712,7 +720,8 @@ def substitute(expr, mapping):
     # print 'All constant identifiers replaced'
     return(expr)
 
-def getMapping(varvals,root, cstate, dstate):
+def getMapping(varvals,root, cstate, dstate, options):
+    '''return var=val where val.tagName should be in options'''
     def extendMapping(mapping, identifier, value):
         '''extend mapping[identifier] = value'''
         # first normalize value
@@ -740,12 +749,14 @@ def getMapping(varvals,root, cstate, dstate):
             continue
         identifier = lhs if lhs != None else rhs
         expr = arg2 if lhs != None else arg1
-        if expr.localName == 'number' or expr.localName == 'identifier' or expr.localName == 'set' or expr.localName == 'string':
+        if expr.localName in options:
+            # ['number', 'identifier', 'set', 'string']
+            assert len(expr.getElementsByTagName('cn'))==0, 'ERR {0}={1}'.format(identifier, expr.toxml())
             print '.',
             mapping = extendMapping(mapping, identifier, expr)
             root.removeChild( i )
             # i.unlink()
-            print '.',
+            # print '.',
     # print 'Deleting {0} variables'.format(len(deleted))
     return (mapping, root)
 
@@ -837,6 +848,18 @@ def equation2list(eqn):
         elif expr.tagName == 'UAPP' and valueOf(getArg(expr,1)).strip() == '-':
             ans2 = expr2list( getArg(expr,2), not(sgn), mapping)
             return ans2
+        elif expr.tagName == 'BAPP' and valueOf(getArg(expr,1)).strip() == '*' and getArg(expr,2).tagName == 'number' and getArg(expr,3).tagName == 'identifier':
+            variable = valueOf(getArg(expr,3)).strip()
+            freq = 0 if not mapping.has_key(variable) else mapping[variable]
+            freq1 = float(valueOf(getArg(expr,2))) 
+            mapping[variable] = freq + freq1 if sgn else freq - freq1
+            return mapping
+        elif expr.tagName == 'BAPP' and valueOf(getArg(expr,1)).strip() == '*' and getArg(expr,3).tagName == 'number' and getArg(expr,2).tagName == 'identifier':
+            variable = valueOf(getArg(expr,2)).strip()
+            freq = 0 if not mapping.has_key(variable) else mapping[variable]
+            freq1 = float(valueOf(getArg(expr,3))) 
+            mapping[variable] = freq + freq1 if sgn else freq - freq1
+            return mapping
         elif sgn:
             if not mapping.has_key('pos'):
                 mapping['pos'] = []
@@ -852,6 +875,7 @@ def equation2list(eqn):
     arg2 = getArg(eqn, 2)
     if arg2 == None:
         print 'ERROR: ', eqn.toprettyxml()
+        print 'ERROR: arg2 expected to be non Null'
         sys.exit(1)
     # print 'Input eqn is {0}'.format(daexmlPP.ppEqn(eqn))
     ans1 = expr2list(arg1, True, {})
@@ -963,6 +987,7 @@ def SimplifyEqnsPhase4(dom, cstate, dstate):
             mapping = {}
             i = varvals[0]
             var = getArg(i,1)
+            assert var!=None, 'var=None for {0}'.format(i.toxml())
             varname = valueOf(var).strip()
             if var.tagName != 'identifier':
                 newknownvars.removeChild( i )
@@ -1114,9 +1139,9 @@ def simplifyPreDer(varval, eqn, cstate, dstate):
     return done
 
 def ppdebug(dom, msg):
-    '''
     print '--------------------------------------------------------------------------'
     print msg
+    '''
     knownVars = dom.getElementsByTagName('knownVariables')[0]
     varvals = knownVars.getElementsByTagName('variablevalue')
     print 'printing {0} variable values...'.format(len(varvals))
@@ -1127,7 +1152,7 @@ def ppdebug(dom, msg):
     print '--------------------------------------------------------------------------'
     '''
 
-def SimplifyEqnsPPDaeXML(dom, cstate, dstate, filepointer=sys.stdout):
+def SimplifyEqnsPPDaeXML(dom, cstate, dstate, options, filepointer=sys.stdout):
     '''perform substitutions in the dom; output new dom'''
     knownVars = dom.getElementsByTagName('knownVariables')[0]
     eqns = dom.getElementsByTagName('equations')[0]
@@ -1139,14 +1164,15 @@ def SimplifyEqnsPPDaeXML(dom, cstate, dstate, filepointer=sys.stdout):
     newknownvars = knownVars
     neweqns = eqns
     ppdebug(dom, 'Simplification Phase 0.0 over...printing {0} equations...')
+    # options = ['number', 'identifier', 'set', 'string']
     while not done:
         done = True
         varvals = newknownvars.getElementsByTagName('variablevalue')
-        (mapping,newknownvars) = getMapping(varvals, newknownvars, cstate, dstate)
+        (mapping,newknownvars) = getMapping(varvals, newknownvars, cstate, dstate, options)
         # print 'Now we have {0} variables'.format(len(varvals))
         if len(mapping) == 0:
             varvals = neweqns.getElementsByTagName('equation')
-            (mapping,neweqns) = getMapping(varvals, neweqns, cstate, dstate)
+            (mapping,neweqns) = getMapping(varvals, neweqns, cstate, dstate, options)
         if len(mapping) > 0:
             newknownvars = substitute(newknownvars, mapping)
             neweqns = substitute(neweqns, mapping)
@@ -1156,16 +1182,16 @@ def SimplifyEqnsPPDaeXML(dom, cstate, dstate, filepointer=sys.stdout):
         ppdebug(dom, 'Simplification Phase 0.1 over...printing equations...')
         done &= simplify3(newknownvars)
         done &= simplify3(neweqns)	# simplify special tapp,bapp,etc.
-        #ppdebug(dom, 'Simplification Phase 0.2 over...printing equations...')
+        ppdebug(dom, 'Simplification Phase 0.2 over...printing equations...')
         done &= simplify1(newknownvars)
         done &= simplify1(neweqns)	# simplify arithmetic
-        #ppdebug(dom, 'Simplification Phase 0.3 over...printing equations...')
+        ppdebug(dom, 'Simplification Phase 0.3 over...printing equations...')
         done &= simplify2(newknownvars)
         done &= simplify2(neweqns)	# setaccess
-        #ppdebug(dom, 'Simplification Phase 0.4 over...printing equations...')
+        ppdebug(dom, 'Simplification Phase 0.4 over...printing equations...')
         done &= simplify0(newknownvars)
         done &= simplify0(neweqns)	# ite,set,uapp,bapp,bool
-        #ppdebug(dom, 'Simplification Phase 0.5 over...printing equations...')
+        ppdebug(dom, 'Simplification Phase 0.5 over...printing equations...')
         done &= simplifyPreDer(newknownvars, neweqns, cstate, dstate)
         ppdebug(dom, 'Simplification Phase 0.6 over...printing equations...')
     dom = replace(knownVars, newknownvars, dom)
@@ -1201,13 +1227,13 @@ def moveIfExists(filename):
         print "Renaming old file to %s." % filename+"~"
         shutil.move(filename, filename + "~")
 
-def create_output_file(filename, z):
+def create_output_file(filename, z, new_ext='.daexml1'):
     basename,ext = os.path.splitext(filename)
-    if ext != '.daexml':
-        print 'ERROR: Unknown file extension; expecting .daexml ... Quitting'
-        return 1
-    xmlfilename = basename + ".dae_flat_xml"
-    moveIfExists(xmlfilename)
+    # if ext != '.daexml':
+        # print 'ERROR: Unknown file extension; expecting .daexml ... Quitting'
+        # return 1
+    xmlfilename = basename + new_ext	# ".dae_flat_xml"
+    # moveIfExists(xmlfilename)
     with open(xmlfilename, "w") as fp:
         z.writexml(fp, indent=' ', addindent=' ', newl='\n')
         # print >> fp, z.toprettyxml()
@@ -1241,7 +1267,7 @@ def SubstituteLibraryFunctions(dom, library):
                 actualfname = valueOf(node).strip()
             if actualfname != fname:
                 continue
-            print 'Replacing {0} by its definition in library'.format(fname)
+            print 'r',
             dom = replaceNodeByNewNode(dom, node, fargs, fval)
         return dom
     def match(formal, actual, mapping):
@@ -1268,7 +1294,7 @@ def SubstituteLibraryFunctions(dom, library):
             formal_fname_node = getArg(formal, 1)
             formal_fname = valueOf(formal_fname_node).strip() 
             actual_fname_node = getArg(actual, 1)
-            actual_fname = valueOf(actual_fname_node).strip() 
+            actual_fname = valueOf(actual_fname_node).strip()
             if actual_fname != formal_fname:
                 return None # matching failed!!!
             arity = int(formal.getAttribute('arity'))
@@ -1279,6 +1305,20 @@ def SubstituteLibraryFunctions(dom, library):
                 if mapping == None:
                     return None # matching failed!!!
             return mapping
+        elif formal.tagName == 'set':
+            if actual.tagName != 'set':
+                return None
+            formal_arity = int(formal.getAttribute('cardinality'))
+            actual_arity = int(actual.getAttribute('cardinality'))
+            if actual_arity != formal_arity:
+                return None
+            for i in range(actual_arity):
+                formali = getArg(formal, i+1)
+                actuali = getArg(actual, i+1)
+                mapping = match(formali, actuali, mapping)
+                if mapping == None:
+                    return None # matching failed!!!
+            return mapping 
         else:
             print 'missing code? {0} {1}'.format(formal.tagName,actual.tagName)
             return None # matching failed!!!
@@ -1302,7 +1342,7 @@ def SubstituteLibraryFunctions(dom, library):
         print 'Warning: No library being used for simplification'
         return dom
     # library is a dom file
-    print library.toxml()
+    # print library.toxml()
     allfunctions = library.getElementsByTagName('libequation')
     if len(allfunctions) == 0:
         print 'Warning: No function definitions found in the library'
@@ -1312,47 +1352,115 @@ def SubstituteLibraryFunctions(dom, library):
         dom = substituteFunction(dom, fname, fargs, fval)
     return dom
 
-def simplifydaexml(dom1, filename, library = None):
-    global dom
-    dom = dom1		# daexml dom
-    print '-------------Simplification Phase 0 starting......'
-    dom = SubstituteLibraryFunctions(dom, library)
-    print '-------------Simplification Phase 0 over......'
-    #print dom.toxml()
+def get_cd_state(dom):
     tmp = dom.getElementsByTagName('continuousState')[0]
     tmp2 = tmp.getElementsByTagName('identifier')
     cstate = [ valueOf(i).strip() for i in tmp2 ]
     tmp = dom.getElementsByTagName('discreteState')[0]
     tmp2 = tmp.getElementsByTagName('identifier')
     dstate = [ valueOf(i).strip() for i in tmp2 ]
+    return (cstate, dstate)
+
+def simplifydaexml_old(dom1, filename, library = None):
+    global dom
+    dom = dom1		# daexml dom
+    print '-------------Simplification Phase 0 starting......'
+    dom = SubstituteLibraryFunctions(dom, library)
+    print '-------------Simplification Phase 0 over......'
+    #print dom.toxml()
+    (cstate, dstate) = get_cd_state(dom)
     # additional code for handling initializations AS equations
-    inits = dom.getElementsByTagName('initializations')[0]
-    initeqns = inits.getElementsByTagName('equation')
-    eqns = dom.getElementsByTagName('equations')[0]
-    for i in initeqns:
-        eqns.appendChild(i)
+    # inits = dom.getElementsByTagName('initializations')[0]
+    # initeqns = inits.getElementsByTagName('equation')
+    # eqns = dom.getElementsByTagName('equations')[0]
+    # for i in initeqns:
+        # eqns.appendChild(i)
     # end of additional code
-    print '-------------Simplification Phase 1 starting......'
-    dom = SimplifyEqnsPPDaeXML(dom, cstate, dstate)
-    print '-------------Simplification Phase 1 over......'
+    print '-------------Simplification: Constant Propagation starting......'
+    options = ['number', 'set', 'string']
+    dom = SimplifyEqnsPPDaeXML(dom, cstate, dstate, options)
+    print '-------------Simplification: Constant Propagation over......'
+    create_output_file(filename, dom, '.daexml1') 
+    print '-------------Simplification: Variable Propagation starting......'
+    options = ['number', 'identifier', 'set', 'string']
+    dom = SimplifyEqnsPPDaeXML(dom, cstate, dstate, options)
+    create_output_file(filename, dom, '.daexml2') 
+    print '-------------Simplification: Variable Propagation over......'
     # daexmlPP.source_textPP(dom)
     # print '-----------------------------------------------------------------'
     # dom = SimplifyEqnsPhase2(dom)
     # dom = SimplifyEqnsPhase3(dom)
     print 'cstate = {0}'.format(cstate)
     print 'dstate = {0}'.format(dstate)
+    print '-------------Simplification: Expression Propagation starting......'
     dom = SimplifyEqnsPhase4(dom, cstate, dstate)
+    create_output_file(filename, dom, '.daexml3') 
     #print '-----------------------------------------------------------------'
-    print '-------------Simplification Phase 2 over......'
+    print '-------------Simplification: Expression propagation 4 over......'
     # daexmlPP.source_textPP(dom)
     # print '-----------------------------------------------------------------'
+    print '-------------Simplification: IF-lifting starting......'
     dom = SimplifyEqnsPhase5(dom, cstate, dstate)
+    create_output_file(filename, dom, '.daexml4') 
     print '-----------------------------------------------------------------'
-    print 'Simplification Phase 3 over...printing equations...'
+    print 'Simplification: IF-lifting over...printing equations...'
     daexmlPP.source_textPP(dom)
     print '-----------------------------------------------------------------'
-    # create_output_file(filename, dom) # do not create .dae_flat_xml file
+    # create_output_file(filename, dom, '.daexml5') 
     return dom
+
+def simplifydaexml(dom1, filename, library = None):
+    def existsAndNew(filename1, filename2):
+        if os.path.isfile(filename1) and os.path.getctime(filename1) >= os.path.getctime(filename2):
+            print "File {0} exists and is new".format(filename1)
+            return True
+        return False
+    global dom
+    basename,ext = os.path.splitext(filename)
+    (cstate, dstate) = get_cd_state(dom1)
+    if existsAndNew(basename+'.daexml4', filename):
+        print >> sys.stderr, 'Using existing {0} file'.format('.daexml4')
+        return xml.dom.minidom.parse(basename+'.daexml4')
+    elif existsAndNew(basename+'.daexml3', filename):
+        print >> sys.stderr, 'Using existing {0} file'.format('daexml3')
+        dom = xml.dom.minidom.parse(basename+'.daexml3')
+        print '-------------Simplification: IF-lifting starting......'
+        dom = SimplifyEqnsPhase5(dom, cstate, dstate)
+        create_output_file(filename, dom, '.daexml4') 
+        print '-------------Simplification: IF-lifting over..........'
+        return dom
+    elif existsAndNew(basename+'.daexml2', filename):
+        print >> sys.stderr, 'Using existing {0} file'.format('daexml2')
+        dom = xml.dom.minidom.parse(basename+'.daexml2')
+        print '-------------Simplification: Expression Propagation starting..'
+        dom = SimplifyEqnsPhase4(dom, cstate, dstate)
+        create_output_file(filename, dom, '.daexml3') 
+        print '-------------Simplification: Expression propagation over......'
+        return simplifydaexml(dom1, filename, library)
+    elif existsAndNew(basename+'.daexml1', filename):
+        print >> sys.stderr, 'Using existing {0} file'.format('daexml1')
+        dom = xml.dom.minidom.parse(basename+'.daexml1')
+        print '-------------Simplification: Variable Propagation starting......'
+        options = ['number', 'identifier', 'set', 'string']
+        dom = SimplifyEqnsPPDaeXML(dom, cstate, dstate, options)
+        create_output_file(filename, dom, '.daexml2') 
+        print '-------------Simplification: Variable Propagation over......'
+        return simplifydaexml(dom1, filename, library)
+    else:
+        # return simplifydaexml_old(dom1, filename, library)
+        print '-------------Simplification: Library Substitution starting...'
+        dom1 = SubstituteLibraryFunctions(dom1, library)
+        print '-------------Simplification: Library Substitution over.......'
+        #print dom.toxml()
+        (cstate, dstate) = get_cd_state(dom1)
+        print '-------------Simplification: Constant Propagation starting......'
+        options = ['number', 'set', 'string']
+        dom = dom1
+        dom = SimplifyEqnsPPDaeXML(dom, cstate, dstate, options)
+        create_output_file(filename, dom, '.daexml1') 
+        print '-------------Simplification: Constant Propagation over......'
+        return simplifydaexml(dom, filename, library)
+    return dom1
 
 if __name__ == "__main__":
     #xmlparser = xml.parsers.expat.ParserCreate()

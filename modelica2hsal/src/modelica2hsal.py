@@ -12,6 +12,11 @@ libraryStr = '''
 Modelica.Fluid.Utilities.regStep(x,y1,y2,e) = if (x >= e) then y1 else (if (x <= -e) then y2 else (y1+y2)/2 )
 Modelica.Fluid.Utilities.regRoot(x,y) = if (x >= 0) then sqrt(x) else -(sqrt(-x))
 max({{x, 1.0001}}) = 1.0001
+semiLinear(0.0,x,y) = 0.0
+semiLinear(x,y,z) = if (x >= 0) then x*y else x*z
+noEvent(x) = x
+Modelica.Math.tempInterpol2(0.0,{{x,y,z,u,v}},{2,3,4,5})={{y,z,u,v}}
+Modelica.Math.Matrices.isEqual({{x,y,z,u,v}},{a,b,c,d,e})= (x==a and y==b and z==c and u==d and v==e)
 tester(a, b) = der(a)
 '''
 
@@ -88,33 +93,10 @@ def addTime(dom2):
     equations[0].appendChild(newequation)
     return dom2
 
-def removeTime(dom1):
-    'remove all equations that mention time in them'
-    def hasTime(e):
-        ids = e.getElementsByTagName('identifier')
-        for identifier in ids:
-            name = daexml2hsal.valueOf(identifier).strip()
-	    if name.strip() == 'time':
-                return True
-        return False
-    Eqn = dom1.getElementsByTagName('equations')[0]
-    eqns = Eqn.getElementsByTagName('equation')
-    for e in eqns:
-        if hasTime(e):
-            Eqn.removeChild(e)
-    Eqn = dom1.getElementsByTagName('knownVariables')[0]
-    eqns = Eqn.getElementsByTagName('variablevalue')
-    for e in eqns:
-        if hasTime(e):
-            Eqn.removeChild(e)
-    return dom1
-
 def modelica2hsal(filename, pfilename = None, options = []):
     (dom2, dom1, daexmlfilename) = modelica2daexml.modelica2daexml(filename,options)
     basename,ext = os.path.splitext(filename)
     print >> sys.stderr, 'Trying to simplify the Modelica model...'
-    if '--removeTime' in options:
-        dom1 = removeTime(dom1)
     try:
         print 'Trying to parse the libraryString...'
         (libdom,libdaexml) = ddae.daestring2daexml(libraryStr,'library')
