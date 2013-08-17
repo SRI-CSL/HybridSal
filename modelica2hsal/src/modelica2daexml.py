@@ -3,6 +3,13 @@ import os
 import ddae
 import xml.dom.minidom 
 
+# Notes: TODO
+# Modify at line 154; transpose(vector(x)) -> set(x)
+# handling of kvars at line 356 - please improve
+# for all kvars; just print variablevalue pairs.
+# for all missing ones; raise an alarm
+# 
+
 def printUsage():
     print '''
 modelica2daexml -- a converter from Modelica to internal daexml file
@@ -133,11 +140,9 @@ def mathml2myxml(ml):
 def mlexpr2myexpr(mle):
     tag = mle.tagName
     if tag == 'cn':
-        mle.tagName = 'number'
-        return mle
+        return helper_create_tag_val('number',valueOf(mle)) 
     elif tag == 'ci':
-        mle.tagName = 'identifier'
-        return mle
+        return helper_create_tag_val('identifier',valueOf(mle))
     elif tag == 'apply':
         return mlapply2myexpr(mle)
     elif tag == 'matrix' or tag == 'matrixrow':
@@ -146,6 +151,7 @@ def mlexpr2myexpr(mle):
         ans = helper_create_app('set', args)
         ans.setAttribute('cardinality', str( len(args) ) )
         return ans
+    # elif tag == 'transpose' or tag == 'vector': # change to set too....
     else:
          assert False, 'Code missing for {0}'.format(tag)
         
@@ -194,7 +200,7 @@ def mlapply2myexpr(mle):
     elif op == 'initial':
         return helper_create_app('INITIAL', [], None, 0)
     else: # op in ['semiLinear', 'noEvent', etc.]
-        print 'Operator {0} is being generic handled'.format(op)
+        # print 'Operator {0} is being generic handled'.format(op)
         arity2op = {1:'UAPP',2:'BAPP',3:'TAPP',4:'QAPP',5:'NAPP',6:'NAPP'}
         mlargs = getArgs(mle)
         args = [ mlexpr2myexpr( i ) for i in mlargs[1:] ]
@@ -230,14 +236,26 @@ def topleveleqn(mathmleqn):
 # -------------------------------------------------------------------
 
 # -------------------------------------------------------------------
+def remove_nested_mathml(node, parentnode):
+    '''in place removal; destructive operator'''
+    args = getArgs(node)
+    for argi in args:
+        node = remove_nested_mathml(argi, node)
+    if node.tagName == 'MathML':
+        newnode = getArg( getArg(node, 1), 1)
+        parentnode.replaceChild(newChild=newnode,oldChild=node)
+    return parentnode
+
 def getMathMLclone(node, backup_val):
-    mathml = node.getElementsByTagName('MathML')
-    assert mathml != None and len(mathml) > 0, 'MathML missing'
-    ans = mathml[0].cloneNode(True)
+    mathml = getChildByTagName(node, 'MathML')
+    assert mathml != None, 'MathML missing'
+    ans = mathml.cloneNode(True)
     num_gc = grand_children_count(ans)
     if num_gc == 0:	# sick case: even MathML fails to parse modelica expr!!!
         print 'NOTE: Missing MathML expr; using fallback string'
         ans.setAttribute('string', backup_val)
+    # another sick case: MathML parses, but as nested MathML exprs!!!
+    ans = remove_nested_mathml( getChildByTagName(ans, 'math'), ans )
     return ans
 
 def getInitialValue(node):
@@ -298,7 +316,7 @@ def printFixedParametersZero(varList):
     return (varvals,ans)
 
 def modelicadom2daexml(modelicadom):
-    "dom = modelicaXML dom; output daexml DOM"
+    "dom = modelicaXML dom; output daexml DOM... WITH MathMLs now"
     global dom
     impl = xml.dom.minidom.getDOMImplementation()
     dom = impl.createDocument(None, "daexml", None)
@@ -315,6 +333,8 @@ def modelicadom2daexml(modelicadom):
     ovars = tmp.getElementsByTagName('variable') if tmp != None else []
     tmp = getChildByTagName(variables, 'knownVariables')
     kvars = tmp.getElementsByTagName('variable') if tmp != None else []
+    tmp = getChildByTagName(variables, 'externalVariables')
+    kvars.extend( tmp.getElementsByTagName('variable') if tmp != None else [] )
     # print >> fp, '#####{0}'.format('continuousState')
     statevars = []
     for i in ovars:
@@ -485,7 +505,7 @@ def modelica2daexml(filename, options = []):
         with open(daexmlfilename, 'w') as fp:
             print >> fp, dom1.toprettyxml()
         print >> sys.stderr, 'Created file {0}'.format(daexmlfilename)
-    else:
+    else: 
         print >> sys.stderr, 'Using existing {0} file'.format(daexmlfilename)
         try:
             dom1 = xml.dom.minidom.parse(daexmlfilename)

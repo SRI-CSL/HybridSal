@@ -414,12 +414,12 @@ def preprocessEqnNEW(eL,cstate,dstate):
     for e in eL:
         lhs = getArg(e, 1)
         rhs = getArg(e, 2)
-        print 'debuggin printing ......................................'
-        print expr2sal(lhs), '=', expr2sal(rhs)
+        #print 'debuggin printing ......................................'
+        #print expr2sal(lhs), '=', expr2sal(rhs)
         p = expr2polyrep(lhs)
         q = expr2polyrep(rhs)
-        print p, '=', q
-        print 'debuggin printing ......................................'
+        #print p, '=', q
+        #print 'debuggin printing ......................................'
         if p == None or q == None:
             print 'WARNING: Ignoring equation'
             continue
@@ -492,10 +492,6 @@ def findState(Eqn, cstate, dstate, var_details):
             name1 = i.getAttribute('name').strip()
             if name1 == name:
                 return i
-            if name1[0:10] == name[0:10]:
-                print 'name1[0:10] == name[0:10] == {0}'.format(name1)
-            if name1[10:20] == name[10:20]:
-              print 'name1[10:20] == name[10:20] == {0}'.format(name1)
         print 'ERROR: Unknown variable found! Can not handle.'
         assert False, "Model Error: Variable {0} is not declared".format(name)
         return None
@@ -521,7 +517,7 @@ def findState(Eqn, cstate, dstate, var_details):
     nonstates, inputs = [], []
     varmap = {}
     enums = getEnums(var_details)
-    print enums
+    print 'There are {0} enums'.format(len(enums))
     for identifier in ids:
         name = valueOf(identifier).strip()
         # print name,
@@ -586,9 +582,9 @@ def expr2sal(node, flag=True):
         a1 = getArg(node, 2)
         a2 = getArg(node, 3)
         s1 = op2sal(op)
-        print s1
+        #print s1
         s2 = expr2sal(a1, flag)
-        print s2
+        #print s2
         s3 = expr2sal(a2, flag)
         if s2 == '':	# hack to deal with initial()
             return s3
@@ -606,9 +602,9 @@ def expr2sal(node, flag=True):
         v1 = getArg(node, 2)
         v2 = getArg(node, 3)
         s1 = expr2sal(c, flag)
-        print s1
+        #print s1
         s2 = expr2sal(v1, flag)
-        print s2
+        #print s2
         s3 = expr2sal(v2, flag)
         return 'IF ' + s1 + ' THEN ' + s2 + ' ELSE ' + s3 + ' ENDIF '
     elif node.tagName == 'set':
@@ -1212,9 +1208,12 @@ def convert2hsal(dom1, dom2, dom3 = None):
     print 'var_details has {0} elmnts'.format(len(var_details))
     state = findState(Eqn,cstate,dstate,var_details)
     (bools,reals,ints,inputs,nonstates,vmap,enums) = state
+    print '------------final size of state---------------'
     print >> sys.stderr, 'Found {0} bools, {1} reals, {2} ints'.format(len(bools),len(reals),len(ints))
     print >> sys.stderr, 'Found {0} inputs, {1} non-states'.format(len(inputs),len(nonstates))
-    print >> sys.stderr, 'State: {0}'.format(state)
+    print >> sys.stderr, 'Found {0} vmap, {1} enums'.format(len(vmap),len(enums))
+    print '-----------------------------------------------'
+    #print >> sys.stderr, 'State: {0}'.format(state)
     # find and classify all equations in Eqn -- this messes up contEqns (essentially deletes them from Eqn)
     (discEqns,contEqns,oEqns,iEqns) = classifyEqnsNEW(eqns,cstate,dstate)
     print >> sys.stderr, 'Classified eqns into {0} discrete, {1} cont, {2} others'.format(len(discEqns),len(contEqns),len(oEqns))

@@ -187,8 +187,100 @@ def transpose(a,b,c):
     f = [ A[i][2] for i in range(n) ]
     return (d,e,f)
 
+def handle_table(table,rows,cols,icol,n):
+    def compressTableNew(rows, cols, table, icol):
+        def collapse_monotonic_range(table,rows,icol,startingrow,op):
+            i = startingrow
+            while i < rows and op(table[i][icol-1], table[i-1][icol-1]):
+                i = i + 1
+            return i
+        def next_monotonic_range(table,rows,icol,startingrow):
+            i = collapse_monotone_range(table,rows,icol,startingrow,lambda x,y: x >= y)
+            if i == startingrow:
+                i = collapse_monotone_range(table,rows,icol,startingrow,lambda x,y: x <= y)
+            return i
+        newtable = [ (table[0][0],table[0][icol-1]) ]
+        i = next_monotone_range(table,rows,icol,1)
+        newtable.append( (table[i-1][0], table[i-1][icol-1]) )
+        if i < rows:
+            i = next_monotone_range(table,rows,icol,i+1)
+            newtable.append( (table[i-1][0], table[i-1][icol-1]) )
+        if i < rows:
+            print 'WARNING: Table more than 2-monotonic; approximated'
+        return newtable
+    def table2ite(n, m, table, icol, var):
+        assert n >= 1 and len(table) == n
+        iteThen = helper_create_tag_val('number', str(table[0][icol-1]))
+        if n == 1:
+            return iteThen
+        iteElse = table2ite(n-1, m, table[1:], icol, var)
+        less = helper_create_tag_val('BINARY_OPERATOR', '<=')
+        tmp0 = helper_create_tag_val('number', str(table[0][0]))
+        cond = helper_create_app('BAPP',[less, var.cloneNode(True), tmp0])
+        return helper_create_app('IF',[cond, iteThen, iteElse])
+
+    if all([table[j][icol-1] == table[0][icol-1] for j in range(rows)]):
+        return helper_create_tag_val('number', str(table[0][icol-1]))
+    elif n.localName == 'number':
+        u = float(valueOf(n)) # input number
+        # now implement the table lookup function
+        if rows <= 1:
+            y = table[0][icol-1]
+        elif u <= table[0][0]:
+            j = 1
+        else:
+            j = 2
+            while j < rows and u >= table[j-1][0]:
+                j = 1 + j
+            j = j - 1
+        u1 = table[j-1][0]
+        u2 = table[j][0]
+        y1 = table[j-1][icol-1]
+        y2 = table[j][icol-1]
+        assert u2 > u1, "Table index must be increasing"
+        y = y1 + (y2 - y1) * (u - u1) / (u2 - u1)
+        newnode = helper_create_tag_val('number', str(y))
+    elif rows <= 3:
+        newnode = table2ite(rows, cols, table, icol, n)
+    else: # rows > 3 rows <= 3:
+        tableNew = compressTableNew(rows, cols, table, icol)
+        newnode = table2ite(len(tableNew), 2, tableNew, 2, n)
+    return newnode
+
+def interpolate(x1,y1, x2,y2, x):
+    '''return (y2-y1)/(x2-x1) * (x-x1) + y1'''
+    return (y2-y1)/(x2-x1) * (x-x1) + y1
+
+def handle_table2D(table, rows, cols, u1, u2):
+    '''u1,u2 two inputs: table is rowsxcols matrix'''
+    assert rows >= 2 and cols >= 2, 'ERROR: 2D table has fewer than 2 rows/cols'
+    if rows == 2:
+        newtable = [ [table[0][i], table[1][i]] for i in range(1,cols) ]
+        return handle_table(newtable, cols-1, 2, 2, u2)
+    elif cols == 2:
+        newtable = [ [table[i][0], table[i][1]] for i in range(1,rows) ]
+        return handle_table(newtable, rows-1, 2, 2, u1)
+    elif u1.localName == 'number':
+        n1 = float(valueOf(u1))
+        j = 2
+        while j < rows and table[j][0] < n1:
+            j = j + 1
+        # interpolate using j and j-1
+        newtable = [ [table[0][i], interpolate( table[j-1][0], table[j-1][i], table[j][0], table[j][i], n1 ) ] for i in range(1,cols) ]
+        return handle_table(newtable, cols-1, 2, 2, u2)
+    elif u2.localName == 'number':
+        n2 = float(valueOf(u2))
+        j = 2
+        while j < cols and table[0][j] < n2:
+            j = j + 1
+        # interpolate using j-1 and j
+        newtable = [ [table[i][0], interpolate( table[0][j-1],table[i][j-1], table[0][j],table[i][j], n2 ) ] for i in range(1, rows) ]
+        return handle_table(newtable, rows-1, 2, 2, u1)
+    else:
+        return helper_create_tag_val('number', str(table[int(rows)/2][int(cols)/2]))
+
 def simplify_tapp(node,done):
-    "Modelica.Math.tempInterpol1(n,table,m)"
+    "Modelica.Math.tempInterpol1(input_number,table,icol) and Modelica.Blocks.Tables.CombiTable1D.tableIpo(table,icol,variable) are rewritten by the LIBRARY now into mytable, which is handled here"
     def table2table(set1):
         "set1 is a table...convert it to python"
         rows = int(set1.getAttribute('cardinality'))
@@ -202,86 +294,30 @@ def simplify_tapp(node,done):
                 cols = tmp if cols == -1 else cols
                 assert cols == tmp
                 a = vector2list(rowi)
-                if a == None:
-                    print 'SERIOUS ERROR: Table row does not simplify to a constant'
-                    print rowi.toprettyxml()
-                    a = [1]*cols
+                assert a != None, 'SERIOUS ERROR: Table row does not simplify to a constant {0}'.format(rowi.toprettyxml())
                 table.append(a)
         return (table, rows, cols)
-    def compressTable(rows, cols, table, icol):
-        vals = [ i[icol-1] for i in table ]
-        return (min(vals), max(vals))
-    def compressedTable2ite(lb, ub, var):
-        then1 = helper_create_tag_val('number', str(lb))
-        then2 = helper_create_tag_val('number', str(ub))
-        else2 = helper_create_tag_val('number', str(lb))
-        cond = helper_create_tag_val('string', "TRUE")
-        ite2 = helper_create_app('IF',[cond, then2, else2])
-        return helper_create_app('IF',[cond.cloneNode(True), then1, ite2])
-    def table2ite(n, m, table, icol, var):
-        assert n >= 1 and len(table) == n
-        iteThen = helper_create_tag_val('number', str(table[0][icol-1]))
-        if n == 1:
-            return iteThen
-        iteElse = table2ite(n-1, m, table[1:], icol, var)
-        less = helper_create_tag_val('BINARY_OPERATOR', '<=')
-        tmp0 = helper_create_tag_val('number', str(table[0][0]))
-        cond = helper_create_app('BAPP',[less, var.cloneNode(True), tmp0])
-        return helper_create_app('IF',[cond, iteThen, iteElse])
     sas = node.getElementsByTagName('TAPP')
     for i in sas:
         func = getArg(i, 1)
-        set1 = getArg(i, 3)
-        n = getArg(i, 2)
-        m = getArg(i, 4)
+        set1 = getArg(i, 3)	# table
+        n = getArg(i, 2)	# input number; column 0 value
+        m = getArg(i, 4)	# icol; column that has the answer.
         fname = valueOf(func).strip()
-        if fname == 'Modelica.Math.tempInterpol1' and set1.localName == 'set' and m.localName == 'number':
+        if fname == 'mytable':
+            assert set1.localName == 'set' and m.localName == 'number','ERROR: Unable to handle 1D table {0} {1}'.format(set1.toxml(),m.toxml())
             (table,rows,cols) = table2table(set1)
             icol = int(valueOf(m))# column that computes output 
             assert icol <= cols
             # if all values in table are same, return value
-            if all([table[j][icol-1] == table[0][icol-1] for j in range(rows)]):
-                ans = helper_create_tag_val('number', str(table[0][icol-1]))
-                node = replace(i, ans, node)
-                done = False
-                print 'T',
-            elif n.localName == 'number':
-                u = float(valueOf(n)) # input number
-                # now implement the table lookup function
-                if rows <= 1:
-                    y = table[0][icol-1]
-                elif u <= table[0][0]:
-                    j = 1
-                else:
-                    j = 2
-                    while j < rows and u >= table[j-1][0]:
-                        j = 1 + j
-                    j = j - 1
-                u1 = table[j-1][0]
-                u2 = table[j][0]
-                y1 = table[j-1][icol-1]
-                y2 = table[j][icol-1]
-                assert u2 > u1, "Table index must be increasing"
-                y = y1 + (y2 - y1) * (u - u1) / (u2 - u1)
-                ans = helper_create_tag_val('number', str(y))
-                node = replace(i, ans, node)
-                done = False
-                print 'T',
-        elif fname == 'Modelica.Blocks.Tables.CombiTable1D.tableIpo':
-            tableId = getArg(i, 2)
-            col = getArg(i, 3)
-            var = getArg(i, 4)
-            if tableId.tagName != 'set':
-                continue
-            if col.tagName != 'number':
-                continue
-            (table, rows, cols) = table2table(tableId)
-            # replace i by NEW IF-THEN_ELSE NODE
-            icol = int(valueOf(col))
-            assert icol <= cols
-            (lb,ub) = compressTable(rows, cols, table, icol)
-            newnode = compressedTable2ite(lb, ub, var)
-            # newnode = table2ite(rows, cols, table, icol, var)
+            newnode = handle_table(table,rows,cols,icol,n)
+            node = replace(i, newnode, node)
+            done = False
+            print 'T',
+        elif fname == 'mytable2':
+            assert m.localName == 'set','ERROR: Unable to handle 2D table {0}'.format(m.toxml())
+            (table,rows,cols) = table2table(m)
+            newnode = handle_table2D(table,rows,cols,n,set1)
             node = replace(i, newnode, node)
             done = False
             print 'T',
@@ -635,7 +671,10 @@ def simplify0bapp(node):
             arg1 = valueOf(arg1).strip()
             arg2 = valueOf(arg2).strip()
             func = valueOf(getArg(parentnode, 1)).strip()
-            if func == '/':
+            if func == '/' and abs(float(arg2)) < 1e-3:
+                print 'WARNING: Division by ZERO; returning zero'
+                val = float(arg1)
+            elif func == '/':
                 val = float(arg1) / float(arg2)
             elif func == '*':
                 val = float(arg1) * float(arg2)
@@ -751,7 +790,7 @@ def getMapping(varvals,root, cstate, dstate, options):
         expr = arg2 if lhs != None else arg1
         if expr.localName in options:
             # ['number', 'identifier', 'set', 'string']
-            assert len(expr.getElementsByTagName('cn'))==0, 'ERR {0}={1}'.format(identifier, expr.toxml())
+            # assert len(expr.getElementsByTagName('cn'))==0, 'ERR {0}={1}'.format(identifier, expr.toxml())
             print '.',
             mapping = extendMapping(mapping, identifier, expr)
             root.removeChild( i )
