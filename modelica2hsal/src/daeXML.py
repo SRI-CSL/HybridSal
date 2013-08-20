@@ -189,12 +189,12 @@ def transpose(a,b,c):
 
 def handle_table(table,rows,cols,icol,n):
     def compressTableNew(rows, cols, table, icol):
-        def collapse_monotonic_range(table,rows,icol,startingrow,op):
+        def collapse_monotone_range(table,rows,icol,startingrow,op):
             i = startingrow
             while i < rows and op(table[i][icol-1], table[i-1][icol-1]):
                 i = i + 1
             return i
-        def next_monotonic_range(table,rows,icol,startingrow):
+        def next_monotone_range(table,rows,icol,startingrow):
             i = collapse_monotone_range(table,rows,icol,startingrow,lambda x,y: x >= y)
             if i == startingrow:
                 i = collapse_monotone_range(table,rows,icol,startingrow,lambda x,y: x <= y)
@@ -294,7 +294,9 @@ def simplify_tapp(node,done):
                 cols = tmp if cols == -1 else cols
                 assert cols == tmp
                 a = vector2list(rowi)
-                assert a != None, 'SERIOUS ERROR: Table row does not simplify to a constant {0}'.format(rowi.toprettyxml())
+                #assert a != None, 'SERIOUS ERROR: Table row does not simplify to a constant {0}'.format(rowi.toprettyxml())
+                if a == None:
+                    return (None,0,0)
                 table.append(a)
         return (table, rows, cols)
     sas = node.getElementsByTagName('TAPP')
@@ -305,8 +307,12 @@ def simplify_tapp(node,done):
         m = getArg(i, 4)	# icol; column that has the answer.
         fname = valueOf(func).strip()
         if fname == 'mytable':
-            assert set1.localName == 'set' and m.localName == 'number','ERROR: Unable to handle 1D table {0} {1}'.format(set1.toxml(),m.toxml())
+            if not(set1.localName == 'set' and m.localName == 'number'):
+                continue
+            #print 'ERROR: Unable to handle 1D table {0} {1}'.format(set1.toxml(),m.toxml())
             (table,rows,cols) = table2table(set1)
+            if table == None:
+                continue
             icol = int(valueOf(m))# column that computes output 
             assert icol <= cols
             # if all values in table are same, return value
@@ -315,8 +321,11 @@ def simplify_tapp(node,done):
             done = False
             print 'T',
         elif fname == 'mytable2':
-            assert m.localName == 'set','ERROR: Unable to handle 2D table {0}'.format(m.toxml())
+            if not(m.localName == 'set'):
+                continue
             (table,rows,cols) = table2table(m)
+            if table == None:
+                continue
             newnode = handle_table2D(table,rows,cols,n,set1)
             node = replace(i, newnode, node)
             done = False
@@ -764,14 +773,16 @@ def getMapping(varvals,root, cstate, dstate, options):
     def extendMapping(mapping, identifier, value):
         '''extend mapping[identifier] = value'''
         # first normalize value
-        val = valueOf(value).strip()
-        if mapping.has_key(val):
-            value = mapping[val]
+        if value.tagName == 'identifier':
+            val = valueOf(value).strip() 
+            if mapping.has_key(val):
+                value = mapping[val]
         # next normalize mapping
         for k,v in mapping.items():
-            val = valueOf(v).strip()
-            if val == identifier:
-                mapping[k] =  value
+            if v.tagName == 'identifier':
+                val = valueOf(v).strip()
+                if val == identifier:
+                    mapping[k] =  value
         mapping[identifier] =  value
         return mapping
     mapping = {}

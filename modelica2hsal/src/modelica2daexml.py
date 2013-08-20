@@ -4,7 +4,6 @@ import ddae
 import xml.dom.minidom 
 
 # Notes: TODO
-# Modify at line 154; transpose(vector(x)) -> set(x)
 # handling of kvars at line 356 - please improve
 # for all kvars; just print variablevalue pairs.
 # for all missing ones; raise an alarm
@@ -151,7 +150,6 @@ def mlexpr2myexpr(mle):
         ans = helper_create_app('set', args)
         ans.setAttribute('cardinality', str( len(args) ) )
         return ans
-    # elif tag == 'transpose' or tag == 'vector': # change to set too....
     else:
          assert False, 'Code missing for {0}'.format(tag)
         
@@ -199,6 +197,16 @@ def mlapply2myexpr(mle):
     # elif op == 'semiLinear': 	# has 3 args; return semiLinear(x,y,z)
     elif op == 'initial':
         return helper_create_app('INITIAL', [], None, 0)
+    elif op == 'transpose': # change to set too....
+        arg1 = getArg(mle, 2)
+        if arg1.tagName == 'vector':
+            vector_elmts = getArgs(arg1)
+            myexpr_elmts = [ mlexpr2myexpr(k) for k in vector_elmts ]
+            ans = helper_create_app('set', myexpr_elmts)
+            ans.setAttribute('cardinality', str( len(myexpr_elmts) ) )
+            return ans 
+        else:
+            assert False, 'transpose applied to something not a vector; cant handle'
     else: # op in ['semiLinear', 'noEvent', etc.]
         # print 'Operator {0} is being generic handled'.format(op)
         arity2op = {1:'UAPP',2:'BAPP',3:'TAPP',4:'QAPP',5:'NAPP',6:'NAPP'}
@@ -264,9 +272,9 @@ def getInitialValue(node):
         return None
     return getMathMLclone(ival[0], ival[0].getAttribute('string'))
 
-def getVariableValue(var):
+def getVariableValue(var, tags = ['bindExpression', 'initialValue']):
     "return value of the variable by looking at different places"
-    tags = [ 'bindExpression', 'initialValue' ]
+    # tags = [ 'bindExpression', 'initialValue' ]
     for i in tags:
         val = var.getElementsByTagName(i)
         if val != None and len(val) > 0:
@@ -279,7 +287,22 @@ def getVariableValue(var):
         return (wrap_in_mathml(one), False)
     return (None, False)
 
-def printFixedParameters(varList, varTypeList):
+def printFixedParametersNew(varList, tags=['bindExpression']):
+    "return a list of variablevalue daexml-nodes"
+    ans = []
+    varvals = []
+    for i in varList:
+        (value, isInit) = getVariableValue(i, tags)
+        name = i.getAttribute('name')
+        if value != None:
+            var = helper_create_tag_val('identifier',name)
+            varval = helper_create_app('variablevalue', [var, value])
+            varvals.append(varval)
+        else:
+            ans.append(i)
+    return (varvals, ans)
+
+def printFixedParameters(varList, varTypeList, valueTagList):
     "return a list of variablevalue daexml-nodes"
     ans = []
     varvals = []
@@ -289,7 +312,7 @@ def printFixedParameters(varList, varTypeList):
         inout = i.getAttribute('direction')
         isfixed = i.getAttribute('fixed')
         if param in varTypeList and inout != 'input':
-            (value, isInit) = getVariableValue(i)
+            (value, isInit) = getVariableValue(i, valueTagList)
             name = i.getAttribute('name')
             if value != None:
                 var = helper_create_tag_val('identifier',name)
@@ -314,6 +337,35 @@ def printFixedParametersZero(varList):
         varvals.append(varval)
         # print >> fp, '{0} = 0'.format(i)
     return (varvals,ans)
+
+def getVarValFromAlgo( simpleEquations, leftOutVars1 ):
+    if simpleEquations == None or len(simpleEquations) == 0:
+        return ([], leftOutVars1 )
+    done_vars = []
+    varvals = []
+    childNodes = simpleEquations[0].getElementsByTagName('equation')
+    childNodes1 = simpleEquations[0].getElementsByTagName('algorithm')
+    childNodes.extend(childNodes1)
+    for child in childNodes:
+        code = valueOf(child)
+        if code == None:
+            continue
+        for dangling_var in leftOutVars1:
+            var_name = dangling_var.getAttribute('name').strip()
+            index1 = code.find( var_name )
+            if index1 == -1:
+                continue
+            index2 = code.find( ';', index1 )
+            index3 = code.find( ':=', index1 )
+            if index2 == -1 or index3 == -1:
+                print 'Huh?: expected var := expr ; unexpected syntax found'
+                continue
+            rhs = ddae.parse_expr( code[index3+2:index2] )
+            var = helper_create_tag_val('identifier', var_name)
+            varvals.append(helper_create_app('variablevalue', [var, rhs]))
+            done_vars.append( dangling_var )
+    leftOutVars = [ i for i in leftOutVars1 if i not in done_vars ]
+    return (varvals, leftOutVars)
 
 def modelicadom2daexml(modelicadom):
     "dom = modelicaXML dom; output daexml DOM... WITH MathMLs now"
@@ -353,20 +405,35 @@ def modelicadom2daexml(modelicadom):
     print 'discreteState XML creation done............'
     # print constants or parameters with their values
     # print >> fp, '#####{0}'.format('knownVariables')
-    (vv1,leftOutVars1) = printFixedParameters(kvars, ['parameter', 'constant', 'discrete'])
-    (vv2,leftOutVars1) = printFixedParametersZero(leftOutVars1)
-    assert len(leftOutVars1) == 0, 'ERROR: Some fixed param  equation missed {0}'.format(leftOutVars1)
-    (vv3,leftOutVars1)  = printFixedParameters(kvars, ['continuous'])
-    assert len(leftOutVars1) == 0, 'ERROR: Some fixed cont equation missed {0}'.format(leftOutVars1)
-    (vv4, leftOutVars)  = printFixedParameters(ovars, ['continuous'])
+    (vv1,leftOutVars1) = printFixedParametersNew(kvars)
+    if len(leftOutVars1) > 0:
+        print 'Note: {0} known variable do not have a bindExpression; for e.g., {1}. Trying initialValue'.format(len(leftOutVars1), leftOutVars1[0].getAttribute('name'))
+        print 'Using initialValue as the values for these kvars'
+        (vv2,leftOutVars1) = printFixedParametersNew(leftOutVars1, ['initialValue'])
+        vv1.extend(vv2)
+    #(vv2,leftOutVars1) = printFixedParametersZero(leftOutVars1)
+    #(vv3,leftOutVars1)  = printFixedParameters(kvars, ['continuous'])
+    if len(leftOutVars1) > 0:
+        print 'Note: {0} known vars have no bind expr and no initialValue; for e.g., {1}'.format(len(leftOutVars1),leftOutVars1[0].getAttribute('name'))
+        print 'Trying to find bindExpression from initialEquations section'
+        simpleEquations = ctxt.getElementsByTagName('initialEquations')
+        (vv3,leftOutVars1) = getVarValFromAlgo( simpleEquations, leftOutVars1 )
+        print 'Found values from initialEquations for {0} vars'.format(len(vv3))
+        vv1.extend(vv3)
+    if len(leftOutVars1) > 0:
+        print 'WARNING: {0} known vars have NO bindexpr/initialValue/initialEquation; for e.g., {1}'.format(len(leftOutVars1),leftOutVars1[0].getAttribute('name'))
+    # TODO: the following line is NOT SOUND.....
+    (vv4, leftOutVars)  = printFixedParameters(ovars, ['continuous'],['bindExpression'])
     leftOutVars.extend(leftOutVars1)
-    vv1.extend(vv2)
-    vv1.extend(vv3)
+    print 'Note: {0} ordered vars have bind exprs; {1} ordered vars remaining now...'.format(len(vv4),len(leftOutVars))
+    #vv1.extend(vv2)
+    #vv1.extend(vv3)
     vv1.extend(vv4)
     # 
     assert equations != None, 'No Equations found in input XML file!!'
     equationL = equations.getElementsByTagName('equation')
     eqns = []
+    print 'Note: Processing {0} equations to find var=val equations'.format(len(equationL))
     for i in equationL:
         val = getMathMLclone( i, valueOf(i) )
         lhsrhs = mathml_equation_parse( val )
@@ -382,6 +449,7 @@ def modelicadom2daexml(modelicadom):
             vv1.append(varval)
         else:
             eqns.append( val )
+    print 'Note: Found {0} var=val equations'.format(len(equationL)-len(eqns))
     knownVariables = helper_create_app('knownVariables', vv1, None, len(vv1))
     print 'knownVariables XML creation done............'
     equationL = equations.getElementsByTagName('whenEquation')
