@@ -1219,10 +1219,14 @@ def SimplifyEqnsPPDaeXML(dom, cstate, dstate, options, filepointer=sys.stdout):
         done = True
         varvals = newknownvars.getElementsByTagName('variablevalue')
         (mapping,newknownvars) = getMapping(varvals, newknownvars, cstate, dstate, options)
+        arity = int( newknownvars.getAttribute('arity') )
+        newknownvars.setAttribute('arity',str(arity-len(mapping)))
         # print 'Now we have {0} variables'.format(len(varvals))
         if len(mapping) == 0:
             varvals = neweqns.getElementsByTagName('equation')
             (mapping,neweqns) = getMapping(varvals, neweqns, cstate, dstate, options)
+            arity = int( neweqns.getAttribute('arity') )
+            neweqns.setAttribute('arity',str(arity-len(mapping)))
         if len(mapping) > 0:
             newknownvars = substitute(newknownvars, mapping)
             neweqns = substitute(neweqns, mapping)
@@ -1323,6 +1327,7 @@ def SubstituteLibraryFunctions(dom, library):
     def match(formal, actual, mapping):
         "formal,actual are XML nodes, mapping is a dict from str to expr"
         # base case, if formal is an identifier
+        print 'matching formal {0} and actual {1}'.format(formal.toxml(),actual.toxml())
         if formal.tagName == 'identifier':
             var_name = valueOf(formal).strip()
             assert not mapping.has_key(var_name),'Nonlinear library definition'
@@ -1459,7 +1464,7 @@ def simplifydaexml_old(dom1, filename, library = None):
     # create_output_file(filename, dom, '.daexml5') 
     return dom
 
-def simplifydaexml(dom1, filename, library = None):
+def simplifydaexml(dom1, filename, library = None, ctxt = None):
     def existsAndNew(filename1, filename2):
         if os.path.isfile(filename1) and os.path.getctime(filename1) >= os.path.getctime(filename2):
             print "File {0} exists and is new".format(filename1)
@@ -1467,14 +1472,17 @@ def simplifydaexml(dom1, filename, library = None):
         return False
     global dom
     basename,ext = os.path.splitext(filename)
-    (cstate, dstate) = get_cd_state(dom1)
     if existsAndNew(basename+'.daexml4', filename):
         print >> sys.stderr, 'Using existing {0} file'.format('.daexml4')
         return xml.dom.minidom.parse(basename+'.daexml4')
     elif existsAndNew(basename+'.daexml3', filename):
         print >> sys.stderr, 'Using existing {0} file'.format('daexml3')
         dom = xml.dom.minidom.parse(basename+'.daexml3')
+        print '----------Simplification: Library Substitution starting...'
+        dom = SubstituteLibraryFunctions(dom, library)
+        print '----------Simplification: Library Substitution over.......'
         print '-------------Simplification: IF-lifting starting......'
+        (cstate, dstate) = get_cd_state(dom)
         dom = SimplifyEqnsPhase5(dom, cstate, dstate)
         create_output_file(filename, dom, '.daexml4') 
         print '-------------Simplification: IF-lifting over..........'
@@ -1482,35 +1490,43 @@ def simplifydaexml(dom1, filename, library = None):
     elif existsAndNew(basename+'.daexml2', filename):
         print >> sys.stderr, 'Using existing {0} file'.format('daexml2')
         dom = xml.dom.minidom.parse(basename+'.daexml2')
-        print '-------------Simplification: Expression Propagation starting..'
+        print '----------Simplification: Library Substitution starting...'
+        dom = SubstituteLibraryFunctions(dom, library)
+        print '----------Simplification: Library Substitution over.......'
+        print '----------Simplification: Expression Propagation starting..'
+        (cstate, dstate) = ctxt if ctxt != None else get_cd_state(dom)
         dom = SimplifyEqnsPhase4(dom, cstate, dstate)
         create_output_file(filename, dom, '.daexml3') 
-        print '-------------Simplification: Expression propagation over......'
-        return simplifydaexml(dom1, filename, library)
+        print '----------Simplification: Expression propagation over......'
+        return simplifydaexml(dom, filename, library, (cstate,dstate))
     elif existsAndNew(basename+'.daexml1', filename):
         print >> sys.stderr, 'Using existing {0} file'.format('daexml1')
         dom = xml.dom.minidom.parse(basename+'.daexml1')
-        print '-------------Simplification: Variable Propagation starting......'
+        print '----------Simplification: Library Substitution starting...'
+        dom = SubstituteLibraryFunctions(dom, library)
+        print '----------Simplification: Library Substitution over.......'
+        print '----------Simplification: Variable Propagation starting...'
         options = ['number', 'identifier', 'set', 'string']
+        (cstate, dstate) = ctxt if ctxt != None else get_cd_state(dom)
         dom = SimplifyEqnsPPDaeXML(dom, cstate, dstate, options)
         create_output_file(filename, dom, '.daexml2') 
-        print '-------------Simplification: Variable Propagation over......'
-        return simplifydaexml(dom1, filename, library)
+        print '----------Simplification: Variable Propagation over......'
+        return simplifydaexml(dom, filename, library, (cstate,dstate))
     else:
         # return simplifydaexml_old(dom1, filename, library)
-        print '-------------Simplification: Library Substitution starting...'
-        dom1 = SubstituteLibraryFunctions(dom1, library)
-        print '-------------Simplification: Library Substitution over.......'
         #print dom.toxml()
-        (cstate, dstate) = get_cd_state(dom1)
-        print '-------------Simplification: Constant Propagation starting......'
+        print '----------Simplification: Library Substitution starting...'
+        dom1 = SubstituteLibraryFunctions(dom1, library)
+        print '----------Simplification: Library Substitution over.......'
+        (cstate, dstate) = ctxt if ctxt!=None else get_cd_state(dom1)
+        print '----------Simplification: Constant Propagation starting...'
         options = ['number', 'set', 'string']
         dom = dom1
         dom = SimplifyEqnsPPDaeXML(dom, cstate, dstate, options)
         create_output_file(filename, dom, '.daexml1') 
-        print '-------------Simplification: Constant Propagation over......'
-        return simplifydaexml(dom, filename, library)
-    return dom1
+        print '----------Simplification: Constant Propagation over......'
+        return simplifydaexml(dom, filename, library, (cstate,dstate))
+    return dom  # unreachable code
 
 if __name__ == "__main__":
     #xmlparser = xml.parsers.expat.ParserCreate()

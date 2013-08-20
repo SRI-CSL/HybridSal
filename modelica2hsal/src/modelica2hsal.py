@@ -9,7 +9,7 @@ import daexml2hsal	# daexml -> hsal
 import modelica2daexml
 
 libraryStr = '''
-Modelica.Fluid.Utilities.regStep(x,y1,y2,e) = if (x >= e) then y1 else (if (x <= -e) then y2 else (y1+y2)/2 )
+Modelica.Fluid.Utilities.regStep(x,y1,y2,e) = if (x > e) then y1 else y2
 abs(x) = if (x >= 0) then x else -x 
 Modelica.Fluid.Utilities.regRoot(x,y) = if (x >= 0) then sqrt(x) else -(sqrt(-x))
 max({{x, 1.0001}}) = 1.0001
@@ -17,7 +17,7 @@ semiLinear(0.0,x,y) = 0.0
 semiLinear(x,y,z) = if (x >= 0) then x*y else x*z
 noEvent(x) = x
 Modelica.Math.tempInterpol2(0.0,{{x,y,z,u,v}},{2,3,4,5})={{y,z,u,v}}
-Modelica.Math.Matrices.isEqual({{x,y,z,u,v}},{{a,b,c,d,e}})= (x==a and y==b and z==c and u==d and v==e)
+Modelica.Math.Matrices.isEqual({{x,y,z,u,v}},{{a,b,c,d,e}},w)= (x==a and y==b and z==c and u==d and v==e)
 transpose(x) = x
 vector(x) = x
 Modelica.Blocks.Types.ExternalCombiTable1D.constructor(x,y,z,u,v) = z
