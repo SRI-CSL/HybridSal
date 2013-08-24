@@ -1,3 +1,8 @@
+# NOTES:
+# 2013/08/22: State variables can NOT be eliminated now
+# 2013/08/22: Fixed /flag bug in SimplifyEqnsPhase4
+# 2013/08/23: Added SimplifyAC (x + c) - d ==> x + (c-d)
+
 import xml.dom.minidom
 import xml.parsers.expat
 import sys
@@ -35,6 +40,159 @@ def helper_create_app(tag, childs):
     for i in childs:
         node.appendChild( i )
     return node 
+
+# incomplete code here; still working...
+def simplifyPredicate(node):
+    "-x <= c ==> x >= -c"
+    done = True
+    bapps = node.getElementsByTagName('BAPP')
+    predops = ['<', '>', '<=', '>=', '&gt;', '&lt;', 'gt', 'lt']
+    negate_op = {'<':'>','>':'<','<=':'>=','>=':'<=','gt':'lt','lt':'gt','&gt;':'&lt;','&lt;':'&gt;'}
+    for i in bapps:
+        op = getArg(i, 1)
+        opstr = valueOf(op).strip()
+        if not opstr in predops:
+            continue
+        arg1 = getArg(i, 2)
+        arg2 = getArg(i, 3)
+        if arg1.localName != 'number' and arg2.localName != 'number':
+            continue
+        if arg1.localName == 'UAPP':
+            if valueOf(getArg(arg1,1)).strip() != '-':
+                continue
+            num = float(valueOf(arg2))
+            nnum = helper_create_tag_val('number',str(-num))
+            narg1 = getArg(arg1, 2).cloneNode(True)
+            negop = helper_create_tag_val('BINARY_OPERATOR',negate_op[opstr])
+            newnode = helper_create_app('BAPP',[negop, narg1, nnum])
+            node = replace(i, newnode, node)
+            print '-<',
+        elif arg2.localName == 'UAPP':
+            if valueOf(getArg(arg2,1)).strip() != '-':
+                continue
+            num = float(valueOf(arg1))
+            nnum = helper_create_tag_val('number',str(-num))
+            narg1 = getArg(arg2, 2).cloneNode(True)
+            negop = helper_create_tag_val('BINARY_OPERATOR',opstr)
+            newnode = helper_create_app('BAPP',[negop, narg1, nnum])
+            node = replace(i, newnode, node)
+            print '-<',
+        else:
+            continue
+    return done
+
+def simplifyAC(node):
+    "(x+c)-d ==> x+(c-d); (x*c)*d ==> x*(c*d); etc."
+    def isXopC(node):
+        if node.localName != 'BAPP':
+            return None
+        op = getArg(node, 1)
+        opstr = valueOf(op).strip()
+        if not opstr in arithops:
+            return None
+        arg1 = getArg(node, 2)
+        arg2 = getArg(node, 3)
+        if arg1 == None or arg2 == None:
+            return None
+        if arg1.localName != 'number' and arg2.localName != 'number':
+            return None
+        if opstr in ['+','*']:
+            if arg2.localName == 'number':
+                return (opstr, arg1, float(valueOf(arg2)))
+            else:
+                return (opstr, arg2, float(valueOf(arg1)))
+        elif opstr == '-':
+            if arg2.localName == 'number':
+                return ('+', arg1, -float(valueOf(arg2)))
+            else:
+                return ('-', arg2, float(valueOf(arg1)))
+        else:
+            if arg2.localName == 'number':
+                return ('*', arg1, 1.0/float(valueOf(arg2)))
+            else:
+                return ('/', arg2, float(valueOf(arg1)))
+    done = True
+    bapps = node.getElementsByTagName('BAPP')
+    arithops = ['+', '-', '*', '/']
+    for i in bapps:
+        opArgNum = isXopC(i)
+        if opArgNum == None:
+            continue
+        (op, arg1, num1) = opArgNum
+        opArgNum1 = isXopC(arg1)
+        if opArgNum1 == None:
+            continue
+        (op1, arg11, num11) = opArgNum1
+        #print 'debug: input:', i.toxml(), opArgNum, opArgNum1
+        #ans = None
+        if op == '+' and op1 == '+':
+            num = helper_create_tag_val('number', str(num1+num11))
+            newop = helper_create_tag_val('BINARY_OPERATOR', '+')
+            newarg = arg11.cloneNode(True)
+            ans = helper_create_app('BAPP',[newop,newarg,num])
+            node = replace(i, ans, node)
+            print '++',
+            done = False
+        if op == '*' and op1 == '*':
+            num = helper_create_tag_val('number', str(num1 * num11))
+            newop = helper_create_tag_val('BINARY_OPERATOR', '*')
+            newarg = arg11.cloneNode(True)
+            ans = helper_create_app('BAPP',[newop,newarg,num])
+            node = replace(i, ans, node)
+            print '**',
+            done = False
+        elif op == '+' and op1 == '-':  # (num11-x) + num1
+            num = helper_create_tag_val('number', str(num11 + num1))
+            newop = helper_create_tag_val('BINARY_OPERATOR', '-')
+            newarg = arg11.cloneNode(True)
+            ans = helper_create_app('BAPP',[newop,num,newarg])
+            node = replace(i, ans, node)
+            print '+-',
+            done = False
+        elif op == '-' and op1 == '+':  # num1 - (num11+x) 
+            num = helper_create_tag_val('number', str(num1 - num11))
+            newop = helper_create_tag_val('BINARY_OPERATOR', '-')
+            newarg = arg11.cloneNode(True)
+            ans = helper_create_app('BAPP',[newop,num,newarg])
+            node = replace(i, ans, node)
+            print '-+',
+            done = False
+        elif op == '-' and op1 == '-':  # num1 - (num11 - x)
+            num = helper_create_tag_val('number', str(num1 - num11))
+            newop = helper_create_tag_val('BINARY_OPERATOR', '+')
+            newarg = arg11.cloneNode(True)
+            ans = helper_create_app('BAPP',[ newop, num, newarg])
+            node = replace(i, ans, node)
+            print '--',
+            done = False
+        elif op == '*' and op1 == '/':  # num1 * (num11 / arg11)
+            num = helper_create_tag_val('number', str(num1 * num11))
+            newop = helper_create_tag_val('BINARY_OPERATOR', '/')
+            newarg = arg11.cloneNode(True)
+            ans = helper_create_app('BAPP',[newop,num,newarg])
+            node = replace(i, ans, node)
+            print '*/',
+            done = False
+        elif op == '/' and op1 == '*':  # num1 / (num11 * arg11)
+            num = helper_create_tag_val('number', str(num1 / num11))
+            newop = helper_create_tag_val('BINARY_OPERATOR', '/')
+            newarg = arg11.cloneNode(True)
+            ans = helper_create_app('BAPP',[newop,num,newarg])
+            node = replace(i, ans, node)
+            print '/*',
+            done = False
+        elif op == '/' and op1 == '/':  # num1 / (num11 / arg11)
+            num = helper_create_tag_val('number', str(num1 / num11))
+            newop = helper_create_tag_val('BINARY_OPERATOR', '*')
+            newarg = arg11.cloneNode(True)
+            ans = helper_create_app('BAPP',[newop,num,newarg])
+            node = replace(i, ans, node)
+            print '//',
+            done = False
+        #if ans:
+            # print 'debug: output:', ans.toxml()
+    simplifyPredicate(node)
+    return done 
 
 def simplify1(node):
     "x * 0 is 0"
@@ -100,6 +258,7 @@ def simplify1(node):
                     node = replace(i, ans, node)
                     done = False
                     print '==',
+    done = done and simplifyAC(node)
     return done
 
 def simplify2_arrayselect(node):
@@ -792,9 +951,9 @@ def getMapping(varvals,root, cstate, dstate, options):
         arg2 = getArg(i, 2)
         lhs = valueOf(arg1).strip() if arg1.localName == 'identifier' else None
         rhs = valueOf(arg2).strip() if arg2.localName == 'identifier' else None
-        # ASHISH: Disable non-substitutability of c/d-state variables
-        # lhs = None if lhs in dstate or lhs in cstate else lhs
-        # rhs = None if rhs in dstate or rhs in cstate else rhs
+        # ASHISH: RE-Enable non-substitutability of c/d-state variables
+        lhs = None if lhs in dstate or lhs in cstate else lhs
+        rhs = None if rhs in dstate or rhs in cstate else rhs
         if lhs == None and rhs == None:
             continue
         identifier = lhs if lhs != None else rhs
@@ -923,10 +1082,7 @@ def equation2list(eqn):
         return mapping
     arg1 = getArg(eqn, 1)
     arg2 = getArg(eqn, 2)
-    if arg2 == None:
-        print 'ERROR: ', eqn.toprettyxml()
-        print 'ERROR: arg2 expected to be non Null'
-        sys.exit(1)
+    assert arg2 != None, 'ERROR: equation {0} has 1 arg?'.format(eqn.toprettyxml())
     # print 'Input eqn is {0}'.format(daexmlPP.ppEqn(eqn))
     ans1 = expr2list(arg1, True, {})
     ans2 = expr2list(arg2, False, ans1)
@@ -934,7 +1090,7 @@ def equation2list(eqn):
     return ans2
 
 def list2equation(myeqn, flag):
-    "if flag then add all elements, else negate"
+    "return myeqn/flag"
     def list2equationAux(ansp):
         "+(ansp)"
         if len(ansp) == 0:
@@ -945,27 +1101,28 @@ def list2equation(myeqn, flag):
             ans2 = list2equationAux(ansp[1:])
             plus = helper_create_tag_val('BINARY_OPERATOR', '+')
             return helper_create_app('BAPP', [plus,ansp[0].cloneNode(True),ans2])
+    arg1 = lambda: helper_create_tag_val('BINARY_OPERATOR','/')
+    arg3 = lambda x: helper_create_tag_val('number', str(x))
     anslistp = []
     anslistn = []
     if myeqn.has_key('number'):
         if myeqn['number'] != 0:
-            value = myeqn['number'] if flag else 0-myeqn['number']
+            value = myeqn['number']/flag 
             anslistp.append( helper_create_tag_val('number', str(value)) )
         del myeqn['number']
     if myeqn.has_key('pos'):
-        if flag:
-            anslistp.extend( myeqn['pos'] )
-        else:
-            anslistn.extend( myeqn['pos'] )
+        poss = myeqn['pos']
+        pbyf = [helper_create_app('BAPP', [arg1(),i,arg3(flag)]) for i in poss]
+        anslistp.extend( pbyf )
         del myeqn['pos']
     if myeqn.has_key('neg'):
-        if flag:
-            anslistn.extend( myeqn['neg'] )
-        else:
-            anslistp.extend( myeqn['neg'] )
+        nflag = -flag
+        poss = myeqn['neg']
+        pbyf = [helper_create_app('BAPP', [arg1(),i,arg3(nflag)]) for i in poss]
+        anslistp.extend( pbyf )
         del myeqn['neg']
     for (k,v) in myeqn.items():
-        newv = v if flag else -v
+        newv = v/flag
         if newv == 1:
             anslistp.append( helper_create_tag_val('identifier', k) )
         elif newv == -1:
@@ -1024,40 +1181,41 @@ def SimplifyEqnsPhase4(dom, cstate, dstate):
     # substitute values for vars in alleqns
     # find all 'identifier nodes' in eqns...replace it by
     # expression
-    done = False
     knownVars = dom.getElementsByTagName('knownVariables')[0]
     eqns = dom.getElementsByTagName('equations')[0]
     neweqns = eqns
     newknownvars = knownVars
+    varvals = newknownvars.getElementsByTagName('variablevalue')
+    while varvals != None and len(varvals) > 0:
+        done = False
+        mapping = {}
+        i = varvals[0]
+        var = getArg(i,1)
+        assert var!=None, 'var=None for {0}'.format(i.toxml())
+        varname = valueOf(var).strip()
+        if var.tagName != 'identifier':
+            newknownvars.removeChild( i )
+            i.tagName = 'equation'
+            neweqns.appendChild( i )
+        elif varname in cstate or varname in dstate:
+            print 'knownVar {0} cannot be a state variable'.format(varname)
+            print 'WARNING:potential algebraic equation; may fail later'
+            newknownvars.removeChild( i )
+            i.tagName = 'equation'
+            neweqns.appendChild( i )
+        else:
+            assert varname not in cstate, 'knownVar {0} cant be in cstate'.format(varname)
+            assert varname not in dstate, 'knownVar {0} cant be in dstate'.format(varname)
+            val = getArg(i,2)
+            mapping[varname] = val
+            newknownvars.removeChild( i )
+            newknownvars = substitute(newknownvars, mapping)
+            neweqns = substitute(neweqns, mapping)
+        varvals = newknownvars.getElementsByTagName('variablevalue')
+    newknownvars.setAttribute('arity', '0')
+    done = False
     while not done:
         done = True
-        varvals = newknownvars.getElementsByTagName('variablevalue')
-        while varvals != None and len(varvals) > 0:
-            done = False
-            mapping = {}
-            i = varvals[0]
-            var = getArg(i,1)
-            assert var!=None, 'var=None for {0}'.format(i.toxml())
-            varname = valueOf(var).strip()
-            if var.tagName != 'identifier':
-                newknownvars.removeChild( i )
-                i.tagName = 'equation'
-                neweqns.appendChild( i )
-            elif varname in cstate or varname in dstate:
-                print 'knownVar {0} cannot be a state variable'.format(varname)
-                print 'WARNING:potential algebraic equation; may fail later'
-                newknownvars.removeChild( i )
-                i.tagName = 'equation'
-                neweqns.appendChild( i )
-            else:
-                assert varname not in cstate, 'knownVar {0} cant be in cstate'.format(varname)
-                assert varname not in dstate, 'knownVar {0} cant be in dstate'.format(varname)
-                val = getArg(i,2)
-                mapping[varname] = val
-                newknownvars.removeChild( i )
-                newknownvars = substitute(newknownvars, mapping)
-                neweqns = substitute(neweqns, mapping)
-            varvals = newknownvars.getElementsByTagName('variablevalue')
         varvals = neweqns.getElementsByTagName('equation')
         mapping = {}
         for i in varvals:
@@ -1071,13 +1229,15 @@ def SimplifyEqnsPhase4(dom, cstate, dstate):
                         break
             if variable != None:
                 del myeqn[variable]
-                value = list2equation(myeqn, True if freq==-1 else False)
+                value = list2equation(myeqn, -1.0*freq)
                 neweqns.removeChild( i )
                 mapping[variable] = value
-                print '{0} --> {1}'.format(variable,daexmlPP.ppExpr(value))
+                # print '{0} --> {1}'.format(variable,daexmlPP.ppExpr(value))
+                print 's',
                 break
             else:
-                print 'Equation {0} failed to eliminate'.format(myeqn)
+                pass
+                #print 'Equation {0} failed to eliminate'.format(myeqn)
         if len(mapping) > 0:
             neweqns = substitute(neweqns, mapping)
             done = False
@@ -1087,6 +1247,7 @@ def SimplifyEqnsPhase4(dom, cstate, dstate):
         done &= simplify1(neweqns)
         done &= simplify2(neweqns)
         done &= simplify0(neweqns)
+    neweqns.setAttribute('arity', str(len(varvals)))
     dom = replace(eqns, neweqns, dom)
     return dom
 
@@ -1233,21 +1394,21 @@ def SimplifyEqnsPPDaeXML(dom, cstate, dstate, options, filepointer=sys.stdout):
             done = False
         else:
             pass
-        ppdebug(dom, 'Simplification Phase 0.1 over...printing equations...')
+        ppdebug(dom, 'Simplification Phase 0.1 over......')
         done &= simplify3(newknownvars)
         done &= simplify3(neweqns)	# simplify special tapp,bapp,etc.
-        ppdebug(dom, 'Simplification Phase 0.2 over...printing equations...')
+        ppdebug(dom, 'Simplification Phase 0.2 over......')
         done &= simplify1(newknownvars)
         done &= simplify1(neweqns)	# simplify arithmetic
-        ppdebug(dom, 'Simplification Phase 0.3 over...printing equations...')
+        ppdebug(dom, 'Simplification Phase 0.3 over......')
         done &= simplify2(newknownvars)
         done &= simplify2(neweqns)	# setaccess
-        ppdebug(dom, 'Simplification Phase 0.4 over...printing equations...')
+        ppdebug(dom, 'Simplification Phase 0.4 over......')
         done &= simplify0(newknownvars)
         done &= simplify0(neweqns)	# ite,set,uapp,bapp,bool
-        ppdebug(dom, 'Simplification Phase 0.5 over...printing equations...')
+        ppdebug(dom, 'Simplification Phase 0.5 over......')
         done &= simplifyPreDer(newknownvars, neweqns, cstate, dstate)
-        ppdebug(dom, 'Simplification Phase 0.6 over...printing equations...')
+        ppdebug(dom, 'Simplification Phase 0.6 over......')
     dom = replace(knownVars, newknownvars, dom)
     dom = replace(eqns, neweqns, dom)
     return dom
@@ -1289,7 +1450,7 @@ def create_output_file(filename, z, new_ext='.daexml1'):
     xmlfilename = basename + new_ext	# ".dae_flat_xml"
     # moveIfExists(xmlfilename)
     with open(xmlfilename, "w") as fp:
-        z.writexml(fp, indent=' ', addindent=' ', newl='\n')
+        z.writexml(fp, indent='', addindent='', newl='\n')
         # print >> fp, z.toprettyxml()
     print "Created file %s containing XML representation" % xmlfilename
 
@@ -1327,7 +1488,7 @@ def SubstituteLibraryFunctions(dom, library):
     def match(formal, actual, mapping):
         "formal,actual are XML nodes, mapping is a dict from str to expr"
         # base case, if formal is an identifier
-        print 'matching formal {0} and actual {1}'.format(formal.toxml(),actual.toxml())
+        #print 'matching formal {0} and actual {1}'.format(formal.toxml(),actual.toxml())
         if formal.tagName == 'identifier':
             var_name = valueOf(formal).strip()
             assert not mapping.has_key(var_name),'Nonlinear library definition'
@@ -1403,7 +1564,7 @@ def SubstituteLibraryFunctions(dom, library):
         print 'Warning: No function definitions found in the library'
     for f in allfunctions:
         (fname, fargs, fval) = f2name_args_val(f)
-        print 'Found definition of function {0} in library'.format(fname)
+        # print 'Found definition of function {0} in library'.format(fname)
         dom = substituteFunction(dom, fname, fargs, fval)
     return dom
 
@@ -1458,7 +1619,7 @@ def simplifydaexml_old(dom1, filename, library = None):
     dom = SimplifyEqnsPhase5(dom, cstate, dstate)
     create_output_file(filename, dom, '.daexml4') 
     print '-----------------------------------------------------------------'
-    print 'Simplification: IF-lifting over...printing equations...'
+    print 'Simplification: IF-lifting over......'
     daexmlPP.source_textPP(dom)
     print '-----------------------------------------------------------------'
     # create_output_file(filename, dom, '.daexml5') 

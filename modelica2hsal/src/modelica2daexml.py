@@ -156,7 +156,7 @@ def mlexpr2myexpr(mle):
 def mlapply2myexpr(mle):
     arg1 = getArg(mle,1)
     op = arg1.tagName
-    opmap = {'divide':'/','times':'*','plus':'+','equivalent':'=='}
+    opmap = {'divide':'/','times':'*','plus':'+','equivalent':'==','gt':'>','lt':'<','ge':'>=','le':'<='}
     if op in ['true','false','True','False']:
         return helper_create_tag_val('string', op)
     elif op == 'piecewise':
@@ -171,7 +171,7 @@ def mlapply2myexpr(mle):
         val2 = mlexpr2myexpr(mlval2)
         cond = mlexpr2myexpr(mlcond)
         return helper_create_app('IF', [cond, val1, val2])
-    elif op in ['divide','times','plus','equivalent']:
+    elif opmap.has_key(op): # op in ['divide','times','plus','equivalent']:
         arg1 = mlexpr2myexpr(getArg(mle,2))
         arg2 = mlexpr2myexpr(getArg(mle,3))
         op1 = opmap[op]
@@ -394,7 +394,7 @@ def modelicadom2daexml(modelicadom):
             newvar = helper_create_tag_val('identifier', i.getAttribute('name'))
             statevars.append(newvar)
     continuousState = helper_create_app('continuousState', statevars, None, len(statevars))
-    print 'continuousState XML creation done............'
+    # print 'continuousState XML creation done............'
     # print >> fp, '#####{0}'.format('discreteState')
     statevars = []
     for i in ovars:
@@ -402,7 +402,7 @@ def modelicadom2daexml(modelicadom):
             newvar = helper_create_tag_val('identifier', i.getAttribute('name'))
             statevars.append(newvar)
     discreteState = helper_create_app('discreteState', statevars, None, len(statevars))
-    print 'discreteState XML creation done............'
+    # print 'discreteState XML creation done............'
     # print constants or parameters with their values
     # print >> fp, '#####{0}'.format('knownVariables')
     (vv1,leftOutVars1) = printFixedParametersNew(kvars)
@@ -451,14 +451,16 @@ def modelicadom2daexml(modelicadom):
             eqns.append( val )
     print 'Note: Found {0} var=val equations'.format(len(equationL)-len(eqns))
     knownVariables = helper_create_app('knownVariables', vv1, None, len(vv1))
-    print 'knownVariables XML creation done............'
+    knownVariables.setAttribute('arity',str(len( vv1 )))
+    # print 'knownVariables XML creation done............'
     equationL = equations.getElementsByTagName('whenEquation')
     for i in equationL:
         eqns.append( getMathMLclone( i, valueOf(i) ) )
     # print >> fp, '#####equations'
     eqns2 = [ topleveleqn(i) for i in eqns ]
     equations = helper_create_app('equations', eqns2, None, len(eqns))
-    print 'Equation XML creation done............'
+    equations.setAttribute('arity',str(len( eqns2 )))
+    # print 'Equation XML creation done............'
     # print >> fp, '#####initializations'
     inits = []
     for node in statevars:
@@ -469,7 +471,7 @@ def modelicadom2daexml(modelicadom):
             inits.append(eqn)
             #print >> fp, '{0} = {1}'.format(node.getAttribute('name'), val0)
     initializations = helper_create_app('initializations', inits, None, len(inits))
-    print 'Initializations XML creation done............'
+    #print 'Initializations XML creation done............'
     allnodes = [continuousState, discreteState, knownVariables, equations, initializations]
     ans = helper_create_app('source_text', allnodes)
     dom.documentElement.appendChild(ans)

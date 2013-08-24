@@ -1,4 +1,5 @@
 "Convert DAE XML into HybridSal"
+# Todo: line 633
 
 import xml.dom.minidom
 import xml.parsers.expat
@@ -456,6 +457,15 @@ def classifyEqns(eqns, cstate, dstate):
 
 def classifyEqnsNEW(eqns, cstate, dstate):
     "partition eqns into 2 sets: dx/dt=f(x) and x'=f(x)"
+    def introducePres(e, dstate):
+        ids = e.getElementsByTagName('identifier')
+        for i in ids:
+            varName = valueOf(i).strip()
+            if not varName in dstate:
+                continue
+            newvar = helper_create_app('pre',[ i.cloneNode(True) ])
+            parentnode = i.parentNode
+            parentnode.replaceChild(newChild=newvar,oldChild=i)
     def isDisc(e):
         lhs = getArg(e,1)
         return lhs.tagName == 'identifier' and valueOf(lhs).strip() in dstate
@@ -473,6 +483,7 @@ def classifyEqnsNEW(eqns, cstate, dstate):
         if isCont(e):
             c.append(e)
         elif isDisc(e):
+            introducePres(getArg(e,2), dstate)
             d.append(e)
         elif isInit(e):
             init[valueOf(getArg(e,1)).strip()] = getArg(e,2)
@@ -480,6 +491,13 @@ def classifyEqnsNEW(eqns, cstate, dstate):
             c.append(e)
     (c, others) = preprocessEqnNEW(c, cstate, dstate)
     return (d,c,others,init)
+
+def isEnumValue(name, enums):
+    for k in enums.keys():
+        for v in enums[k]:
+            if name.endswith('.'+v) or name==v:
+                return v
+    return None
 
 def findState(Eqn, cstate, dstate, var_details):
     "return (bools, reals, integers) from the give equations"
@@ -504,12 +522,6 @@ def findState(Eqn, cstate, dstate, var_details):
                 evals = [x.strip() for x in evals.split(',')]
                 enums[i.getAttribute('name')] = evals
         return enums
-    def isEnumValue(name, enums):
-        for k in enums.keys():
-            for v in enums[k]:
-                if name.endswith('.'+v) or name==v:
-                    return v
-        return None
     ids = Eqn.getElementsByTagName('identifier')
     #print 'Number of equations in Eqn is {0}'.len(Eqn.getElementsByTagName('equation'))
     #sys.stdout.flush()
@@ -517,6 +529,7 @@ def findState(Eqn, cstate, dstate, var_details):
     nonstates, inputs = [], []
     varmap = {}
     enums = getEnums(var_details)
+    myenums = {}
     print 'There are {0} enums'.format(len(enums))
     for identifier in ids:
         name = valueOf(identifier).strip()
@@ -525,6 +538,7 @@ def findState(Eqn, cstate, dstate, var_details):
         val = isEnumValue(name, enums)
         if val:
             newid = helper_create_tag_val('identifier', val)
+            newid.setAttribute('enumValue','True')
             parentnode = identifier.parentNode
             parentnode.replaceChild(newChild=newid,oldChild=identifier)
             continue
@@ -543,9 +557,11 @@ def findState(Eqn, cstate, dstate, var_details):
             myappend(bools, name)
         elif vtype == 'Integer':
             myappend(integers, name)
+        elif vtype.startswith('enumeration'):
+            myenums[name] = enums[name]
         else:
-            # assert False, "Type {0} not found".format(vtype)
-            print >> sys.stderr, "IGNORING variable of Type {0}".format(vtype)
+            assert False, "Cannot handle type {0} (variable {1})".format(vtype,name)
+            #print >> sys.stderr, "IGNORING variable of Type {0}".format(vtype)
     print >> sys.stderr, 'bools', bools
     print >> sys.stderr, 'reals', reals
     print >> sys.stderr, 'integers', integers
@@ -553,11 +569,11 @@ def findState(Eqn, cstate, dstate, var_details):
     print >> sys.stderr, 'nonstates', nonstates
     print >> sys.stderr, 'cstate', cstate
     print >> sys.stderr, 'dstate', dstate
-    return (bools, reals, integers, inputs, nonstates, varmap, enums)
+    return (bools, reals, integers, inputs, nonstates, varmap, myenums)
  
 # -----------------------------------------------------------------
 def expr2sal(node, flag=True):
-    opmap = {'==':'=', 'and':'AND', 'or':'OR', 'not':'NOT'}
+    opmap = {'==':'=', 'and':'AND', 'or':'OR', 'not':'NOT', 'gt':'>', 'lt':'<'}
     def op2sal(node):
         op = valueOf(node).strip()
         ans = opmap[op] if opmap.has_key(op) else op
@@ -567,7 +583,7 @@ def expr2sal(node, flag=True):
         if ans in ['false','true','False','True']:
             ans = ans.upper()
         else:
-            ans += "'" if flag else ""
+            ans += "'" if flag and node.getAttribute('enumValue')=='' else ""
         return ans
     elif node.tagName == 'pre':
         return valueOf(getArg(node,1)).strip()
@@ -614,7 +630,29 @@ def expr2sal(node, flag=True):
         print >> sys.stderr, 'MISSING CODE: {0}'.format(node.toprettyxml())
     return ""
 
-def getInitialValue(vmap, var, iEqns):
+def rename_enumValues(node, enums):
+    # if node is an identifier, then this is not working......HERE HERE todo TODO
+    if node.tagName == 'identifier':
+        varname = valueOf(node).strip()
+        newvarname = isEnumValue( varname, enums)
+        if newvarname == None:
+            return node
+        newid = helper_create_tag_val('identifier', newvarname)
+        newid.setAttribute('enumValue','True')
+        return newid
+    ids = node.getElementsByTagName('identifier')
+    for i in ids:
+        varname = valueOf(i).strip()
+        newvarname = isEnumValue( varname, enums)
+        if newvarname == None:
+            continue
+        newid = helper_create_tag_val('identifier', newvarname)
+        newid.setAttribute('enumValue','True')
+        parentnode = i.parentNode
+        parentnode.replaceChild(newChild=newid,oldChild=i)
+    return node
+
+def getInitialValue(vmap, var, iEqns, enums):
     if iEqns.has_key(var):
         node = iEqns[var]
         return expr2sal(node,flag=False)
@@ -628,6 +666,7 @@ def getInitialValue(vmap, var, iEqns):
     z = ddae.parse_expr(istr)
     # print 'Parsed expr as {0}'.format(z.toprettyxml())
     # convert2sal
+    z = rename_enumValues( z, enums )
     ans = expr2sal(z,flag=False)
     # print 'Converted to SAL as {0}'.format(ans)
     return ans
@@ -672,7 +711,7 @@ def createControl(state, deqns, guard, iEqns = {}):
             rhs = expr2sal(init, flag = False)
             ans += "{2}\n\t {0} = {1}".format(lhs,rhs,sep)
         else:  # get initialization from vmap[var]
-            initval = getInitialValue(vmap,lhs,iEqns)
+            initval = getInitialValue(vmap,lhs,iEqns,enums)
             if initval != None:
                 sep = ";" if not(first) else "\n  INITIALIZATION"
                 first = False if first else first
@@ -1068,7 +1107,7 @@ def createPlant(state, ceqns, oeqns, iEqns = {}):
     ans  += "\n  INITIALIZATION"
     first = True
     for i in reals:
-        initval = getInitialValue(vmap,i,iEqns)
+        initval = getInitialValue(vmap,i,iEqns,enums)
         if initval != None:
             sep = ";" if not(first) else ""
             first = False if first else first
@@ -1209,18 +1248,18 @@ def convert2hsal(dom1, dom2, dom3 = None):
     state = findState(Eqn,cstate,dstate,var_details)
     (bools,reals,ints,inputs,nonstates,vmap,enums) = state
     print '------------final size of state---------------'
-    print >> sys.stderr, 'Found {0} bools, {1} reals, {2} ints'.format(len(bools),len(reals),len(ints))
-    print >> sys.stderr, 'Found {0} inputs, {1} non-states'.format(len(inputs),len(nonstates))
-    print >> sys.stderr, 'Found {0} vmap, {1} enums'.format(len(vmap),len(enums))
+    print >> sys.stderr, 'Total {0} vars'.format(len(vmap),len(enums))
+    print >> sys.stderr, 'Of which {0} bools, {1} reals, {2} ints, {3} enums'.format(len(bools),len(reals),len(ints),len(enums))
+    print >> sys.stderr, 'Of which {0} inputs, {1} non-states'.format(len(inputs),len(nonstates))
     print '-----------------------------------------------'
     #print >> sys.stderr, 'State: {0}'.format(state)
     # find and classify all equations in Eqn -- this messes up contEqns (essentially deletes them from Eqn)
     (discEqns,contEqns,oEqns,iEqns) = classifyEqnsNEW(eqns,cstate,dstate)
     print >> sys.stderr, 'Classified eqns into {0} discrete, {1} cont, {2} others'.format(len(discEqns),len(contEqns),len(oEqns))
-    print >> sys.stderr, 'discrete eqns: ', printE(discEqns)
-    print >> sys.stderr, 'cont eqns: ', printE(contEqns)
-    print >> sys.stderr, 'other eqns: ', printE(oEqns)
-    print >> sys.stderr, 'init eqns: ',
+    #print >> sys.stderr, 'discrete eqns: ', printE(discEqns)
+    #print >> sys.stderr, 'cont eqns: ', printE(contEqns)
+    #print >> sys.stderr, 'other eqns: ', printE(oEqns)
+    #print >> sys.stderr, 'init eqns: ',
     for (i,j) in iEqns.items():
         print >> sys.stderr, '{0} = {1}'.format(i,daexmlPP.ppExpr(j)),
     print >> sys.stderr, ''

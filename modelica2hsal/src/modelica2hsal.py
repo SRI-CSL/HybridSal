@@ -20,6 +20,8 @@ Modelica.Math.tempInterpol2(0.0,{{x,y,z,u,v}},{2,3,4,5})={{y,z,u,v}}
 Modelica.Math.Matrices.isEqual({{x,y,z,u,v}},{{a,b,c,d,e}},w)= (x==a and y==b and z==c and u==d and v==e)
 transpose(x) = x
 vector(x) = x
+real(x) = x
+sign(x) = x
 Modelica.Blocks.Types.ExternalCombiTable1D.constructor(x,y,z,u,v) = z
 Modelica.Blocks.Types.ExternalCombiTable2D.constructor(x,y,z,u) = z
 Modelica.Blocks.Tables.CombiTable1D.getTableValue(table,1,u,d) = mytable(u,table,2)
@@ -109,9 +111,9 @@ def modelica2hsal(filename, pfilename = None, options = []):
     basename,ext = os.path.splitext(filename)
     print >> sys.stderr, 'Trying to simplify the Modelica model...'
     try:
-        print 'Trying to parse the libraryString...'
+        # print 'Trying to parse the libraryString...'
         (libdom,libdaexml) = ddae.daestring2daexml(libraryStr,'library')
-        print 'Successfully parsed the libraryString...'
+        # print 'Successfully parsed the libraryString...'
         # print libdaexml.toxml()
     except:
         print 'Library in wrong syntax. Unable to handle.'
