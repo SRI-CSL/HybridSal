@@ -108,7 +108,15 @@ def simplifyAC(node):
                 return ('-', arg2, float(valueOf(arg1)))
         else:
             if arg2.localName == 'number':
-                return ('*', arg1, 1.0/float(valueOf(arg2)))
+                den = float(valueOf(arg2))
+                if den != 0:
+                    return ('*', arg1, 1.0/den)
+                else:
+                    # This can happen if division is GUARDED by if.
+                    # In which case outcome does not matter.
+                    # THis happens in no_controls_dae.xml example.
+                    # print node.toxml()
+                    return ('*', arg1, 0.0)
             else:
                 return ('/', arg2, float(valueOf(arg1)))
     done = True
@@ -1035,12 +1043,19 @@ def SimplifyEqnsPhase3(dom):
 
 def equation2list(eqn):
     "output a list [(a1,T),(a2,F),(a3,T)] if eqn is a1 = a2 - a3"
+    def update_var_val(mapping, var, val):
+        if val != 0:
+            mapping[var] = val
+        else:
+            if mapping.has_key(var):
+                del mapping[var]
+        return mapping
     def expr2list(expr, sgn, mapping):
         if expr.tagName == 'identifier':
             variable = valueOf(expr).strip()
             freq = 0 if not mapping.has_key(variable) else mapping[variable]
-            mapping[variable] = freq + 1 if sgn else freq - 1
-            return mapping
+            value = freq + 1 if sgn else freq - 1
+            return update_var_val(mapping, variable, value)
         elif expr.tagName == 'number':
             const = float(valueOf(expr))
             freq = 0 if not mapping.has_key('number') else mapping['number']
@@ -1061,14 +1076,14 @@ def equation2list(eqn):
             variable = valueOf(getArg(expr,3)).strip()
             freq = 0 if not mapping.has_key(variable) else mapping[variable]
             freq1 = float(valueOf(getArg(expr,2))) 
-            mapping[variable] = freq + freq1 if sgn else freq - freq1
-            return mapping
+            value = freq + freq1 if sgn else freq - freq1
+            return update_var_val(mapping, variable, value)
         elif expr.tagName == 'BAPP' and valueOf(getArg(expr,1)).strip() == '*' and getArg(expr,3).tagName == 'number' and getArg(expr,2).tagName == 'identifier':
             variable = valueOf(getArg(expr,2)).strip()
             freq = 0 if not mapping.has_key(variable) else mapping[variable]
             freq1 = float(valueOf(getArg(expr,3))) 
-            mapping[variable] = freq + freq1 if sgn else freq - freq1
-            return mapping
+            value = freq + freq1 if sgn else freq - freq1
+            return update_var_val(mapping, variable, value)
         elif sgn:
             if not mapping.has_key('pos'):
                 mapping['pos'] = []
