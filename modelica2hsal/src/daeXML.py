@@ -542,6 +542,20 @@ def simplify3(node):
             node = replace(i, ans, node)
             done = False
             print 'nxy',
+        # THIS IS UNSOUND CODE....
+        elif fname in ['min', 'max']:
+            arg1, arg2 = set1, set2
+            if arg2 != None and arg2.localName == 'number':
+                c = float(valueOf(arg2))
+                node = replace(i, arg2, node)
+                done = False
+                print 'Mx',
+            elif arg1 != None and arg1.localName == 'number':
+                c = float(valueOf(arg1))
+                node = replace(i, arg1, node)
+                done = False
+                print 'Mx',
+        # END OF UNSOUND CODE....
     return done
  
 def simplify0(node):
@@ -572,6 +586,20 @@ def simplify0ITE(node):
                 node = replace(parentnode, ans, node)
                 done = False
                 print 'ITE ',
+        # UNSOUND code: begin
+        else:
+            then_xml = getArg(parentnode, 2)
+            else_xml = getArg(parentnode, 3)
+            if not then_xml.tagName == 'number':
+                continue
+            if not else_xml.tagName == 'number':
+                continue
+            ans = (float(valueOf(then_xml)) + float(valueOf(else_xml)))/2.0
+            ans_xml = helper_create_tag_val('number', str(ans))
+            node = replace(parentnode, ans_xml, node)
+            done = False
+            print 'ITEx ',
+        # UNSOUND code: end
     return done
 
 def simplify0set(node):

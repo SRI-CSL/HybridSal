@@ -59,7 +59,13 @@ def getPredsInConds(contEqns):
         a2 = getArg(c, 3)
         s1 = valueOf(op).strip()
         if a1.tagName in ['identifier','pre'] and a2.tagName == 'number':
-            name = valueOf(a1).strip() if a1.tagName == 'identifier' else valueOf(getArg(a1,1)).strip()
+            try:
+                name = valueOf(a1).strip() if a1.tagName == 'identifier' else valueOf(getArg(a1,1)).strip()
+            except AttributeError, e:
+                print s1 
+                print a1.toxml()
+                print a2.toxml()
+                assert False
             # print 'trying to add {0}'.format(name)
             return add2Preds(preds, name, float(valueOf(a2)))
         elif s1 in ['or', 'and']:
