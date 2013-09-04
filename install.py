@@ -541,8 +541,6 @@ def main():
     #
     # Search for java and JAVA_HOME
     #
-    # checkProg('sed')
-    #checkProg('chmod')
     print 'Searching for java...',
     javapath = checkProg('java')
     if not javapath:
@@ -568,12 +566,12 @@ def main():
     jarfile = os.path.join(hybridsal2xml,'hybridsal2xml.jar')
     if not os.path.isfile( jarfile ):
         hybridsal2xml = os.path.normpath(os.path.join(pwd, "hybridsal2xml"))
-        jarfile = os.path.join(hybridsal2xml,'hybridsal2xml.jar')
-    if not os.path.isfile( jarfile ) and not os.path.isdir(hybridsal2xml):
-        print 'Failed to find hybridsal2xml.jar '
-        print '***Error: RUN THIS SCRIPT FROM THE HSAL ROOT DIRECTORY'
-        print '***The HSAL root directory is the directory created by tar -xz or unzip'
-        return 1
+        #jarfile = os.path.join(hybridsal2xml,'hybridsal2xml.jar')
+        if not os.path.isdir(hybridsal2xml):
+            print 'Failed to find hybridsal2xml.jar '
+            print '***Error: RUN THIS SCRIPT FROM THE HSAL ROOT DIRECTORY'
+            print '***The HSAL root directory is the directory created by tar -xz or unzip'
+            return 1
     if not os.path.isfile( jarfile ):
         rtjar = searchForrtjar(sys.argv, javapath )
         jikespath = searchForjikes()
@@ -590,12 +588,13 @@ def main():
     else:
         print '***Failed to create hybridsal2xml. Giving up.'
         return 1
-    # print '-------------------------'
 
     # set value of shell
     shell = checkProg( 'sh' )
     if not shell and 'SHELL' in os.environ.keys():
         shell = os.environ['SHELL']
+    if shell:
+        print 'Using shell at {0}'.format(shell)
 
     # Test hybridsal2xml converter
     print 'Testing hybridsal2xml...',
@@ -696,9 +695,7 @@ def main():
         print 'Failed.'
         print '***Install python modules numpy and scipy first.'
         print '***On Ubuntu: sudo aptitude install python-numpy'
-        print '***On Ubuntu: sudo aptitude install python-scipy'
-        print '***On Windows: get numpy-1.6.2-win32-superpack-python2.7.exe'
-        print '***On Windows: get scipy-0.11.Orc1-superpack-python2.7.exe'
+        print '***On Windows: get numpy-1.6.2-win32-superpack-python2.7.exe or Scipy-stack-13.4.9.win-amd64-py2.7.exe (includes numpy)'
         return 1
     else:
         print 'Found.'
@@ -709,10 +706,18 @@ def main():
         print 'Failed.'
         print '***Install python modules numpy and scipy first.'
         print '***On Ubuntu: sudo aptitude install python-scipy'
-        print '***On Windows: get scipy-0.11.Orc1-superpack-python2.7.exe'
+        print '***On Windows: get scipy-0.11.Orc1-superpack-python2.7.exe or Scipy-stack-13.4.9.win-amd64-py2.7.exe'
         return 1
     else:
         print 'Found.'
+
+    # evaluate other options:
+    exe = 'hsalRA.exe'
+    if not os.path.isfile(exe):
+        if '--withmodelica' in sys.argv:
+            installmodelica()
+    if '--withsal' in sys.argv:
+        installsal( sys.argv )
 
     # 
     # Test relational abstracter itself
@@ -741,7 +746,6 @@ def main():
             print '***Executed the generated script {0}, but it did not generate expected output'.format(exe)
             return 1
 
-
     #
     # Test hsalRA.exe
     #
@@ -749,28 +753,22 @@ def main():
     ex1 = os.path.join('examples','MassSpringDamperTest.MassSpringDamperTest.xml')
     prop1 = os.path.join('examples','MassSpringDamperTest.property.json')
     if os.path.isfile(exe) and os.path.isfile(ex1) and os.path.isfile(prop1):
-        print "Testing hsalRA.exe ...",
+        print "Testing hsalRA.exe ...\n",
         try:
-            subprocess.call([ exe, ex1, prop1 ])
+            subprocess.check_call([ exe, ex1, prop1 ])
         except Exception, e:
             print 'Failed.'
             print '***Failed to execute hsalRA.exe'
             return 1
-        print 'Successful.'
+        print 'Testing hsalRA.exe was successful.'
     
     #
     # Test dparser and swig for modelica2hxml converter
     #
 
-    exe = 'hsalRA.exe'
-    if not os.path.isfile(exe):
-        if '--withmodelica' in sys.argv:
-            installmodelica()
-
-    if '--withsal' in sys.argv:
-        installsal( sys.argv )
     print 'HybridSal successfully installed.'
-    print 'run make test to see it working.'
+    if not sys.platform.startswith('win'):
+        print 'run make test to see it working.'
     return 0
 
 def createSALfile(cygwin, saldir):
