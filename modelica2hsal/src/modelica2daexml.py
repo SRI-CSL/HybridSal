@@ -221,26 +221,6 @@ def mlapply2myexpr(mle):
 def wrap_in_mathml(node):
     return helper_create_app('MathML', [helper_create_app('math',[node])])
 
-def mathml_equation_parse(mathmleqn):
-    eml = getArg( getArg(mathmleqn, 1), 1)
-    if eml == None:
-        return None	# we will use STRING repr to get correct parse
-    assert eml.tagName == 'apply', 'Expecting apply, found {0}'.format(eml.toprettyxml())
-    args = getArgs(eml)
-    op = args[0]
-    assert op.tagName == 'equivalent', 'Expecting equivalent, found {0}'.format(eml.toprettyxml())
-    return (args[1], args[2])
-
-def topleveleqn(mathmleqn):
-    "mathML equation -> equation mathML-LHS mathML-rhs "
-    arg12 = mathml_equation_parse( mathmleqn )
-    if arg12 == None:
-        return mathmleqn 
-    (arg1, arg2) = arg12
-    lhs = wrap_in_mathml(arg1)
-    rhs = wrap_in_mathml(arg2)
-    ans = helper_create_app('equation', [lhs,rhs])
-    return ans
 # -------------------------------------------------------------------
 
 # -------------------------------------------------------------------
@@ -256,15 +236,66 @@ def remove_nested_mathml(node, parentnode):
 
 def getMathMLclone(node, backup_val):
     mathml = getChildByTagName(node, 'MathML')
-    assert mathml != None, 'MathML missing'
-    ans = mathml.cloneNode(True)
-    num_gc = grand_children_count(ans)
-    if num_gc == 0:	# sick case: even MathML fails to parse modelica expr!!!
+    if mathml == None:
+        global dom
+        ans = dom.createElement('MathML')
+        ans1 = dom.createElement('math')
+        ans.appendChild( ans1 )
+        node.appendChild( ans )
+        num_gc = 0
+    else:
+        # assert mathml != None, 'MathML missing'
+        ans = mathml.cloneNode(True)
+        num_gc = grand_children_count(ans)
+        # sick case: MathML parses, but as nested MathML exprs!!!
+        ans = remove_nested_mathml( getChildByTagName(ans, 'math'), ans )
+    if num_gc == 0:	# sick case: MathML fails to parse modelica expr!!!
         print 'NOTE: Missing MathML expr; using fallback string'
         ans.setAttribute('string', backup_val)
-    # another sick case: MathML parses, but as nested MathML exprs!!!
-    ans = remove_nested_mathml( getChildByTagName(ans, 'math'), ans )
     return ans
+
+def getMathMLcloneEqn(node, backup_val):
+    def mathml_equation_parse(mathmleqn):
+        eml = getArg( getArg(mathmleqn, 1), 1)
+        if eml == None:
+            return None	# we will use STRING repr to get correct parse
+        assert eml.tagName == 'apply', 'Expecting apply, found {0}'.format(eml.toprettyxml())
+        args = getArgs(eml)
+        op = args[0]
+        assert op.tagName == 'equivalent', 'Expecting equivalent, found {0}'.format(eml.toprettyxml())
+        return (args[1], args[2])
+
+    def topleveleqn(mathmleqn):
+        "mathML equation -> equation mathML-LHS mathML-rhs "
+        arg12 = mathml_equation_parse( mathmleqn )
+        if arg12 == None:
+            return (mathmleqn, None)
+        (arg1, arg2) = arg12
+        lhs = wrap([arg1])
+        rhs = wrap([arg2])
+        ans = helper_create_app('equation', [lhs,rhs])
+        return (ans, (arg1, arg2))
+
+    mathml = getChildByTagName(node, 'MathML')
+    wrap = lambda x: helper_create_app('MathML', [helper_create_app('math',x)])
+    if mathml == None or grand_children_count(mathml) == 0:
+        global dom
+        (head, sep, tail) = backup_val.partition(':=')
+        if sep == '':
+            (head, sep, tail) = backup_val.partition('=')
+        assert sep != '', 'Expected to see = or := in equation {0}'.format(backup_val)
+        lhs = wrap([])
+        lhs.setAttribute('string', head)
+        rhs = wrap([])
+        rhs.setAttribute('string', tail)
+        ans = helper_create_app('equation', [lhs,rhs])
+        return (ans, None)
+    else:
+        # assert mathml != None, 'MathML missing'
+        ans = mathml.cloneNode(True)
+        # sick case: MathML parses, but as nested MathML exprs!!!
+        ans = remove_nested_mathml( getChildByTagName(ans, 'math'), ans )
+        return topleveleqn( ans )
 
 def getInitialValue(node):
     ival = node.getElementsByTagName('initialValue')
@@ -435,8 +466,8 @@ def modelicadom2daexml(modelicadom):
     eqns = []
     print 'Note: Processing {0} equations to find var=val equations'.format(len(equationL))
     for i in equationL:
-        val = getMathMLclone( i, valueOf(i) )
-        lhsrhs = mathml_equation_parse( val )
+        (val, lhsrhs) = getMathMLcloneEqn( i, valueOf(i) )
+        # lhsrhs = mathml_equation_parse( val )
         if lhsrhs == None:	# No MathML parse for the equation!!!
             eqns.append( val )
             continue
@@ -455,11 +486,11 @@ def modelicadom2daexml(modelicadom):
     # print 'knownVariables XML creation done............'
     equationL = equations.getElementsByTagName('whenEquation')
     for i in equationL:
-        eqns.append( getMathMLclone( i, valueOf(i) ) )
+        (val, lhsrhs) = getMathMLcloneEqn( i, valueOf(i) )
+        eqns.append( val )
     # print >> fp, '#####equations'
-    eqns2 = [ topleveleqn(i) for i in eqns ]
-    equations = helper_create_app('equations', eqns2, None, len(eqns))
-    equations.setAttribute('arity',str(len( eqns2 )))
+    equations = helper_create_app('equations', eqns, None, len(eqns))
+    equations.setAttribute('arity',str(len( eqns )))
     # print 'Equation XML creation done............'
     # print >> fp, '#####initializations'
     inits = []

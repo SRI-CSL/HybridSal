@@ -65,7 +65,7 @@ def getPredsInConds(contEqns):
                 print s1 
                 print a1.toxml()
                 print a2.toxml()
-                assert False
+                assert False, 'pre(pre(x)) found'
             # print 'trying to add {0}'.format(name)
             return add2Preds(preds, name, float(valueOf(a2)))
         elif s1 in ['or', 'and']:
