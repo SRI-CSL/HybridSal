@@ -566,7 +566,7 @@ def main():
     jarfile = os.path.join(hybridsal2xml,'hybridsal2xml.jar')
     if not os.path.isfile( jarfile ):
         hybridsal2xml = os.path.normpath(os.path.join(pwd, "hybridsal2xml"))
-        #jarfile = os.path.join(hybridsal2xml,'hybridsal2xml.jar')
+        jarfile = os.path.join(hybridsal2xml,'hybridsal2xml.jar')
         if not os.path.isdir(hybridsal2xml):
             print 'Failed to find hybridsal2xml.jar '
             print '***Error: RUN THIS SCRIPT FROM THE HSAL ROOT DIRECTORY'
