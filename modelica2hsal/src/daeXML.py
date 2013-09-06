@@ -801,9 +801,17 @@ def SimplifyEqnsPhase5(dom, cstate, dstate):
     done = False
     while not done:
         (done,dom) = distributeOverIf(dom, cstate, dstate)
+        done &= simplify3(dom)  # ASHISH: Adding next 4 lines
+        done &= simplify1(dom)
+        done &= simplify2(dom)
+        done &= simplify0(dom)
     done = False
     while not done:
         (done,dom) = ite2boolexpr(dom, cstate, dstate)
+        done &= simplify3(dom)  # ASHISH: Adding next 4 lines
+        done &= simplify1(dom)
+        done &= simplify2(dom)
+        done &= simplify0(dom)
     return dom
 
 def distributeOverIf(dom, cstate, dstate):

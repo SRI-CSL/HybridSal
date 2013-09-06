@@ -1,5 +1,6 @@
 "Convert DAE XML into HybridSal"
 # Todo: line 633
+# Sep 05, 2013: TODO: Avoid blowup in applyOp function. 
 
 import xml.dom.minidom
 import xml.parsers.expat
@@ -61,10 +62,11 @@ def getPredsInConds(contEqns):
         if a1.tagName in ['identifier','pre'] and a2.tagName == 'number':
             try:
                 name = valueOf(a1).strip() if a1.tagName == 'identifier' else valueOf(getArg(a1,1)).strip()
-            except AttributeError, e:
+            except AttributeError, exception:
                 print s1 
                 print a1.toxml()
                 print a2.toxml()
+                print 'Context E:', e.toxml()
                 assert False, 'pre(pre(x)) found'
             # print 'trying to add {0}'.format(name)
             return add2Preds(preds, name, float(valueOf(a2)))
@@ -469,8 +471,10 @@ def classifyEqnsNEW(eqns, cstate, dstate):
             varName = valueOf(i).strip()
             if not varName in dstate:
                 continue
-            newvar = helper_create_app('pre',[ i.cloneNode(True) ])
             parentnode = i.parentNode
+            if parentnode.tagName == 'pre': ## ASHISH: EDITED HERE.CHECK.
+                continue
+            newvar = helper_create_app('pre',[ i.cloneNode(True) ])
             parentnode.replaceChild(newChild=newvar,oldChild=i)
     def isDisc(e):
         lhs = getArg(e,1)
@@ -1128,9 +1132,11 @@ def createPlant(state, ceqns, oeqns, iEqns = {}):
         (var,val) = (rhs,lhs) if rhs.tagName == 'der' else (lhs,rhs)
         assert var.tagName == 'der', 'ERROR: Unable to covert DAE to dx/dt = Ax+b'
         name = valueOf(getArg(var,1)).strip()
+        print >> sys.stderr, 'Working on {0}... '.format(name)
         rhs =  expr2cexpr(val)
         ode.append( (name, rhs) )
         print >> sys.stderr, 'ODE for {0} has {1} cases'.format(name,len(rhs))
+        # print [expr2sal(j[2]) for j in rhs]
     others = []
     for e in oeqns:
         lhs = getArg(e,1) 
