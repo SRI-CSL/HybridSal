@@ -3,6 +3,7 @@ import sys
 import os
 import subprocess
 import shutil
+import argparse
 
 files_modelica = '''
 ./modelica2hsal
@@ -156,14 +157,6 @@ files_hsal = '''
 
 files = files_hsal + files_modelica
 
-def printUsage():
-    return 'Usage: python install.py [--withmodelica] [--withsal] [--cygwin <cygwin root directory>] [--sal <sal-root-directory>] [dist] [win32]'
-
-def printHelp():
-    print 'Usage: python install.py [--withmodelica] [--withsal] [--cygwin <cygwin root directory>] [--sal <sal-root-directory>] [dist] [win32]'
-    print 'Do not use the option --withsal  if SAL is already installed'
-    print 'Do not use the option --withmodelica if you are not interested in Modelica'
-
 def which(program):
     def is_exe(fpath):
         return os.path.isfile(fpath) and os.access(fpath,os.X_OK)
@@ -234,13 +227,12 @@ def sed(f1, f2, assgn):
     fp1.close()
     fp2.close()
 
-def searchForrtjar( args, output ):
+def searchForrtjar( arg_rtjar, output ):
+    global parser
     print 'Searching for rt.jar...',
     rtjar = 'rt.jar'
-    if '--rtjar' in args:
-        index = args.index('--rtjar')
-        if index+1 < len(args):
-            rtjar = args[index+1]
+    if arg_rtjar != None:
+        rtjar = arg_rtjar
     if not(isFile(rtjar)):
         javapath = os.path.realpath(output)
         (javabase, javafile) = os.path.split(javapath)
@@ -263,14 +255,14 @@ def searchForrtjar( args, output ):
         print '***Continuing without giving explicit rt.jar path; if this does not work, then...Make sure the system has rt.jar'
         print '***Mac: it is sometimes called classes.jar and is located at /System/Library/Frameworks/JavaVM.framework/Versions/CurrentJDK/Classes/classes.jar)'
         print '***Win: often located at C:\Program Files\Java\jre6\lib....Once you have rt.jar...'
-        print '***Rerun install script as: {0}'.format( printUsage() )
+        print '***Rerun install script as: {0}'.format( parser.format_usage() )
         rtjar = '.'
     else:
         print 'Successful. Found {0}'.format(rtjar)
     rtjar = os.path.abspath(rtjar)
     if rtjar.find('java-6-openjdk') >= 0:
         print '****Warning: rt.jar in java-6-openjdk is buggy; use java-6-sun/jre instead****'
-        print '****Rerun install script as: {0}'.format( printUsage() )
+        print '****Rerun install script as: {0}'.format( parser.format_usage() )
     return rtjar
 
 def searchForjikes():
@@ -280,14 +272,14 @@ def searchForjikes():
     #
     print 'Searching for jikes or javac...',
     jikespath = ''
-    output = checkProg('jikes')
+    output = checkProg('javac')
     if not output:
         # print 'Warning: jikes not found; Trying to find javac ...'
         jikespath = ''
     else:
         jikespath = os.path.realpath(output)
     if jikespath == '':
-        output = checkProg('javac')
+        output = checkProg('jikes')
         if not output:
             pass
         else:
@@ -389,6 +381,10 @@ def compile_hybridsal2xml( hybridsal2xml, shell, rtjar, jikespath ):
         print '***Perhaps the existing built version suffices, so continuing...'
     else:
         print 'Successful. Found {0}'.format(output)
+        if not os.path.lexists( 'antlr' ):
+            os.symlink( os.path.join( antlrpath, 'antlr'), 'antlr')
+            # antlr  = os.path.join(antlrpath, 'antlr')
+            # subprocess.call([ 'ln', '-s', antlr, 'antlr' ])
         subprocess.call([ 'make' ])
     if os.path.isfile('HybridSal2Xml.class'):
         print "hybridsal2xml installation complete."
@@ -399,9 +395,8 @@ def compile_hybridsal2xml( hybridsal2xml, shell, rtjar, jikespath ):
     hybridsal2xml1 = os.path.join( '..', 'bin' )
     shutil.copy( hybridsal2xml, hybridsal2xml1 )
     print "Created script {0}; also saved in directory {1}.".format(hybridsal2xml, hybridsal2xml1)
-    if not os.path.lexists('antlr'):
-        os.symlink( os.path.join('antlr-2.7.1', 'antlr'), 'antlr')
-    subprocess.call([ 'jar', 'cfm', 'hybridsal2xml.jar', 'Manifest.txt', '*.class', 'antlr' ])
+    #subprocess.call([ 'jar', 'cfm', 'hybridsal2xml.jar', 'Manifest.txt', '*.class', 'antlr' ])
+    shutil.copy( 'hybridsal2xml.jar', '..' )
     return os.path.join('hybridsal2xml', hybridsal2xml)
 
 def installmodelica():
@@ -469,7 +464,8 @@ def installmodelica():
     print 'HybridSal Relational Abstracter and Modelica front-end successfully installed.'
     print "-------------------------------------------------"
 
-def installsal(args):
+def installsal(args_dict):
+    global parser
     print "Searching for sal installation..."
     output = checkProg('sal-inf-bmc')
     iswin = sys.platform.startswith('win')	# is windows
@@ -482,22 +478,18 @@ def installsal(args):
     else:  # windows
         print 'Checking for cygwin at c:\cygwin'
         cygwin = os.path.join('C:',os.path.sep,'cygwin')
-        if '--cygwin' in args:
-            index = args.index('--cygwin')
-            if index+1 < len(args):
-                cygwin = args[index+1]
+        if 'cygwin' in args_dict.keys() and args_dict['cygwin']:
+            cygwin = args_dict['cygwin']
         if not os.path.isdir(cygwin):
             print '***Unable to find cygwin; install and rerun script'
             print '***If installed in non-standard location, rerun script as'
-            print '***  {0}'.format( printUsage() )
+            print '***  {0}'.format( parser.format_usage() )
             return 1
         print 'cygwin found at {0}'.format(cygwin)
         print 'searching for sal...'
         saldir = None
-        if '--sal' in args:
-            index = args.index('--sal')
-            if index+1 < len(args):
-                saldir = args[index+1]
+        if 'sal' in args_dict.keys() and args_dict['sal']:
+            saldir = args_dict['sal']
         if saldir == None or not(os.path.isdir(saldir)):
             for root, dirnames, filenames in os.walk(cygwin):
                 for dirname in dirnames:
@@ -512,7 +504,7 @@ def installsal(args):
             print '***Unable to find SAL; download from sal.csl.sri.com'
             print '***install and rerun script'
             print '***If installed in non-standard location, rerun script as'
-            print '***  {0}'.format( printUsage() )
+            print '***  {0}'.format( parser.format_usage() )
             return 1
         # now we have saldir and cygwin both set...
         outfile = createSALfile(cygwin, saldir)
@@ -521,15 +513,25 @@ def installsal(args):
     print "-------------------------------------------------"
 
 def main():
-    if '-h' in sys.argv or '--help' in sys.argv:
-        printHelp()
+    global parser
+    parser = argparse.ArgumentParser(description="HybridSal installer.",
+                                     formatter_class=argparse.RawDescriptionHelpFormatter,
+                                     epilog="""
+  Do not use the option --withsal if SAL is already installed.
+  Do not use the option --withmodelica if you are not interested in Modelica.""")
+    parser.add_argument("--withmodelica", help="support Modelica", action="store_true")
+    parser.add_argument("--withsal", help="install SAL", action="store_true")
+    parser.add_argument("--cygwin", metavar="CYGWIN_ROOT", help="use given directory as the Cygwin installation (Windows only)")
+    parser.add_argument("--sal", metavar="SAL_ROOT", help="use given directory as the SAL installation")
+    parser.add_argument("--rtjar", metavar="RT_FAR_FILE", help="path to rt.jar file", type=file)
+    parser.add_argument("type", help="create distribution for Unix ('dist') or Windows ('win32'). If omitted, simply perform installation.", choices=["dist","win32"], nargs='?')    
+    args = parser.parse_args()
+
+    if args.type == 'dist':
+        createRelease('.',args.withmodelica)
         return 0
 
-    if 'dist' in sys.argv:
-        createRelease('.')
-        return 0
-
-    if 'win32' in sys.argv:
+    if args.type == 'win32':
         createReleaseExe('.')
         return 0
 
@@ -549,6 +551,13 @@ def main():
     else:
         print 'Successful. Found {0}'.format(javapath)
 
+    # set value of shell
+    shell = checkProg( 'sh' )
+    if not shell and 'SHELL' in os.environ.keys():
+        shell = os.environ['SHELL']
+    if shell:
+        print 'Using shell at {0}'.format(shell)
+
     #
     # Check that we're in the right directory
     #
@@ -566,14 +575,14 @@ def main():
     jarfile = os.path.join(hybridsal2xml,'hybridsal2xml.jar')
     if not os.path.isfile( jarfile ):
         hybridsal2xml = os.path.normpath(os.path.join(pwd, "hybridsal2xml"))
-        jarfile = os.path.join(hybridsal2xml,'hybridsal2xml.jar')
+        #        jarfile = os.path.join(hybridsal2xml,'hybridsal2xml.jar')
         if not os.path.isdir(hybridsal2xml):
             print 'Failed to find hybridsal2xml.jar '
             print '***Error: RUN THIS SCRIPT FROM THE HSAL ROOT DIRECTORY'
             print '***The HSAL root directory is the directory created by tar -xz or unzip'
             return 1
     if not os.path.isfile( jarfile ):
-        rtjar = searchForrtjar(sys.argv, javapath )
+        rtjar = searchForrtjar( args.rtjar.name if args.rtjar else None , javapath )
         jikespath = searchForjikes()
         hybridsal2xml = compile_hybridsal2xml( hybridsal2xml, shell, rtjar, jikespath )
         os.chdir( pwd )
@@ -588,13 +597,6 @@ def main():
     else:
         print '***Failed to create hybridsal2xml. Giving up.'
         return 1
-
-    # set value of shell
-    shell = checkProg( 'sh' )
-    if not shell and 'SHELL' in os.environ.keys():
-        shell = os.environ['SHELL']
-    if shell:
-        print 'Using shell at {0}'.format(shell)
 
     # Test hybridsal2xml converter
     print 'Testing hybridsal2xml...',
@@ -714,10 +716,10 @@ def main():
     # evaluate other options:
     exe = 'hsalRA.exe'
     if not os.path.isfile(exe):
-        if '--withmodelica' in sys.argv:
+        if args.withmodelica:
             installmodelica()
-    if '--withsal' in sys.argv:
-        installsal( sys.argv )
+    if args.withsal:
+        installsal(vars(args))
 
     # 
     # Test relational abstracter itself
@@ -880,7 +882,7 @@ def createReleaseExe(srcdir):
     assert isfile(hybridsal2xmljar)
     # create sal-inf-bmc.bat and README
     os.chdir( distdir )
-    installsal([])
+    installsal({})
     os.chdir( currdir )
     make_readme(currdir, distdir)
     # make examples/ directory
@@ -900,12 +902,12 @@ def createReleaseExe(srcdir):
     shutil.copy('COPYRIGHT', distdir)
     print 'Successfully created distribution {0}'.format(distdir)
  
-def createRelease(srcdir):
+def createRelease(srcdir,withmodelica):
     'create directory for release purposes'
     distdir = os.path.join(srcdir, 'HybridSal')
     distdirold = os.path.join(srcdir, 'HybridSal~')
     files = files_hsal
-    if '--withmodelica' in sys.argv:
+    if withmodelica:
         files += files_modelica
     allFiles = files.splitlines()
     if os.path.isdir(distdir):

@@ -22,7 +22,7 @@ all : HybridSalTokenTypes.class \
       HybridSalParser.class \
       XmlAst.class \
       HybridSal2Xml.class
-	# ln -s antlr-2.7.1/antlr antlr
+	# ln -s -f antlr-2.7.1/antlr antlr
 	jar cfm hybridsal2xml.jar Manifest.txt *.class antlr
 
 install: all
