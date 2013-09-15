@@ -32,6 +32,16 @@ real(x) = x
 sign(x) = x
 '''
 
+propStr = '''
+{"context" : "TRUE",
+ "property" : 
+ {"f"    : "G", 
+  "nargs": 1, 
+  "args" : 
+    [{"f"    : "/=", 
+     "nargs": 2, 
+     "args" : ["__RequirementVar__", "violated"] }] } } '''
+
 def printUsage():
     print '''
 modelica2hsal -- a converter from Modelica to HybridSal
@@ -153,6 +163,38 @@ def modelica2hsal(filename, pfilename = None, options = []):
         except:
             print 'Error: Unable to read property JSON file...Quitting.'
             return -1
+    elif pfilename == None:
+        print >> sys.stderr, 'Assuming requirement contained in XML file.'
+        try:
+            import json
+            jsondata = propStr
+            for i in ['\n','\r','\\']:
+                jsondata = jsondata.replace(i,'')
+            oVars = daexml2hsal.getElementsByTagTagName(dom2, 'orderedVariables', 'variablesList')
+            assert oVars != None and len(oVars) > 0
+            found = False
+            for v in oVars[0].getElementsByTagName('variable'):  # v = <variable ...>
+                v_typ = v.getAttribute('type')
+                if v_typ.startswith('enumeration') and v_typ.find('violated') != -1:
+                    varname = v.getAttribute('name')
+                    print >> sys.stderr, 'Requirement Variable', varname
+                    jsondata = jsondata.replace('__RequirementVar__',varname)
+                    found = True
+                    break
+            if found:
+                dom3 = json.loads(jsondata)
+            else:
+                print 'WARNING: NO REQUIREMENT FOUND.'
+        except SyntaxError, e:
+            print 'Syntax Error: Input JSON ', e 
+            print 'Error: Property JSONStr is not well-formed...Quitting.'
+            return -1
+        except:
+            print 'Error: Unable to read property JSONstr...Quitting.'
+            return -1
+    else:
+        print 'WARNING: NO REQUIREMENT FOUND.'
+        print '***Verification model generated, but no result reported.***'
     print >> sys.stderr, 'Creating HybridSal model....'
     outfile = daexml2hsal.daexml2hsal(dom1, dom2, daexmlfilename, dom3)
     print >> sys.stderr, 'Created HybridSal model.'
