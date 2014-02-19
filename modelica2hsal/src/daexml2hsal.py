@@ -1,4 +1,5 @@
 "Convert DAE XML into HybridSal"
+# I will maintain a global list of modesa
 # Todo: line 633
 # Sep 05, 2013: TODO: Avoid blowup in applyOp function. 
 
@@ -46,7 +47,106 @@ def replace(node, newnode, root):
     return root
 
 def getPredsInConds(contEqns):
-    '''get all predicates used in IF conditions'''
+    '''get all predicates used in IF conditions.
+    Return value is a dict: identifier-name to list of float-values
+    OR (op,id1,id2), interpreted as expr id1.op.id2, to 
+    list-of-float-values, where id1,id2 are variable names-strings'''
+    def add2Preds(preds, name, val):
+        if preds.has_key(name):
+            if val != None and val not in preds[name]:
+                preds[name].append(val)
+        else:
+            preds[name] = [] if val == None else [val]
+        return preds
+    def getPredsInBapp(c, preds):
+        op = getArg(c, 1)
+        a1 = getArg(c, 2)
+        a2 = getArg(c, 3)
+        s1 = valueOf(op).strip()
+        if a1.tagName in ['identifier','pre'] and a2.tagName == 'number':
+            try:
+                name = valueOf(a1).strip() if a1.tagName == 'identifier' else valueOf(getArg(a1,1)).strip()
+            except AttributeError, exception:
+                print s1 
+                print a1.toxml()
+                print a2.toxml()
+                print 'Context E:', e.toxml()
+                assert False, 'pre(pre(x)) found'
+            # print 'trying to add {0}'.format(name)
+            return add2Preds(preds, name, float(valueOf(a2)))
+        elif s1 in ['or', 'and']:
+            preds = getPredsInExpr(a1, preds)
+            preds = getPredsInExpr(a2, preds)
+            return preds
+        elif s1 in ['>', '<'] and a2.tagName == 'number' and a1.tagName == 'BAPP':
+            s11 = valueOf(getArg(a1,1)).strip()
+            a11 = getArg(a1,2)
+            a12 = getArg(a1,3)
+            if (a12.tagName == 'identifier' and a11.tagName == 'number') or (a12.tagName == 'number' and a11.tagName == 'identifier'):
+                if (a12.tagName == 'number' and a11.tagName == 'identifier'):
+                    a11, a12 = a12, a11
+                name = valueOf(a12).strip()
+                val1 = float(valueOf(a11))
+                val2 = float(valueOf(a2))
+                if s11 == '-':
+                    val = val1 - val2
+                elif s11 == '+':
+                    val = val2 - val1
+                elif s11 == '*':
+                    val = val2 / val1
+                elif s11 == '/':
+                    val = val1 / val2
+                else:
+                    assert False, 'Missing operator {0}'.format(s11)
+                #print 'trying to add {0} {1}'.format(name,val)
+                return add2Preds(preds, name, val)
+            elif a11.tagName == 'identifier' and a12.tagName == 'identifier':
+                name1 = valueOf(a11).strip()
+                name2 = valueOf(a12).strip()
+                val = float(valueOf(a2))
+                return add2Preds(preds, (s11,name1,name2), val)
+            else:
+                #assert False, 'MISSING BAPP CODE: Found {0} expression...'.format(daexmlPP.ppExpr(c))
+                print 'Warning: MISSING BAPP CODE: Found {0} expression...'.format(daexmlPP.ppExpr(c))
+                return preds	# CHECK here ASHISH Ashish
+        elif s1 in ['>', '<'] and a2.tagName == 'number' and a1.tagName == 'number':
+            return preds
+        else:
+            # assert False, 'MISSING BAPP CODE: Found {0} expression.'.format(daexmlPP.ppExpr(c))
+            print 'Warning: MISSING BAPP CODE: Found {0} expression.'.format(daexmlPP.ppExpr(c))
+            return preds
+    def getPredsInExpr(c, preds):
+        # print 'entering', preds
+        if c.tagName == 'identifier':
+            return add2Preds(preds, valueOf(c).strip(), None)
+        elif c.tagName == 'pre':
+            return getPredsInExpr(getArg(c,1), preds)
+        elif c.tagName == 'number':
+            assert False, 'number can not be a Boolean'
+        elif c.tagName == 'INITIAL' or c.tagName == 'string':
+            return preds
+        elif c.tagName == 'UAPP':
+            return getPredsInExpr(getArg(c,2), preds)
+        elif c.tagName == 'BAPP':
+            return getPredsInBapp(c, preds)
+        else:
+            assert False, 'MISSING CODE: Found {0} expression.'.format(c.tagName)
+    def getPredsInEqn(e, preds):
+        ifs = e.getElementsByTagName('IF')
+        for ite in ifs:
+            cond = getArg(ite,1)
+            preds = getPredsInExpr(cond, preds)
+        return preds
+    preds = {}
+    for e in contEqns:
+        preds = getPredsInEqn(e, preds)
+    return preds
+
+def getPredsInCondsNEW(contEqns):
+    '''get all predicates used in IF conditions.
+    Return value is a dict: polyrep to list of float-values
+    where polyrep is our old internal expr-representation as 
+    list of mono; mono = dict from var-name to int;'''
     def add2Preds(preds, name, val):
         if preds.has_key(name):
             if val != None and val not in preds[name]:
@@ -303,9 +403,11 @@ def preprocessEqnNEW(eL,cstate,dstate):
             return p
         elif op=='*':
             if not(ispolyrepc(p) or ispolyrepc(q)):
-                print 'ERROR: Nonlinear expression found {0}*{1}'.format(p,q)
+                #print 'ERROR: Nonlinear expression found {0}*{1}'.format(p,q)
+                print 'ERROR: Nonlinear expression found {0}*{1}'.format(polyrepPrint(p),polyrepPrint(q))
                 print 'ERROR: Nonlinear expression found. UNSOUND'
-                return p
+                #return p
+                return None
             #assert ispolyrepc(p) or ispolyrepc(q), 'ERROR: Nonlinear expression found {0}*{1}'.format(p,q)
             (p,q) = (q,p) if ispolyrepc(p) else (p,q)
             d = q[None]
@@ -374,6 +476,20 @@ def preprocessEqnNEW(eL,cstate,dstate):
         else:
             print 'unable to convert expr {0} to polyrep form'.format(e.toxml())
             assert False,'ERROR: Unable to convert expression to linear form'
+    def polyrepPrint(prep, ans = ''):
+      for (var,coeff) in prep.items():
+        if var == None:
+          ans += '+{0}'.format(coeff)
+        elif type(var) == str or type(var) == unicode:
+          ans += '+{0}*{1}'.format(coeff,var)
+        elif type(var) == tuple and var[1]:
+          ans += '+{0}*der({1})'.format(coeff,var[0])
+        elif type(var) == tuple and var[1] == False:
+          ans += '+{0}*pre({1})'.format(coeff,var[0])
+        else: # xmlnode
+          print type(var)
+          ans += '+{0}*{1}'.format(coeff, daexmlPP.ppExpr(var))
+      return ans
     def freevar(p, dstate, cstate):
         varList = p.keys()
         for v in varList:
@@ -431,6 +547,7 @@ def preprocessEqnNEW(eL,cstate,dstate):
         #print 'debuggin printing ......................................'
         if p == None or q == None:
             print 'WARNING: Ignoring equation'
+            print '{0} = {1}'.format(daexmlPP.ppExpr(lhs),daexmlPP.ppExpr(rhs))
             continue
         p = polyrepapplySub(p, subL)
         q = polyrepapplySub(q, subL)
@@ -748,7 +865,8 @@ def helper_create_app(tag, childs):
     return node 
 
 def simplifyITEeq(e1, e2, var=None):
-    "e1, e2 are conditional expressions; generate condition assigment"
+    '''e1, e2 are conditional expressions; generate condition assigment
+    if conditinal assignment CAN be generated; else return NONE'''
     def isVar(v,name):
         return v.tagName=='identifier' and valueOf(v).strip()==name
     def isBOp(v,op):
@@ -787,9 +905,10 @@ def simplifyITEeq(e1, e2, var=None):
         if isUOp(v1,'-'):
             a1 = getArg(v1,2)
             return solve(a1, mkUOp('-',v2), var)
-        print 'Unable to solve equation'
+        #print 'Unable to solve equation'
         # assert False, 'Expr is {0}'.format(daexmlPP.ppExpr(v1))
-        print 'WARNING: UNABLE TO SOLVE Expr {0}'.format(daexmlPP.ppExpr(v1))
+        print 'Note: Unable to solve equation {0}={1} for var {2}'.format(daexmlPP.ppExpr(v1),daexmlPP.ppExpr(v2),var)
+        print 'It will be monitored now'
         return None
     assert len(e1) > 0, 'Error: expecting nonempty list'
     if var == None:
@@ -817,6 +936,8 @@ def simplifyITEeq(e1, e2, var=None):
             vi = solve(v0i, v1i, var)
             if vi != None:
                 ans.append((ai,bi,vi))
+            else:
+                return None
     print >> sys.stderr, 'SimplifyITEeq input has {0} = {1} cases'.format(len(e1),len(e2))
     print >> sys.stderr, 'SimplifyITEeq output has {0} cases'.format(len(ans))
     return (var, ans)
@@ -1009,6 +1130,59 @@ def createPlant(state, ceqns, oeqns, iEqns = {}):
             print 'Found unhandled operator {0} applied on an ITE'.format(valueOf(op).strip())
             assert False, 'No other operator supported'
         return ans
+    # -------------- BEGIN: code for optimizing modes ------------
+    def hash_it_one(xmlnode, sym_tab):
+      "hash by variable_names, top_op, value"
+      if sym_tab.has_key(xmlnode):
+        return sym_tab[xmlnode]
+      expr = xmlnode
+      ids = expr.getElementsByTagName('identifier')
+      var_names = [valueOf(i).strip() for i in ids]
+      var_names.sort()
+      ops = expr.getElementsByTagName('BINARY_OPERATOR')
+      op_names = [valueOf(i).strip() for i in ops]
+      op_names.sort()
+      values = expr.getElementsByTagName('number')
+      val_names = [valueOf(i).strip() for i in values]
+      val_names.sort()
+      str_val = ''.join(var_names).join(op_names).join(val_names)
+      sym_tab[xmlnode] = str_val
+      return str_val
+    def hash_it(case, symbol_table):
+      (p, n, v) = case
+      p_symb = [hash_it_one(i, symbol_table) for i in p]
+      n_symb = [hash_it_one(i, symbol_table) for i in n]
+      return (p_symb, n_symb)
+    def is_subset(set1, set2):
+      "check if set1 \subseteq set2"
+      for i in set1:
+        if i not in set2:
+          return False
+      return True
+    def case_subsumed(all_cases, p_case1, n_case1):
+      "check if case1 is FALSE or already in all_cases"
+      for i in p_case1:
+        if i in n_case1:
+          return True
+      for (p_case2, n_case2) in all_cases:
+        if is_subset(p_case1, p_case2) and is_subset(n_case1, n_case2):
+          return True
+        if is_subset(p_case2, p_case1) and is_subset(n_case2, n_case1):
+          return True
+      return False
+    def collapse_cases(p_n_v_list):
+      '''input: list of (plist,nlist,value);
+       output: same but with redundant things removed'''
+      ans_symbols, ans = [], []
+      symbol_table = {}
+      for case1 in p_n_v_list:
+        (psymbols, nsymbols) = hash_it(case1, symbol_table)
+        if not case_subsumed(ans_symbols, psymbols, nsymbols):
+          ans.append(case1)
+          ans_symbols.append( (psymbols, nsymbols) )
+      del symbol_table, ans_symbols
+      return ans
+    # -------------- END: code for optimizing modes ------------
     def applyOp(op, e1, e2):
         "multiply two conditional exprs"
         ans = []
@@ -1024,6 +1198,9 @@ def createPlant(state, ceqns, oeqns, iEqns = {}):
         else:
             print 'Found unhandled operator {0} combining ITEs'.format(valueOf(op).strip())
             assert False, 'No other operator supported'
+        # print 'Unoptimized # case = {0}'.format(len(ans))
+        ans = collapse_cases(ans)
+        # print 'Optimized # case = {0}'.format(len(ans))
         return ans
     def expr2cexpr2( val ):
         if val.tagName == 'BAPP':
@@ -1090,6 +1267,9 @@ def createPlant(state, ceqns, oeqns, iEqns = {}):
         if len(pnvvlll) == 0:
             return pnvvll
         pnvvll2 = pnvvlll[0]
+        if len(pnvvll2) == 0:
+          print 'WARNING: ZERO cases for some variable!!'
+          return myproductAux( pnvvlll[1:], pnvvll )
         ans = []
         for (p,n,vvl) in pnvvll2:
             for (p1,n1,vvl1) in pnvvll:
@@ -1100,6 +1280,7 @@ def createPlant(state, ceqns, oeqns, iEqns = {}):
                 z = list(vvl)
                 z.extend(vvl1)
                 ans.append( (x,y,z) )
+        ans = collapse_cases(ans)
         return myproductAux( pnvvlll[1:], ans )
     ans = "\n plant: MODULE = \n BEGIN"
     (bools,reals,ints,inputs,nonstates,vmap,enums) = state
@@ -1138,25 +1319,34 @@ def createPlant(state, ceqns, oeqns, iEqns = {}):
         print >> sys.stderr, 'ODE for {0} has {1} cases'.format(name,len(rhs))
         # print [expr2sal(j[2]) for j in rhs]
     others = []
-    for e in oeqns:
+    for i in range(len(oeqns)-1,-1,-1):
+        e = oeqns[i]
         lhs = getArg(e,1) 
         rhs = getArg(e,2) 
         e1 =  expr2cexpr(lhs)
         e2 =  expr2cexpr(rhs)
-        others.append( (e1, e2) )
         print >> sys.stderr, 'Other equation has {0} and {1} cases'.format(len(e1),len(e2))
         # print 'lhs = {0}'.format(daexmlPP.ppExpr(lhs))
         # print 'rhs = {0}'.format(daexmlPP.ppExpr(rhs))
         # print 'e1 = {0}'.format(e1)
         # print 'e2 = {0}'.format(e2)
-    others = [ simplifyITEeq(e1,e2) for (e1,e2) in others ]
-    others[:] = filter(None, others)
+        solved_form = simplifyITEeq(e1,e2)
+        if solved_form != None:   # I could solve the OTHER eqn
+          others.append( solved_form )
+          del oeqns[i]
+        # if I couldn't solve, then I keep the eqn in oeqn
+        # All oeqn equations will be included in the MONITOR later
+    # others = mapping (var -> (p,n,val))-list
     # now I have the substitution in others; apply it to ode
     # ans += others2saldef(others)
     # print '#####-----****************ode', ode
+    #print [(var,len(val)) for (var,val) in ode]
     newode = [(var,applySubstitution(val, others)) for (var,val) in ode]
     # print '#####-----****************newode', newode
+    #print [(var,len(val)) for (var,val) in newode]
+    print '#ODEs = {0}, #newODEs = {1}'.format(len(ode),len(newode))
     finalode = myproduct(newode)
+    print '#finalode = {0}'.format(len(finalode))
     # print '#####-----****************finalode', finalode
     ans  += "\n  TRANSITION\n  ["
     first = True
