@@ -1344,9 +1344,9 @@ def createPlant(state, ceqns, oeqns, iEqns = {}):
     newode = [(var,applySubstitution(val, others)) for (var,val) in ode]
     # print '#####-----****************newode', newode
     #print [(var,len(val)) for (var,val) in newode]
-    print '#ODEs = {0}, #newODEs = {1}'.format(len(ode),len(newode))
+    # print '#ODEs = {0}, #newODEs = {1}'.format(len(ode),len(newode))
     finalode = myproduct(newode)
-    print '#finalode = {0}'.format(len(finalode))
+    # print '#finalode = {0}'.format(len(finalode))
     # print '#####-----****************finalode', finalode
     ans  += "\n  TRANSITION\n  ["
     first = True

@@ -2,6 +2,7 @@
 # 2013/08/22: State variables can NOT be eliminated now
 # 2013/08/22: Fixed /flag bug in SimplifyEqnsPhase4
 # 2013/08/23: Added SimplifyAC (x + c) - d ==> x + (c-d)
+# 2014/02/24: Important bug fixed in getMapping
 
 import xml.dom.minidom
 import xml.parsers.expat
@@ -1002,7 +1003,9 @@ def getMapping(varvals,root, cstate, dstate, options):
             continue
         identifier = lhs if lhs != None else rhs
         expr = arg2 if lhs != None else arg1
-        if expr.localName in options:
+        # Condition below was fixed
+        # if mapping has_key identifier then do nothing!!!
+        if not(mapping.has_key(identifier)) and expr.localName in options:
             # ['number', 'identifier', 'set', 'string']
             # assert len(expr.getElementsByTagName('cn'))==0, 'ERR {0}={1}'.format(identifier, expr.toxml())
             print '.',
@@ -1283,7 +1286,7 @@ def SimplifyEqnsPhase4(dom, cstate, dstate):
                 value = list2equation(myeqn, -1.0*freq)
                 neweqns.removeChild( i )
                 mapping[variable] = value
-                # print '{0} --> {1}'.format(variable,daexmlPP.ppExpr(value))
+                #print '{0} --> {1}'.format(variable,daexmlPP.ppExpr(value))
                 print 's',
                 break
             else:
@@ -1401,8 +1404,8 @@ def simplifyPreDer(varval, eqn, cstate, dstate):
     return done
 
 def ppdebug(dom, msg):
-    print '--------------------------------------------------------------------------'
-    print msg
+    #print '--------------------------------------------------------------------------'
+    #print msg
     '''
     knownVars = dom.getElementsByTagName('knownVariables')[0]
     varvals = knownVars.getElementsByTagName('variablevalue')
@@ -1413,6 +1416,11 @@ def ppdebug(dom, msg):
     daexmlPP.source_textPP(dom)
     print '--------------------------------------------------------------------------'
     '''
+    return None
+
+def ppEquations(eqns):
+  for i in eqns:
+    print daexmlPP.ppEqn(i)
 
 def SimplifyEqnsPPDaeXML(dom, cstate, dstate, options, filepointer=sys.stdout):
     '''perform substitutions in the dom; output new dom'''
@@ -1430,18 +1438,28 @@ def SimplifyEqnsPPDaeXML(dom, cstate, dstate, options, filepointer=sys.stdout):
     while not done:
         done = True
         varvals = newknownvars.getElementsByTagName('variablevalue')
+        # print '#varvals = {0}'.format(len(varvals))
+        # ppEquations(varvals)
         (mapping,newknownvars) = getMapping(varvals, newknownvars, cstate, dstate, options)
         arity = int( newknownvars.getAttribute('arity') )
         newknownvars.setAttribute('arity',str(arity-len(mapping)))
         # print 'Now we have {0} variables'.format(len(varvals))
         if len(mapping) == 0:
             varvals = neweqns.getElementsByTagName('equation')
+            # print '#eqns = {0}'.format(len(varvals))
+            # ppEquations(varvals)
             (mapping,neweqns) = getMapping(varvals, neweqns, cstate, dstate, options)
             arity = int( neweqns.getAttribute('arity') )
             neweqns.setAttribute('arity',str(arity-len(mapping)))
+            # print 'eqns****'
+            # ppEquations(neweqns.getElementsByTagName('equation'))
+        # for (kk,vv) in mapping.items():
+          # print kk, '->', daexmlPP.ppExpr(vv)
         if len(mapping) > 0:
             newknownvars = substitute(newknownvars, mapping)
             neweqns = substitute(neweqns, mapping)
+            # print 'eqns...'
+            # ppEquations(neweqns.getElementsByTagName('equation'))
             done = False
         else:
             pass
