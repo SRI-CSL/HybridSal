@@ -1003,9 +1003,14 @@ def getMapping(varvals,root, cstate, dstate, options):
             continue
         identifier = lhs if lhs != None else rhs
         expr = arg2 if lhs != None else arg1
-        # Condition below was fixed
+        # Condition below was ADDED
         # if mapping has_key identifier then do nothing!!!
-        if not(mapping.has_key(identifier)) and expr.localName in options:
+        if mapping.has_key(identifier):
+            continue
+        # Condition below was ADDED: x -> sth+der(y) DISABLED
+        if len(expr.getElementsByTagName('der')) > 0:
+            continue
+        if expr.localName in options:
             # ['number', 'identifier', 'set', 'string']
             # assert len(expr.getElementsByTagName('cn'))==0, 'ERR {0}={1}'.format(identifier, expr.toxml())
             print '.',

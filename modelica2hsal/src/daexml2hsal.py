@@ -620,7 +620,8 @@ def classifyEqnsNEW(eqns, cstate, dstate):
     return (d,c,others,init)
 
 def isEnumValue(name, enums):
-    for k in enums.keys():
+    for k,vlist in enums.items():
+      if type(vlist) == list:
         for v in enums[k]:
             if name.endswith('.'+v) or name==v:
                 return v
@@ -663,7 +664,7 @@ def findState(Eqn, cstate, dstate, var_details):
         # print name,
         # sys.stdout.flush()
         val = isEnumValue(name, enums)
-        if val:
+        if val:   # is an enumeration VALUE, not an enum variable
             newid = helper_create_tag_val('identifier', val)
             newid.setAttribute('enumValue','True')
             parentnode = identifier.parentNode
@@ -696,6 +697,7 @@ def findState(Eqn, cstate, dstate, var_details):
     print >> sys.stderr, 'nonstates', nonstates
     print >> sys.stderr, 'cstate', cstate
     print >> sys.stderr, 'dstate', dstate
+    print >> sys.stderr, 'enums', myenums
     return (bools, reals, integers, inputs, nonstates, varmap, myenums)
  
 # -----------------------------------------------------------------
@@ -758,7 +760,8 @@ def expr2sal(node, flag=True):
     return ""
 
 def rename_enumValues(node, enums):
-    # if node is an identifier, then this is not working......HERE HERE todo TODO
+    # if node is an identifier, then this was not working......fixed
+    # replace enumValue like sthing.sthing.success to success
     if node.tagName == 'identifier':
         varname = valueOf(node).strip()
         newvarname = isEnumValue( varname, enums)
@@ -827,7 +830,9 @@ def createControl(state, deqns, guard, iEqns = {}):
     for i in reals:
         ans += "\n  INPUT  {0}: REAL".format(i)
     for (k,v) in enums.items():
-        ans += "\n  OUTPUT {0}: {1}".format(k,k+'Type')
+        # ans += "\n  OUTPUT {0}: {1}".format(k,k+'Type')
+        if type(v) != list:
+          ans += "\n  OUTPUT {0}: {1}".format(k, v)
     varValInitL = extractInit(deqns)
     first = True
     for (var, val, init) in varValInitL:
@@ -1289,7 +1294,9 @@ def createPlant(state, ceqns, oeqns, iEqns = {}):
     for i in ints:
         ans += "\n  INPUT {0}: NATURAL".format(i)
     for (k,v) in enums.items():
-        ans += "\n  INPUT {0}: {1}".format(k, k+'Type')
+        # ans += "\n  INPUT {0}: {1}".format(k, k+'Type')
+        if type(v) != list:
+          ans += "\n  INPUT {0}: {1}".format(k, v)
     for i in reals:
         if i in inputs:
             ans += "\n  INPUT {0}: REAL".format(i)
@@ -1422,14 +1429,32 @@ def convert2hsal(dom1, dom2, dom3 = None):
         for i in eqns:
             printEqn(i)
     def createEnumDecl(enums):
+        '''destruct enums and output string; e.g.
+        enums = {'ab':['c','d','e'], 'aa':['c','d','e']} then return
+        enums = {'ab':'abType', 'abType':['c','d','e'], 'aa':'abType'}
+        and ans = 'abType: TYPE = {'c','d','e'}'
+        '''
+        def is_equal(vlist, vlist1):
+          return all([ i in vlist1 for i in vlist ])
+        def already_seen(vlist, alltypes):
+          for (k,vlist1) in alltypes.items():
+            if k.endswith('Type') and type(vlist1) == list and is_equal(vlist, vlist1):
+              return k
+          return None
         ans = ''
-        for k in enums.keys():
-            ans += '{0}: TYPE = '.format(k+'Type')
+        for (k,vlist) in enums.items():
+          typename = already_seen(vlist, enums)
+          if typename == None:
+            typename = k+'Type'
+            enums[typename] = vlist
+            ans += '{0}: TYPE = '.format(typename)
             first = True
-            for v in enums[k]:
+            for v in vlist:
                 ans += '{0}{1}'.format(',' if not(first) else '{', v)
                 first = False
             ans += '};\n'
+          enums[k] = typename
+        # alltypes is now useless and deleted...
         return ans
     # decide later if creating hsal XML or hsal string
     cstate = getIdentifiersIn(dom1,'continuousState')
@@ -1473,7 +1498,9 @@ def convert2hsal(dom1, dom2, dom3 = None):
     preds = getPredsInConds(eqns)
     print >> sys.stderr, 'Found {0} preds'.format(len(preds))
     print >> sys.stderr, 'Preds: {0}'.format(preds)
-    ans = createEnumDecl(enums)
+    print >> sys.stderr, 'Enums: {0}'.format(enums)
+    ans = createEnumDecl(enums) # enums is destructively updated now
+    print >> sys.stderr, 'NEWEnums: {0}'.format(enums)
     ans0 = createEventsFromPreds(preds, reals, inputs)	# Should events on inputs be included?
     print >> sys.stderr, 'created events from preds'
     ans1 = createControl(state, discEqns, ans0, iEqns)
