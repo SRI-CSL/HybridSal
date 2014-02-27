@@ -1045,7 +1045,9 @@ def hxml2sal(xmlfilename, optarg = 0, timearg = None):
     with open(absSalFile, "w") as fp:
         HSalXMLPP.HSalPPContext(newctxt, fp)
     print "Created file %s containing the abstract model" % absSalFile
-    return absSalFile
+    assertions = ctxt.getElementsByTagName("ASSERTIONDECLARATION")
+    p1_exists = (assertions != None and len(assertions) > 0)
+    return absSalFile, p1_exists
 
 def hsal2hxml(filename):
     def getexe():

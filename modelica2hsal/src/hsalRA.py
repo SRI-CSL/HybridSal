@@ -1,3 +1,4 @@
+# OBSOLETE FILE -- use modelica2sal instead....
 import sys
 import os.path
 import inspect

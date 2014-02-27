@@ -47,13 +47,14 @@ def main():
         print 'Syntax error in generated HybridSal file. Quitting.'
         return -1
     try:
-        ans = HSalRelAbsCons.hxml2sal(xmlfilename, optarg=0, timearg=None)
+        ans, prop_exists = HSalRelAbsCons.hxml2sal(xmlfilename, optarg=0, timearg=None)
     except Exception, e:
         print e
         print 'Relational abstracter can not abstract this model. Quitting.'
         return -1
     iswin = sys.platform.startswith('win')
-    if pfilename != None:
+    # if pfilename != None:
+    if prop_exists:
         salinfbmc = 'sal-inf-bmc'
         if iswin:
             salinfbmc = os.path.join(getexe(), 'sal-inf-bmc.bat')
