@@ -343,7 +343,8 @@ def compile_hybridsal2xml( hybridsal2xml, shell, rtjar, jikespath ):
     print "Installing hybridsal2xml at {0}".format(os.getcwd())
     scriptArgs = ''
     topshell = ''
-    if sys.platform.startswith('win'):	# windows
+    iswin = sys.platform.startswith('win')	# windows
+    if iswin:	# windows
         classpathsep = ';'
         scriptArgs = '%1 %2 %3'
         topshell = ''
@@ -364,7 +365,7 @@ def compile_hybridsal2xml( hybridsal2xml, shell, rtjar, jikespath ):
     hybridsal2xmltemplate = 'hybridsal2xml.template'
     # hybridsal2xml = os.path.join('hybridsal2xml','hybridsal2xml')
     hybridsal2xml = 'hybridsal2xml'
-    if sys.platform.startswith('win'):
+    if iswin:   # sys.platform.startswith('win'):
         if os.path.isfile(hybridsal2xml):
             os.remove(hybridsal2xml)
         hybridsal2xml += '.bat'
@@ -382,7 +383,10 @@ def compile_hybridsal2xml( hybridsal2xml, shell, rtjar, jikespath ):
     else:
         print 'Successful. Found {0}'.format(output)
         if not os.path.lexists( 'antlr' ):
-            os.symlink( os.path.join( antlrpath, 'antlr'), 'antlr')
+            if iswin:
+                os.rename( os.path.join( antlrpath, 'antlr'), 'antlr')
+            else:
+                os.symlink( os.path.join( antlrpath, 'antlr'), 'antlr')
             # antlr  = os.path.join(antlrpath, 'antlr')
             # subprocess.call([ 'ln', '-s', antlr, 'antlr' ])
         subprocess.call([ 'make' ])
