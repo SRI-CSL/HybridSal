@@ -6,11 +6,12 @@ ifeq ($(JAVAC),)
     JAVAC=javac
 endif
 
+JAVAC=jikes
 ANTLR_SRC := antlr
 EXAMPLE_SRC := examples
 
-ANTLR_SOURCES   := $(shell find $(ANTLR_SRC) -name '*.java')
-EXAMPLE_SOURCES := $(shell find $(EXAMPLE_SRC) -name '*.java')
+ANTLR_SOURCES   := $(shell /usr/bin/find $(ANTLR_SRC) -name '*.java')
+EXAMPLE_SOURCES := $(shell /usr/bin/find $(EXAMPLE_SRC) -name '*.java')
 
 RUNTIME_CLASSES :=  antlr/DefineGrammarSymbols.class \
         antlr/ANTLRGrammarParseBehavior.class \

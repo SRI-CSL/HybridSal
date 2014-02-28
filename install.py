@@ -352,7 +352,7 @@ def compile_hybridsal2xml( hybridsal2xml, shell, rtjar, jikespath ):
         classpathsep = ':'
         scriptArgs = '$*'
         topshell = '#!{0}'.format(shell)
-    javaclasspath = classpathsep.join([ '.', antlrpath, os.path.join(antlrpath, 'antlr'), rtjar ])
+    javaclasspath = classpathsep.join([ '.', antlrpath, hybridsal2xml, os.path.join(antlrpath, 'antlr'), os.path.join(hybridsal2xml, 'antlr'), rtjar ])
     if 'CLASSPATH' in os.environ.keys():
         javaclasspath = classpathsep.join([ javaclasspath, os.environ['CLASSPATH']])
     tmp = '"{0}"'.format(javaclasspath)
@@ -382,6 +382,9 @@ def compile_hybridsal2xml( hybridsal2xml, shell, rtjar, jikespath ):
         print '***Perhaps the existing built version suffices, so continuing...'
     else:
         print 'Successful. Found {0}'.format(output)
+        os.chdir(os.path.join(antlrpath))
+        subprocess.call([ 'make' ])
+        os.chdir('..')
         if not os.path.lexists( 'antlr' ):
             if iswin:
                 os.rename( os.path.join( antlrpath, 'antlr'), 'antlr')
