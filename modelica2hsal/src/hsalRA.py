@@ -1,4 +1,5 @@
 import sys
+import os
 import os.path
 import inspect
 import subprocess
@@ -25,6 +26,14 @@ Description: This will create a file called modelica_fileModel.sal
     '''
 
 def main():
+    def checkexe(filename):
+        exepaths = os.environ['PATH'].split(os.path.pathsep)
+        for i in exepaths:
+            exefile = os.path.join(i, filename)
+            if os.path.exists(exefile):
+                return True
+        print 'ERROR: File {0} not found in PATH.'.format(filename)
+        return False
     def getexe():
         folder = os.path.split(inspect.getfile( inspect.currentframe() ))[0]
         relabsfolder = os.path.join(folder, '..', '..', 'bin')
@@ -55,12 +64,22 @@ def main():
     iswin = sys.platform.startswith('win')
     # if pfilename != None:
     if prop_exists:
-        salinfbmc = 'sal-inf-bmc'
-        if iswin:
+        salinfbmc = 'sal-inf-bmc.bat' if iswin else 'sal-inf-bmc'
+        if not checkexe(salinfbmc):
             salinfbmc = os.path.join(getexe(), 'sal-inf-bmc.bat')
+            assert os.path.exists(salinfbmc), 'ERROR: {0} not found'.format(salinfbmc)
         # change directory to where the sal file was created...
-        os.chdir( os.path.dirname(ans) )
-        retCode = subprocess.call([salinfbmc, "-d", "4", os.path.basename(ans), "p1"])
+        #if os.environ.has_key('SALCONTEXTPATH'):
+            #oldpath = os.environ['SALCONTEXTPATH']
+        #else:
+            #oldpath = '.'
+        hsal_file_path = os.path.abspath(ans) 
+        hsal_file_path = hsal_file_path.replace('\\', '/')
+        hsal_file_path = hsal_file_path.replace('C:', '/cygdrive/c')
+        #hsal_file_path = hsal_file_path.replace('C:', '/c/')
+        #os.environ['SALCONTEXTPATH'] = hsal_file_path + ':' + oldpath 
+        #print 'SALCONTEXTPATH = ', os.environ['SALCONTEXTPATH']
+        retCode = subprocess.call([salinfbmc, "-d", "4", hsal_file_path, "p1"], env=os.environ)
         if retCode != 0:
             print "sal-inf-bmc failed."
             return 1

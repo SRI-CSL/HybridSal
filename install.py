@@ -382,9 +382,9 @@ def compile_hybridsal2xml( hybridsal2xml, shell, rtjar, jikespath ):
         print '***Perhaps the existing built version suffices, so continuing...'
     else:
         print 'Successful. Found {0}'.format(output)
-        os.chdir(os.path.join(antlrpath))
-        subprocess.call([ 'make' ])
-        os.chdir('..')
+        #os.chdir(os.path.join(antlrpath))
+        #subprocess.call([ 'make' ])
+        #os.chdir('..')
         if not os.path.lexists( 'antlr' ):
             if iswin:
                 os.rename( os.path.join( antlrpath, 'antlr'), 'antlr')
@@ -907,6 +907,7 @@ def createReleaseExe(srcdir):
     # copy install.py ! copy COPYRIGHT and doc
     shutil.copy('install.py', distdir)
     shutil.copy('COPYRIGHT', distdir)
+    shutil.copy( os.path.join( currdir, 'hybridsal2xml', 'hybridsal2xml.bat'), distdir)
     print 'Successfully created distribution {0}'.format(distdir)
  
 def createRelease(srcdir,withmodelica):

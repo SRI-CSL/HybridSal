@@ -1050,6 +1050,14 @@ def hxml2sal(xmlfilename, optarg = 0, timearg = None):
     return absSalFile, p1_exists
 
 def hsal2hxml(filename):
+    def checkexe(filename):
+        exepaths = os.environ['PATH'].split(os.path.pathsep)
+        for i in exepaths:
+            exefile = os.path.join(i, filename)
+            if os.path.exists(exefile):
+                return True
+        print 'ERROR: File {0} not found in PATH.'.format(filename)
+        return False
     def getexe():
         folder = os.path.split(inspect.getfile( inspect.currentframe() ))[0]
         relabsfolder = os.path.join(folder, '..', 'hybridsal2xml')
@@ -1063,7 +1071,11 @@ def hsal2hxml(filename):
         hybridsal2xml = 'hybridsal2xml'
         if sys.platform.startswith('win'):
             hybridsal2xml += '.bat'
-        exe = os.path.join(getexe(), hybridsal2xml)
+        if checkexe(hybridsal2xml):
+            exe = hybridsal2xml
+        else:
+            exe = os.path.join(getexe(), hybridsal2xml)
+            assert os.path.exists(exe), 'ERROR: {0} not found'.format(exe)
         retCode = subprocess.call([exe, "-o", xmlfilename, filename])
         if retCode != 0 or not(os.path.isfile(xmlfilename)):
             print "hybridsal2xml failed to create XML file. Quitting."
