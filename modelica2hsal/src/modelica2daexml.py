@@ -213,7 +213,15 @@ def mlapply2myexpr(mle):
         mlargs = getArgs(mle)
         args = [ mlexpr2myexpr( i ) for i in mlargs[1:] ]
         arity = len(args)
-        op1 = arity2op[arity]
+        if arity >= 1 and arity <= 6:
+          op1 = arity2op[arity]
+        elif arity >= 7:
+          print "Warning: NEW Operator {0} has arity {1}".format(op,arity)
+          op1 = arity2op[6]
+        else:
+          print "Warning: NEW Operator {0} has arity ZERO? {1}?".format(op,arity)
+          print "Warning: Turning {0} to an identifier??".format(op,arity)
+          return helper_create_tag_val('identifier', op)
         op2 = helper_create_tag_val('op', op)
         args.insert(0, op2)
         return helper_create_app(op1, args, None, arity)

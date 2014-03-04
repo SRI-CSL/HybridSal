@@ -1054,10 +1054,16 @@ def hsal2hxml(filename):
         exepaths = os.environ['PATH'].split(os.path.pathsep)
         for i in exepaths:
             exefile = os.path.join(i, filename)
-            if os.path.exists(exefile):
-                return True
-        print 'ERROR: File {0} not found in PATH.'.format(filename)
-        return False
+            if os.path.isfile(exefile):
+                return exefile
+        # also search in CLASSPATH -- for jar files
+        exepaths = os.environ['CLASSPATH'].split(os.path.pathsep)
+        for i in exepaths:
+            exefile = os.path.join(i, filename)
+            if os.path.isfile(exefile):
+                return exefile
+        print 'ERROR: File {0} not found in PATH/CLASSPATH.'.format(filename)
+        return None
     def getexe():
         folder = os.path.split(inspect.getfile( inspect.currentframe() ))[0]
         relabsfolder = os.path.join(folder, '..', 'hybridsal2xml')
@@ -1068,6 +1074,11 @@ def hsal2hxml(filename):
         xmlfilename = filename
     elif ext == '.hsal':
         xmlfilename = basename + ".hxml"
+        java = checkexe('java.exe' if sys.platform.startswith('win') else 'java')
+        assert java != None, 'ERROR: java not found in PATH {0}'.format(os.environ['PATH'])
+        hybridsal2xml_jar = checkexe('hybridsal2xml.jar')
+        assert hybridsal2xml_jar != None, 'ERROR: hybridsal2xml.jar not found in CLASSPATH {0}'.format(os.environ['CLASSPATH'])
+        ''' old code:
         hybridsal2xml = 'hybridsal2xml'
         if sys.platform.startswith('win'):
             hybridsal2xml += '.bat'
@@ -1077,6 +1088,8 @@ def hsal2hxml(filename):
             exe = os.path.join(getexe(), hybridsal2xml)
             assert os.path.exists(exe), 'ERROR: {0} not found'.format(exe)
         retCode = subprocess.call([exe, "-o", xmlfilename, filename])
+        '''
+        retCode = subprocess.call([java, "-jar", hybridsal2xml_jar, "-o", xmlfilename, filename])
         if retCode != 0 or not(os.path.isfile(xmlfilename)):
             print "hybridsal2xml failed to create XML file. Quitting."
             return 1
