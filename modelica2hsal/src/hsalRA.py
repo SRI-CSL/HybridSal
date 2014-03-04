@@ -57,9 +57,11 @@ def find_sal_exe():
         print "***SAL not found.  Download and install SAL.***"
         print "***Update PATH with location of sal-inf-bmc.***"
         return None
-    print 'Checking for cygwin at c:\cygwin'
     cygwin = os.path.join('C:',os.path.sep,'cygwin')
-    if not os.path.isdir(cygwin) and os.environ.has_key('CYGWIN_HOME'):
+    print 'Checking for cygwin at {0}'.format(cygwin)
+    if os.path.isdir(cygwin):
+        pass
+    elif os.environ.has_key('CYGWIN_HOME'):
         cygwin = os.environ['CYGWIN_HOME']
         assert os.path.isdir(cygwin), 'CYGWIN_HOME is not a directory!!!'
     else:    
@@ -70,18 +72,20 @@ def find_sal_exe():
     print 'searching for sal-inf-bmc...'
     blacklist = ['zoneinfo','cache','locale','font','doc','include','examples','terminfo','man','lib']
     salinfbmc = findFile(cygwin, 'sal-inf-bmc', blacklist)
-    if salinfbmc == None and os.environ.has_key('SAL_HOME'):
+    if salinfbmc != None:
+        print 'sal-inf-bmc found at {0}'.format(salinfbmc)
+    elif os.environ.has_key('SAL_HOME'):
         salhome = os.environ['SAL_HOME']
         assert os.path.isdir(salhome), 'Env var SAL_HOME is not a directory!!!!'
         salinfbmc = os.path.join(salhome, 'bin', 'sal-inf-bmc')
         assert os.path.isfile(salinfbmc), 'SAL_HOME/bin/sal-inf-bmc NOT found!!!!'
-    if salinfbmc == None:
+    else:
         print '***Unable to find SAL; download and install from sal.csl.sri.com'
         print '***If installed in non-standard location, set ENV variable SAL_HOME'
         return None
-        # now we have saldir and cygwin both set...
-    cygwinbash = os.path.join(cygwin, 'bin', 'bash')
-    assert os.path.isfile(cygwinbash), 'ERROR: cygwin/bin/bash not found'
+    # now we have salinfbmc and cygwin both set...
+    cygwinbash = os.path.join(cygwin, 'bin', 'bash.exe')
+    assert os.path.isfile(cygwinbash), "ERROR: {0} not found".format(cygwinbash)
     return [cygwinbash, '-li', salinfbmc]
 
 def printUsage():
