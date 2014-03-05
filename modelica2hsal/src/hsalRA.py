@@ -147,13 +147,21 @@ def main():
         #else:
             #oldpath = '.'
         hsal_file_path = os.path.abspath(ans) 
+        (basename,ext) = os.path.splitext(hsal_file_path)
+        result_filename = basename + 'Result.txt'
         hsal_file_path = hsal_file_path.replace('\\', '/')
         hsal_file_path = hsal_file_path.replace('C:', '/cygdrive/c')
+        try:
+          f = open(result_filename, 'w')
+        except Exception, e:
+          print 'Failed to open file {0} for writing results'.format(result_filename)
+          print 'Results will be displaced on stdout'
+          f = sys.stdout
         #hsal_file_path = hsal_file_path.replace('C:', '/c/')
         #os.environ['SALCONTEXTPATH'] = hsal_file_path + ':' + oldpath 
         #print 'SALCONTEXTPATH = ', os.environ['SALCONTEXTPATH']
         salinfbmcexe.extend(["-d", "4", hsal_file_path, "p1"])
-        retCode = subprocess.call(salinfbmcexe, env=os.environ)
+        retCode = subprocess.call(salinfbmcexe, env=os.environ, stdout=f)
         if retCode != 0:
             print "sal-inf-bmc failed."
             return -1
