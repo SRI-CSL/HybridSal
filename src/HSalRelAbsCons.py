@@ -1086,7 +1086,7 @@ def hsal2hxml(filename):
             exe = hybridsal2xml
         else:
             exe = os.path.join(getexe(), hybridsal2xml)
-            assert os.path.exists(exe), 'ERROR: {0} not found'.format(exe)
+            assert os.path.isfile(exe), 'ERROR: {0} not found'.format(exe)
         retCode = subprocess.call([exe, "-o", xmlfilename, filename])
         '''
         retCode = subprocess.call([java, "-jar", hybridsal2xml_jar, "-o", xmlfilename, filename])
