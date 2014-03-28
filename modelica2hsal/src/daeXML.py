@@ -706,6 +706,8 @@ def simplify0uapp(node):
             val = math.cos(float(arg1))
         elif func == 'sin':
             val = math.sin(float(arg1))
+        elif func == 'log':
+            val = math.log(float(arg1))
         elif func == 'Real' or func == 'real':
             val = float(arg1)
         elif func == 'sign':
