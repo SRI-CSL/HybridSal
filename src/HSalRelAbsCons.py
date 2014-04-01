@@ -133,13 +133,27 @@ def createNodeEigenInv():
 def simpleDefinitionRhsExpr(defn):
     "Return the RHS expression in definition def"
     rhs = defn.getElementsByTagName("RHSEXPRESSION")
-    if rhs == None:
+    if rhs == None or len(rhs) == 0:
         return None
     else:
         return exprs2poly(rhs[0].childNodes)
     
+def partition_dot_nondot(defs):
+    "defs = list of SIMPLEDEFINITIONS xmlnodes"
+    "return = (defs1, defs2) partition"
+    flow = list()
+    nonflow = list()
+    for i in defs:
+        lhsvar = simpleDefinitionLhsVar(i)
+        if lhsvar.endswith('dot'):
+          flow.append( i )
+        else:
+          nonflow.append( i )
+    return (flow, nonflow)
+
 def getFlow(defs):
     "Return flow of the continuous dynamics stored in definitions"
+    "return = [var-name-str, myrep-poly, str, myrep, str, myrep,...]"
     flow = list()
     for i in defs:
         lhsvar = simpleDefinitionLhsVar(i)
@@ -192,7 +206,7 @@ def flow2Aibi(flowi, varlist):
 
 def flow2Ab(flow):
     "get A,b matrices from the flow, if possible"
-    "flow is a list of alternative variabledot, poly"
+    "flow is a list of alternate variabledot-str, myrep-poly"
     varlist = flow2var(flow)
     n = len(varlist)
     i = 0
@@ -914,6 +928,8 @@ def absGuardedCommand(gc, inputs, basemod):
     guard = gc.getElementsByTagName("GUARD")[0]
     assigns = gc.getElementsByTagName("ASSIGNMENTS")[0]
     defs = assigns.getElementsByTagName("SIMPLEDEFINITION")
+    (diffEqns, resets) = partition_dot_nondot(defs)
+    defs = diffEqns
     flow = getFlow(defs)
     [varlist,A,b] = flow2Ab(flow)
     # print "A"
@@ -930,6 +946,9 @@ def absGuardedCommand(gc, inputs, basemod):
     absguard = createNodeTagChild('GUARD',absguardnode)
     # absassigns = assigns.cloneNode(True)
     absassigns = absAssignments(varlist, keyLimit=len(flow)/2)
+    # re-introduce update assignments
+    for i in resets:
+        absassigns.appendChild(i)   # DEEP COPY ???
     return createNodeTagChild2('GUARDEDCOMMAND', absguard, absassigns)
 
 def handleBasemodule(basemod, ctxt):

@@ -1,4 +1,6 @@
 
+# Mar 10, 2014: Fixed quadInvModTime definition
+
 import math
 from xmlHelpers import mystr
 
@@ -83,8 +85,8 @@ def createQuadInvModTime():
 
 quadInvModTime(xold:REAL, yold:REAL, xnew:REAL, ynew:REAL, lamb:REAL, told: REAL, tnew: REAL): BOOLEAN =
  (xold = 0 AND yold = 0 AND xnew = 0 AND ynew = 0) OR (
-   expTimeBnd1(modub(xnew,ynew), modlb(xold,yold), lamb*(tnew-told)) AND
-   expTimeBnd2(modlb(xnew,ynew), modub(xold,yold), lamb*(tnew-told)) );
+   expTimeBnd1(modlb(xnew,ynew), modub(xold,yold), lamb*(tnew-told)) AND
+   expTimeBnd2(modub(xnew,ynew), modlb(xold,yold), lamb*(tnew-told)) );
 '''
     return ans
 

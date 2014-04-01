@@ -3,7 +3,8 @@
 # 2013/08/22: Fixed /flag bug in SimplifyEqnsPhase4
 # 2013/08/23: Added SimplifyAC (x + c) - d ==> x + (c-d)
 # 2014/02/24: Important bug fixed in getMapping
-
+# 2014/04/01: ... substitute: var->expr if var in expr IGNORE!
+ 
 import xml.dom.minidom
 import xml.parsers.expat
 import sys
@@ -962,8 +963,26 @@ def replace(node, newnode, root):
         # root = simplify(parentnode, newnode, root)
     return root
 
+def has_variable(expr, var):
+  '''does variable name var occur in expr'''
+  if expr.tagName == 'identifier':
+    ids = [ expr ]
+  else:
+    ids = expr.getElementsByTagName('identifier')
+  for i in ids:
+    varname = valueOf(i).strip()
+    if var == varname:
+      return True
+  return False
+
 def substitute(expr, mapping):
     '''replace identifiers by their mapped values in expr'''
+    for (k,v) in mapping.items():
+      if has_variable(v,k):
+        print 'WARNING: mapping fails occur check. Ignoring.'
+        del mapping[k]
+    if len(mapping) == 0:
+      return expr
     if expr.tagName == 'identifier':
         ids = [ expr ]
     else:
