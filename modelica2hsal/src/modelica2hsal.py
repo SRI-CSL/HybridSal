@@ -16,6 +16,7 @@ Modelica.Fluid.Utilities.regRoot(x,y) = if (x >= 0) then sqrt(x) else -(sqrt(-x)
 semiLinear(0.0,x,y) = 0.0
 semiLinear(x,y,z) = if (x >= 0) then x*y else x*z
 noEvent(x) = x
+smooth(x,y) = y
 Modelica.Math.tempInterpol2(0.0,{{x,y,z,u,v}},{2,3,4,5})={{y,z,u,v}}
 Modelica.Math.Matrices.isEqual({{x,y,z,u,v}},{{a,b,c,d,e}},w)= (x==a and y==b and z==c and u==d and v==e)
 Modelica.Blocks.Types.ExternalCombiTable1D.constructor(x,y,z,u,v) = z

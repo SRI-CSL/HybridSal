@@ -9,6 +9,7 @@ import xml.parsers.expat
 import sys
 import os.path
 import daexmlPP
+from pympler.asizeof import asizeof
 
 TRUE = [ 'true', 'True' ]
 FALSE = [ 'false', 'False' ]
@@ -898,7 +899,10 @@ def simplify0bapp(node):
             elif func == '-':
                 val = float(arg1) - float(arg2)  # todo: atan2/ cross
             elif func == '^' or func == 'power':
-                val = float(arg1) ** float(arg2)  # todo: atan2/ cross
+                if abs(float(arg1)) < 1e-5:	# ASHISH: 1e-5 check
+                    val = 0
+                else:
+                    val = float(arg1) ** float(arg2)  # todo: atan2/ cross
             elif func == 'max' and float(arg1) > float(arg2):
                 val = float(arg1)
             elif func == 'max' and float(arg1) <= float(arg2):
@@ -929,6 +933,8 @@ def simplify0bapp(node):
                 val = 'true'
             elif func == '==' and not(float(arg1) == float(arg2)):
                 val = 'false'
+            elif func == 'smooth':
+                val = float(arg2)
             else:
                 print 'unknown op {0} over floats'.format(func)
                 val = None
@@ -1269,10 +1275,12 @@ def SimplifyEqnsPhase4(dom, cstate, dstate):
             assert varname not in dstate, 'knownVar {0} cant be in dstate'.format(varname)
             val = getArg(i,2)
             mapping[varname] = val
+            print '{1} -> {0}'.format(val.toxml(),varname)
             newknownvars.removeChild( i )
             newknownvars = substitute(newknownvars, mapping)
             neweqns = substitute(neweqns, mapping)
         varvals = newknownvars.getElementsByTagName('variablevalue')
+        print 'len(newknownvars) = {0}'.format( len(varvals) )
     newknownvars.setAttribute('arity', '0')
     done = False
     while not done:
