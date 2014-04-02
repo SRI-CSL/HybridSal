@@ -1572,21 +1572,28 @@ def SubstituteLibraryFunctions(dom, library):
             for i in range(arity):
                 args.append( getArg(fargs, i+1) )
         return (fname, args, fval)
-    def substituteFunction(dom, fname, fargs, fval):
-        "fname = string, fargs = list of EXPRS-XML, fval = a DOM element"
-        arity = len(fargs)
+    def substituteFunction(dom, allfunctions):
+        '''fs = list of (fname, fargs, fval) where 
+        fname = string, fargs = list of EXPRS-XML, fval = a DOM element'''
         tagNames = ['IDENTIFIER', 'UAPP', 'BAPP', 'TAPP', 'QAPP', 'NAPP']
-        tagName = tagNames[arity] if arity >= 0 and arity <= 5 else 'NAPP'
-        instances = dom.getElementsByTagName(tagName)
-        for node in instances:
+        partition = {0:[],1:[],2:[],3:[],4:[],5:[]}
+        for (fname, fargs, fval) in allfunctions:
+          arity = len(fargs) 
+          arity = arity if arity <= 5 else 5
+          partition[arity].append( (fname, fargs, fval) )
+        for arity in partition.keys():
+          tagName = tagNames[arity]
+          instances = dom.getElementsByTagName(tagName)
+          for node in instances:
             if arity >= 1:
                 actualfname = valueOf(getArg(node, 1)).strip()
             else:
                 actualfname = valueOf(node).strip()
-            if actualfname != fname:
-                continue
-            print 'r',
-            dom = replaceNodeByNewNode(dom, node, fargs, fval)
+            for (fname, fargs, fval) in partition[arity]:
+              if actualfname == fname:
+                print 'r',
+                dom = replaceNodeByNewNode(dom, node, fargs, fval)
+                break
         return dom
     def match(formal, actual, mapping):
         "formal,actual are XML nodes, mapping is a dict from str to expr"
@@ -1657,6 +1664,21 @@ def SubstituteLibraryFunctions(dom, library):
         newnode = substitute(newnode, mapping)
         dom = replace(node, newnode, dom)
         return dom
+    def remove_small_constants(dom):
+      '''map constants <= e-9 to 0'''
+      numbers = dom.getElementsByTagName('number')
+      for i in numbers:
+        valstr = valueOf(i).strip()
+        if valstr == 'NoName':
+          val = 1e-10
+        else:
+          val = float( valueOf(i).strip() )
+        if abs(val) < 1e-8 and val != 0:
+          newnode = helper_create_tag_val('number', '0')
+          print 'e-10',
+          dom = replace(i, newnode, dom)
+      return dom
+    dom = remove_small_constants(dom)
     if library == None:
         print 'Warning: No library being used for simplification'
         return dom
@@ -1665,10 +1687,8 @@ def SubstituteLibraryFunctions(dom, library):
     allfunctions = library.getElementsByTagName('libequation')
     if len(allfunctions) == 0:
         print 'Warning: No function definitions found in the library'
-    for f in allfunctions:
-        (fname, fargs, fval) = f2name_args_val(f)
-        # print 'Found definition of function {0} in library'.format(fname)
-        dom = substituteFunction(dom, fname, fargs, fval)
+    fs = [ f2name_args_val(f) for f in allfunctions ]
+    dom = substituteFunction(dom, fs)
     return dom
 
 def get_cd_state(dom):
