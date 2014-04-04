@@ -331,6 +331,8 @@ def printFixedParametersNew(varList, tags=['bindExpression']):
     ans = []
     varvals = []
     for i in varList:
+        if i.getAttribute('type') == 'String' and i.getAttribute('fixed') == 'true':
+          continue
         (value, isInit) = getVariableValue(i, tags)
         name = i.getAttribute('name')
         if value != None:

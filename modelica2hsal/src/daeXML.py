@@ -1294,7 +1294,7 @@ def SimplifyEqnsPhase4(dom, cstate, dstate):
             assert varname not in dstate, 'knownVar {0} cant be in dstate'.format(varname)
             val = getArg(i,2)
             mapping[varname] = val
-            print '{1} -> {0}'.format(val.toxml(),varname)
+            print '{1} -> {1}'.format(val.toxml(),varname)
             newknownvars.removeChild( i )
             newknownvars = substitute(newknownvars, mapping)
             neweqns = substitute(neweqns, mapping)
@@ -1800,6 +1800,7 @@ def simplifydaexml(dom1, filename, library = None, ctxt = None):
         # return simplifydaexml_old(dom1, filename, library)
         #print dom.toxml()
         print '----------Simplification: Library Substitution starting...'
+        dom = dom1
         dom1 = SubstituteLibraryFunctions(dom1, library)
         print '----------Simplification: Library Substitution over.......'
         (cstate, dstate) = ctxt if ctxt!=None else get_cd_state(dom1)
