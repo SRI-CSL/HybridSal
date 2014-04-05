@@ -329,7 +329,7 @@ def vector2list(v):
 def list2vector(l):
     "l = [n1 n2 n3] --> v = set number(n1) number(n2) number(n3) /set"
     def isNumeric(obj):
-        return isinstance(obj,int) or isinstance(obj,float)
+        return isinstance(obj, (int, float))
     if all( isNumeric(i) for i in l ):
         c = [ helper_create_tag_val('number', str(i)) for i in l ]
     else:
@@ -880,6 +880,7 @@ def simplify0bapp(node):
     import math
     done = True
     sas = node.getElementsByTagName('BAPP')
+    #print 'Number of BAPPS is', len(sas)
     for parentnode in sas:
         arg1 = getArg(parentnode, 2)
         arg2 = getArg(parentnode, 3)
@@ -901,7 +902,7 @@ def simplify0bapp(node):
                 val = float(arg1) - float(arg2)  # todo: atan2/ cross
             elif func == '^' or func == 'power':
                 if abs(float(arg1)) < 1e-5:	# ASHISH: 1e-5 check
-                    val = 0
+                    val = 0.0
                 else:
                     val = float(arg1) ** float(arg2)  # todo: atan2/ cross
             elif func == 'max' and float(arg1) > float(arg2):
@@ -939,9 +940,9 @@ def simplify0bapp(node):
             else:
                 print 'unknown op {0} over floats'.format(func)
                 val = None
-            if isinstance(val, float):
+            if isinstance(val, (float,int)):
                 tag = 'number'
-            elif isinstance(val, str): # true, false
+            elif isinstance(val, (str,unicode)): # true, false
                 # tag = 'identifier'
                 tag = 'string'
             else:
@@ -1339,6 +1340,57 @@ def SimplifyEqnsPhase4(dom, cstate, dstate):
     dom = replace(eqns, neweqns, dom)
     return dom
 
+def SimplifyEqnsPhase4_simple(dom, cstate, dstate):
+    '''x = expr or -x = expr : replace x by its value in new dom'''
+    # substitute values for vars in alleqns
+    # find all 'identifier nodes' in eqns...replace it by
+    # expression
+    knownVars = dom.getElementsByTagName('knownVariables')[0]
+    eqns = dom.getElementsByTagName('equations')[0]
+    neweqns = eqns
+    newknownvars = knownVars
+    varvals = newknownvars.getElementsByTagName('variablevalue')
+    while varvals != None and len(varvals) > 0:
+        done = False
+        mapping = {}
+        i = varvals[0]
+        var = getArg(i,1)
+        assert var!=None, 'var=None for {0}'.format(i.toxml())
+        varname = valueOf(var).strip()
+        if var.tagName != 'identifier':
+            newknownvars.removeChild( i )
+            i.tagName = 'equation'
+            neweqns.appendChild( i )
+        elif varname in cstate or varname in dstate:
+            print 'knownVar {0} cannot be a state variable'.format(varname)
+            print 'WARNING:potential algebraic equation; may fail later'
+            newknownvars.removeChild( i )
+            i.tagName = 'equation'
+            neweqns.appendChild( i )
+        else:
+            assert varname not in cstate, 'knownVar {0} cant be in cstate'.format(varname)
+            assert varname not in dstate, 'knownVar {0} cant be in dstate'.format(varname)
+            val = getArg(i,2)
+            mapping[varname] = val
+            print '{1} -> {1}'.format(val.toxml(),varname)
+            newknownvars.removeChild( i )
+            newknownvars = substitute(newknownvars, mapping)
+            neweqns = substitute(neweqns, mapping)
+        varvals = newknownvars.getElementsByTagName('variablevalue')
+        print 'len(newknownvars) = {0}'.format( len(varvals) )
+    newknownvars.setAttribute('arity', '0')
+    done = False
+    while not done:
+        done = True
+        done &= simplify3(neweqns)
+        done &= simplify1(neweqns)
+        done &= simplify2(neweqns)
+        done &= simplify0(neweqns)
+    varvals = neweqns.getElementsByTagName('equation')
+    neweqns.setAttribute('arity', str(len(varvals)))
+    dom = replace(eqns, neweqns, dom)
+    return dom
+
 def SimplifyEqnsPhase2(dom):
     '''x = expr or -x = expr : replace x by its value in new dom'''
     eqns = dom.getElementsByTagName('equations')[0]
@@ -1439,7 +1491,7 @@ def simplifyPreDer(varval, eqn, cstate, dstate):
 
 def ppdebug(dom, msg):
     #print '--------------------------------------------------------------------------'
-    #print msg
+    print msg
     '''
     knownVars = dom.getElementsByTagName('knownVariables')[0]
     varvals = knownVars.getElementsByTagName('variablevalue')
@@ -1591,9 +1643,13 @@ def SubstituteLibraryFunctions(dom, library):
                 actualfname = valueOf(node).strip()
             for (fname, fargs, fval) in partition[arity]:
               if actualfname == fname:
-                print 'r',
-                dom = replaceNodeByNewNode(dom, node, fargs, fval)
-                break
+                mapping = match_args(node, fargs)
+                if mapping != None:
+                  newnode = fval.cloneNode(True)
+                  newnode = substitute(newnode, mapping)
+                  print 'r', fname,  # node.toxml(), newnode.toxml()
+                  dom = replace(node, newnode, dom)
+                  break
         return dom
     def match(formal, actual, mapping):
         "formal,actual are XML nodes, mapping is a dict from str to expr"
@@ -1664,6 +1720,15 @@ def SubstituteLibraryFunctions(dom, library):
         newnode = substitute(newnode, mapping)
         dom = replace(node, newnode, dom)
         return dom
+    def match_args(node, fargs):
+        "match fargs with node.args, return None or mapping"
+        arity = len(fargs)
+        mapping = {}
+        for i in range(arity):
+            mapping = match( fargs[i], getArg(node,i+2), mapping )
+            if mapping == None:
+                return None	# match failed
+        return mapping
     def remove_small_constants(dom):
       '''map constants <= e-9 to 0'''
       numbers = dom.getElementsByTagName('number')
@@ -1732,7 +1797,7 @@ def simplifydaexml_old(dom1, filename, library = None):
     print 'cstate = {0}'.format(cstate)
     print 'dstate = {0}'.format(dstate)
     print '-------------Simplification: Expression Propagation starting......'
-    dom = SimplifyEqnsPhase4(dom, cstate, dstate)
+    dom = SimplifyEqnsPhase4_simple(dom, cstate, dstate)
     create_output_file(filename, dom, '.daexml3') 
     #print '-----------------------------------------------------------------'
     print '-------------Simplification: Expression propagation 4 over......'
@@ -1779,7 +1844,7 @@ def simplifydaexml(dom1, filename, library = None, ctxt = None):
         print '----------Simplification: Library Substitution over.......'
         print '----------Simplification: Expression Propagation starting..'
         (cstate, dstate) = ctxt if ctxt != None else get_cd_state(dom)
-        dom = SimplifyEqnsPhase4(dom, cstate, dstate)
+        dom = SimplifyEqnsPhase4_simple(dom, cstate, dstate)
         create_output_file(filename, dom, '.daexml3') 
         print '----------Simplification: Expression propagation over......'
         return simplifydaexml(dom, filename, library, (cstate,dstate))

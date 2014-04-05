@@ -366,7 +366,7 @@ def preprocessEqnNEW(eL,cstate,dstate):
             if v == None:
                 continue
             c = mkc(cnum)
-            if isinstance(v,str) or isinstance(v,unicode):
+            if isinstance(v, (str,unicode)):
                 v = mkv(v)
             elif isinstance(v,tuple) and v[1] == True:
                 v = mkdv(v[0])
@@ -493,7 +493,7 @@ def preprocessEqnNEW(eL,cstate,dstate):
     def freevar(p, dstate, cstate):
         varList = p.keys()
         for v in varList:
-            if (isinstance(v,str) or isinstance(v,unicode)) and v not in cstate and v not in dstate:
+            if isinstance(v,(str,unicode)) and v not in cstate and v not in dstate:
                 return v
         return None
     def dervar(varList, dstate, cstate):
@@ -1385,11 +1385,11 @@ def createEventsFromPreds(preds, reals, inputs):
     for (e,vl) in preds.items():
         if isinstance(e,tuple):
             (bop,e1,e2) = e
-            assert isinstance(e1,str) or isinstance(e1,unicode)
-            assert isinstance(e2,str) or isinstance(e2,unicode)
+            assert isinstance(e1, (str,unicode))
+            assert isinstance(e2, (str,unicode))
             estr = e1 + "'" + bop + e2 + "'"
         else:
-            assert isinstance(e,str) or isinstance(e,unicode), 'Error: Expecting str/unicode, found {0}'.format(type(e))
+            assert isinstance(e, (str,unicode)), 'Error: Expecting str/unicode, found {0}'.format(type(e))
             estr = e + "'"
             if (e not in reals) or (e in inputs):
                 continue
@@ -1599,7 +1599,7 @@ def createPropertyJSON(dom3):
     def json2str(expr):
         if isinstance(expr, int):
             return str(expr)
-        elif isinstance(expr, str) or isinstance(expr, unicode):
+        elif isinstance(expr, (str,unicode)):
             return expr
         elif isinstance(expr, dict):
             try:

@@ -31,6 +31,7 @@ transpose(x) = x
 vector(x) = x
 real(x) = x
 sign(x) = x
+selector(x,y) = x[y]
 '''
 
 propStr = '''
