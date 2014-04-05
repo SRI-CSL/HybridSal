@@ -288,6 +288,14 @@ def simplify2_arrayselect(node):
             node = replace(i, ans, node)
             done = False
             print 's',
+        elif set1.localName == 'set' and set2.localName == 'number':
+            # ASHISH: NEW CODE ADDED; 04/04/2014
+            access = int(valueOf(set2).strip())
+            set1 = getArg(set1, access)
+            if set1 != None:
+                node = replace(i, set1, node)
+                done = False
+                print 's',
     return done
  
 def simplify2(node):
