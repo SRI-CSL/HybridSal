@@ -1,0 +1,235 @@
+\documentclass{llncs}
+%\usepackage{sriram-macros}
+\usepackage{url}
+\usepackage{amsmath,amssymb,amsfonts}
+%\usepackage{electComp}
+\pagestyle{plain}
+\usepackage{graphicx}
+
+\title{Cyber-Component Verification Using HybridSAL}
+%  \thanks{Tiwari's work supported in part by DARPA under Contract No. FA8650-10-C-7078,
+%  NSF grants CSR-0917398 and SHF:CSR-1017483.}
+\author{Ashish Tiwari}
+\institute{SRI International, Menlo Park, CA.\ \url{ashish.tiwari@sri.com}}
+
+\newif\iftrversion\trversionfalse
+\def\linODEabs{\tt{linODEabs}}
+\newcommand\ignore[1]{{}}
+\newcommand\ite{{\mathtt{ite}}}
+\newcommand\True{{\mathtt{True}}}
+\newcommand\False{{\mathtt{False}}}
+
+\begin{document}
+
+\maketitle
+
+\begin{abstract}
+  This tutorial describes the process of
+  designing cyber-components of a complex
+  system guided by formal verification.
+\end{abstract}
+
+\def\XX{\mathbb{X}}
+\def\QQ{\mathbb{Q}}
+\def\YY{\mathbb{Y}}
+\def\RR{\mathbb{R}}
+\def\ra{\rightarrow}
+%\def\bra{{\crm{\ra}}}  % make it \ra_a
+\def\bra{{\stackrel{a}{\ra}}}  % make it \ra_a
+%\def\rra{{\cem{\ra}}}  % make it \ra_c
+\def\rra{{\stackrel{c}{\ra}}}  % make it \ra_c
+
+\section{The Tools}
+
+The tools used in the verification of cyber-controllers
+are the following:
+
+\begin{description}
+  \item[Matlab Simulink Stateflow:]
+    We assume that the cyber-components are 
+    designed using Matlab's Simulink Stateflow language.
+    Any changes to the controller models are 
+    performed using Matlab.
+    \\
+    Preferred version: R13b
+  \item[Matlab extension for specifying LTL properties:]
+    VU has developed scripts that 
+    extend the graphical user interface
+    of Matlab Simulink/Stateflow with dialog boxes 
+    for specifying temporal logic properties using a pattern system.
+    \\
+    Desired properties of the controllers are
+    attached to the Simulink subsystem or Stateflow chart
+    using this extension.
+  \item[MDL2MGACyber.exe:]
+    VU has developed a tool that translates a Matlab model
+    (exported as a .mdl file) into an XML representation
+    (cyber-composition language).
+    Both the system and the LTL property are 
+    included in the XML file.
+    \\
+    This tool is part of META release.
+  \item[cybercomposition2hsal:]
+    SRI has developed a tool that translates models in
+    the cyber composition language (.xml files) into
+    the HybridSal formal verification language.
+    \\
+    This tool is currently available as a separate
+    script. It will soon be integrated into the META release.
+  \item[hsalRA.exe:]
+    The HybridSal relational abstracter, combined with
+    the infinite bounded model checkers.
+    \\
+    The SAL tool is required to be installed separately.
+    SAL executables are available from the SAL website.
+    On Windows, SAL runs only under cygwin.
+    \\
+    The hybridsal tool is part of META release.
+\end{description}
+
+\section{A Simple Exercise}
+
+We describe a simple design exercise using
+HybridSal.  It consists of the following steps.
+\begin{itemize}
+  \item Building/editing the cyber model and
+    annotating it with LTL properties
+  \item Converting the Matlab model into the
+    cyber composition language
+  \item Creating a HybridSal representation of
+    the model and the properties
+  \item Verifying the HybridSal model
+\end{itemize}
+
+\subsection{Building/editing the cyber model}
+We start with controllers designed by VU.
+The Matlab files for these controllers are:
+\begin{itemize}
+  \item Torque\_Converter\_control.mdl
+  \item TorqueReductionSignal.mdl
+  \item SimplifiedShiftController.mdl
+\end{itemize}
+
+These files can be opened in Simulink and edited.
+If the LTL-extension is installed, then LTL properties
+can be attached to these models directly by right clicking
+on the model.
+
+Models (and the properties) are saved as .mdl files
+using Matlab.
+
+\subsection{Converting Matlab to Cyber Composition language}
+
+Using the {\tt{MDL2MGACyber.exe}} tool, an XML representation
+of the models is generated.
+Corresponding to the above mdl files,
+we get the file 
+
+\begin{center}
+   {\tt{SimplifiedControllerCyberWithProp.xml}}
+\end{center}
+
+This file has all the three cyber-components and 
+the attached properties.
+
+\subsection{Converting CyberComposition XML to HybridSal}
+
+The python script, {\tt{cybercomposition2hsal.py}},
+converts the XML into HybridSal.
+It is run as follows:
+
+\begin{quote}
+  {\tt{
+      python cybercomposition2hsal.py SimplifiedControllersCyberWithProp.xml
+  }}
+\end{quote}
+
+Running the above script will generate a file called
+\begin{center}
+{\tt{SimplifiedControllersCyberWithProp.hsal}}.
+\end{center}
+
+Users can open this file and see the formal representation
+of the three cyber-components and the LTL properties.
+
+\subsection{Verifying the HybridSal model}
+
+The HybridSal file can now be model checked
+using the following command:
+\begin{quote}
+  {\tt{
+      hsalRA.exe SimplifiedControllersCyberWithProp p1
+  }}
+\end{quote}
+where {\tt{p1}} is the name of the LTL property being verified.
+
+Running this command performs the following actions:
+\begin{itemize}
+  \item A relational abstraction of the HybridSal model
+    is first constructed. The result is stored in a file
+    with the same filename, but with extension ``.sal''.
+    \\
+    In the above example, the tool will create a new file
+    called 
+    \begin{center}
+      {\tt{SimplifiedControllersCyberWithProp.sal}}
+    \end{center}
+  \item The SAL model is model-checked using an infinite-state
+    model checker.
+    \\
+    The output is either a counter-example for the property,
+    or a statement that no counter-example was found.
+\end{itemize}
+
+These two steps can be independently performed on the command-line
+as follows:
+\begin{quote}
+  {\tt{
+      python HSalRelAbsCons.py SimplifiedControllersCyberWithProp.hsal
+      \\
+      sal-inf-bmc -d 10 -v 3 SimplifiedControllersCyberWithProp p1
+  }}
+\end{quote}
+
+Design/property changes can
+be made using Matlab on the Simulink/Stateflow models.
+The verification process can then be repeated.
+Alternatively, it is also possible to edit the
+intermediate HybridSal or Sal files directly --
+this can save time -- but the edits the not carried
+back to the Matlab models.
+
+\section{Remarks}
+
+In the above tutorial, only the cyber components
+were being analyzed.
+The plant model is completely abstracted.
+Hence, the analysis can be coarse.
+But, the analysis can still be useful, especially
+if care is taken in specifying the LTL properties.
+In particular, LTL properties should constrain the
+inputs of the controllers, and then check that the
+response of the controller is appropriate for that
+scenario.  The predefined LTL templates may not be
+sufficient for this purpose.
+
+The properties {\tt{p1}} and {\tt{p2}} in the
+HybridSal files were included to illustrate the
+utility. 
+Property {\tt{p1}} says that if  the input
+{\tt{shift\_requested}} is consistently set to $1$,
+then after a few steps,  the output 
+{\tt{gear\_selected}} of the controller is $1$.
+This property was found to be invalid.
+Property {\tt{p2}} says that if  the input
+{\tt{shift\_requested}} is consistently set to $1$,
+then after a few steps,  the output 
+{\tt{gear\_selected}} of the controller is at most $2$.
+No counter-examples were found for this property.
+However, it is possible to fix the controller logic
+to make property {\tt{p1}} true.
+Failure of {\tt{p1}} was possibly a bug in the designed
+controller.
+
+\end{document}
+

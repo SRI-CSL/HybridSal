@@ -1,0 +1,490 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no" ?>
+<RootFolder name="RootFolder" xmlns:SignalFlow="http://www.isis.vanderbilt.edu/2004/schemas/SignalFlow" xmlns:Simulink="http://www.isis.vanderbilt.edu/2004/schemas/Simulink" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="CyberComposition.xsd" xsi:schemaLocation="http://www.isis.vanderbilt.edu/2004/schemas/SignalFlow CyberComposition_SignalFlow.xsd http://www.isis.vanderbilt.edu/2004/schemas/Simulink CyberComposition_Simulink.xsd">
+
+  <Components _id="id1AB" name="Components">
+    <SimulinkWrapper Class="Simulink.DiscreteWrapperSFSaturation_type" _id="id1AC" name="DiscreteWrapperSFSaturation" position="">
+      <InputSignalInterface Class="Modelica.Blocks.Interfaces.RealInput" _id="id34A" dstInputSignalInterfaceConnection="id348" name="u1" position="(77,126)"/>
+      <InputSignalInterface Class="Modelica.Blocks.Interfaces.RealInput" _id="id34B" dstInputSignalInterfaceConnection="id349" name="u" position="(84,42)"/>
+      <InputSignalInterfaceConnection _id="id348" dstInputSignalInterfaceConnection_end_="id1B5" name="InputSignalInterfaceConnection" position="(-1,-1)" srcInputSignalInterfaceConnection_end_="id34A"/>
+      <InputSignalInterfaceConnection _id="id349" dstInputSignalInterfaceConnection_end_="id1B3" name="InputSignalInterfaceConnection" position="(-1,-1)" srcInputSignalInterfaceConnection_end_="id34B"/>
+      <OutputSignalInterface Class="Modelica.Blocks.Interfaces.RealOutput" _id="id346" name="y1" position="(469,105)" srcOutputSignalInterfaceConnection="id347"/>
+      <OutputSignalInterfaceConnection _id="id347" dstOutputSignalInterfaceConnection_end_="id346" name="OutputSignalInterfaceConnection" position="(-1,-1)" srcOutputSignalInterfaceConnection_end_="id1B1"/>
+      <ParameterRef Class="Real" Value=".01" _id="id34C" name="samplePeriod" position="(203,231)"/>
+      <Simulink:Subsystem BlockType="Model" Description="" Name="DiscreteControllerOnlyWithSFSaturation" Priority="0" RefId="ID0" SampleTime="-2" Tag="" UserData="" _id="id1AD" name="DiscreteControllerOnlyWithSFSaturation" position="(217,70)">
+        <Simulink:InputPort Number="1" RefId="" _id="id1B3" dstLine="id1B0" name="In1" position="(49,154)" srcInputSignalInterfaceConnection="id349">
+          <Simulink:TypeBaseRef MemberIndex="0" _id="id1B4" name="double" position="(133,147)" ref="id34F"/>
+        </Simulink:InputPort>
+        <Simulink:InputPort Number="2" RefId="" _id="id1B5" dstLine="id1Ae" name="In2" position="(49,35)" srcInputSignalInterfaceConnection="id348">
+          <Simulink:TypeBaseRef MemberIndex="0" _id="id1B6" name="double" position="(119,105)" ref="id34F"/>
+        </Simulink:InputPort>
+        <Simulink:Line Name="" RefId="" _id="id1Ae" dstLine_end_="id1e1" name="Simulink::Line" position="(-1,-1)" srcLine_end_="id1B5"/>
+        <Simulink:Line Name="" RefId="" _id="id1AF" dstLine_end_="id1B1" name="Simulink::Line" position="(-1,-1)" srcLine_end_="id1DF"/>
+        <Simulink:Line Name="" RefId="" _id="id1B0" dstLine_end_="id1e3" name="Simulink::Line" position="(-1,-1)" srcLine_end_="id1B3"/>
+        <Simulink:OutputPort Number="1" RefId="" _id="id1B1" dstOutputSignalInterfaceConnection="id347" name="out1" position="(343,77)" srcLine="id1AF">
+          <Simulink:TypeBaseRef MemberIndex="0" _id="id1B2" name="double" position="(371,126)" ref="id34F"/>
+        </Simulink:OutputPort>
+        <Simulink:Subsystem BlockType="SubSystem" Description="" Name="DiscreteControllerWithStateflowSaturation" Priority="0" RefId="ID1" SampleTime="0.01" Tag="" UserData="" _id="id1B7" name="DiscreteControllerWithStateflowSaturation" position="(161,42)">
+          <Simulink:InputPort Number="2" RefId="ID34" _id="id1e1" dstLine="id1DD" name="In2" position="(133,196)" srcLine="id1Ae">
+            <Simulink:TypeBaseRef MemberIndex="0" _id="id1e2" name="double" position="(-1,-1)" ref="id34F"/>
+          </Simulink:InputPort>
+          <Simulink:InputPort Number="1" RefId="ID33" _id="id1e3" dstLine="id1De" name="In1" position="(259,322)" srcLine="id1B0">
+            <Simulink:TypeBaseRef MemberIndex="0" _id="id1e4" name="double" position="(-1,-1)" ref="id34F"/>
+          </Simulink:InputPort>
+          <Simulink:Line Name="" RefId="ID177" _id="id1D8" dstLine_end_="id23D" name="" position="(-1,-1)" srcLine_end_="id31F"/>
+          <Simulink:Line Name="" RefId="ID178" _id="id1D9" dstLine_end_="id1DF" name="" position="(-1,-1)" srcLine_end_="id23B"/>
+          <Simulink:Line Name="" RefId="ID176" _id="id1DA" dstLine_end_="id23F" name="" position="(-1,-1)" srcLine_end_="id1F3"/>
+          <Simulink:Line Name="" RefId="ID112" _id="id1DB" dstLine_end_="id20C" name="" position="(-1,-1)" srcLine_end_="id31F"/>
+          <Simulink:Line Name="" RefId="ID111" _id="id1DC" dstLine_end_="id321" name="" position="(-1,-1)" srcLine_end_="id1F3"/>
+          <Simulink:Line Name="" RefId="ID75" _id="id1DD" dstLine_end_="id1F5" name="" position="(-1,-1)" srcLine_end_="id1e1"/>
+          <Simulink:Line Name="" RefId="ID73" _id="id1De" dstLine_end_="id1F7" name="" position="(-1,-1)" srcLine_end_="id1e3"/>
+          <Simulink:OutputPort Number="1" RefId="ID35" _id="id1DF" dstLine="id1AF" name="Out1" position="(7,70)" srcLine="id1D9">
+            <Simulink:TypeBaseRef MemberIndex="0" _id="id1e0" name="double" position="(-1,-1)" ref="id34F"/>
+          </Simulink:OutputPort>
+          <Simulink:Primitive BlockType="Sum" Description="" Name="Sum" Priority="0" RefId="ID59" SampleTime="0.01" Tag="" UserData="" _id="id1e5" name="Sum" position="(511,511)">
+            <Simulink:InputPort Number="2" RefId="ID74" _id="id1F5" name="In_2" position="(-1,-1)" srcLine="id1DD">
+              <Simulink:TypeBaseRef MemberIndex="0" _id="id1F6" name="double" position="(-1,-1)" ref="id34F"/>
+            </Simulink:InputPort>
+            <Simulink:InputPort Number="1" RefId="ID72" _id="id1F7" name="In_1" position="(-1,-1)" srcLine="id1De">
+              <Simulink:TypeBaseRef MemberIndex="0" _id="id1F8" name="double" position="(-1,-1)" ref="id34F"/>
+            </Simulink:InputPort>
+            <Simulink:OutputPort Number="1" RefId="ID76" _id="id1F3" dstLine="id1DA id1DC" name="Out_1" position="(-1,-1)">
+              <Simulink:TypeBaseRef MemberIndex="0" _id="id1F4" name="double" position="(-1,-1)" ref="id34F"/>
+            </Simulink:OutputPort>
+            <Simulink:SF_Parameter RefId="ID77" Value="double" _id="id1e6" name="ParamDataTypeStr" position="(-1,-1)"/>
+            <Simulink:SF_Parameter RefId="ID71" Value="off" _id="id1e7" name="SaturateOnIntegerOverflow" position="(-1,-1)"/>
+            <Simulink:SF_Parameter RefId="ID70" Value="Floor" _id="id1e8" name="RndMeth" position="(-1,-1)"/>
+            <Simulink:SF_Parameter RefId="ID69" Value="[]" _id="id1e9" name="OutMin" position="(-1,-1)"/>
+            <Simulink:SF_Parameter RefId="ID68" Value="[]" _id="id1eA" name="OutMax" position="(-1,-1)"/>
+            <Simulink:SF_Parameter RefId="ID67" Value="Inherit: Inherit via internal rule" _id="id1eB" name="OutDataTypeStr" position="(-1,-1)"/>
+            <Simulink:SF_Parameter RefId="ID66" Value="off" _id="id1eC" name="LockScale" position="(-1,-1)"/>
+            <Simulink:SF_Parameter RefId="ID65" Value="|+-" _id="id1eD" name="Inputs" position="(-1,-1)"/>
+            <Simulink:SF_Parameter RefId="ID64" Value="off" _id="id1ee" name="InputSameDT" position="(-1,-1)"/>
+            <Simulink:SF_Parameter RefId="ID63" Value="round" _id="id1eF" name="IconShape" position="(-1,-1)"/>
+            <Simulink:SF_Parameter RefId="ID62" Value="All dimensions" _id="id1F0" name="CollapseMode" position="(-1,-1)"/>
+            <Simulink:SF_Parameter RefId="ID61" Value="1" _id="id1F1" name="CollapseDim" position="(-1,-1)"/>
+            <Simulink:SF_Parameter RefId="ID60" Value="Inherit: Inherit via internal rule" _id="id1F2" name="AccumDataTypeStr" position="(-1,-1)"/>
+          </Simulink:Primitive>
+          <Simulink:Primitive BlockType="Scope" Description="" Name="Scope" Priority="3" RefId="ID39" SampleTime="0.01" Tag="" UserData="" _id="id1F9" name="Scope" position="(7,511)">
+            <Simulink:InputPort Number="1" RefId="ID57" _id="id20C" name="In_1" position="(-1,-1)" srcLine="id1DB">
+              <Simulink:TypeBaseRef MemberIndex="0" _id="id20D" name="double" position="(-1,-1)" ref="id34F"/>
+            </Simulink:InputPort>
+            <Simulink:SF_Parameter RefId="ID58" Value="double" _id="id1FA" name="ParamDataTypeStr" position="(-1,-1)"/>
+            <Simulink:SF_Parameter RefId="ID56" Value="on" _id="id1FB" name="ZoomMode" position="(-1,-1)"/>
+            <Simulink:SF_Parameter RefId="ID55" Value="-5" _id="id1FC" name="YMin" position="(-1,-1)"/>
+            <Simulink:SF_Parameter RefId="ID54" Value="5" _id="id1FD" name="YMax" position="(-1,-1)"/>
+            <Simulink:SF_Parameter RefId="ID53" Value="auto" _id="id1Fe" name="TimeRange" position="(-1,-1)"/>
+            <Simulink:SF_Parameter RefId="ID52" Value="OneTimeTick" _id="id1FF" name="TickLabels" position="(-1,-1)"/>
+            <Simulink:SF_Parameter RefId="ID51" Value="off" _id="id200" name="SaveToWorkspace" position="(-1,-1)"/>
+            <Simulink:SF_Parameter RefId="ID50" Value="ScopeData2" _id="id201" name="SaveName" position="(-1,-1)"/>
+            <Simulink:SF_Parameter RefId="ID49" Value="off" _id="id202" name="SampleInput" position="(-1,-1)"/>
+            <Simulink:SF_Parameter RefId="ID48" Value="off" _id="id203" name="Open" position="(-1,-1)"/>
+            <Simulink:SF_Parameter RefId="ID47" Value="1" _id="id204" name="NumInputPorts" position="(-1,-1)"/>
+            <Simulink:SF_Parameter RefId="ID46" Value="5000" _id="id205" name="MaxDataPoints" position="(-1,-1)"/>
+            <Simulink:SF_Parameter RefId="ID45" Value="[188 390 512 629]" _id="id206" name="Location" position="(-1,-1)"/>
+            <Simulink:SF_Parameter RefId="ID44" Value="on" _id="id207" name="LimitDataPoints" position="(-1,-1)"/>
+            <Simulink:SF_Parameter RefId="ID43" Value="on" _id="id208" name="Grid" position="(-1,-1)"/>
+            <Simulink:SF_Parameter RefId="ID42" Value="1" _id="id209" name="Decimation" position="(-1,-1)"/>
+            <Simulink:SF_Parameter RefId="ID41" Value="StructureWithTime" _id="id20A" name="DataFormat" position="(-1,-1)"/>
+            <Simulink:SF_Parameter RefId="ID40" Value="{{axes1}:[]}" _id="id20B" name="AxesTitles" position="(-1,-1)"/>
+          </Simulink:Primitive>
+          <Simulink:SF_Parameter RefId="ID36" Value="double" _id="id1B8" name="ParamDataTypeStr" position="(-1,-1)"/>
+          <Simulink:SF_Parameter RefId="ID32" Value="" _id="id1B9" name="VariantControl" position="(70,70)"/>
+          <Simulink:SF_Parameter RefId="ID31" Value="off" _id="id1BA" name="Variant" position="(133,7)"/>
+          <Simulink:SF_Parameter RefId="ID30" Value="off" _id="id1BB" name="TreatAsAtomicUnit" position="(133,133)"/>
+          <Simulink:SF_Parameter RefId="ID29" Value="" _id="id1BC" name="TemplateBlock" position="(7,133)"/>
+          <Simulink:SF_Parameter RefId="ID28" Value="-1" _id="id1BD" name="SystemSampleTime" position="(196,70)"/>
+          <Simulink:SF_Parameter RefId="ID27" Value="FromPortIcon" _id="id1Be" name="ShowPortLabels" position="(196,196)"/>
+          <Simulink:SF_Parameter RefId="ID26" Value="Auto" _id="id1BF" name="RTWSystemCode" position="(7,196)"/>
+          <Simulink:SF_Parameter RefId="ID25" Value="Inherit from model" _id="id1C0" name="RTWMemSecFuncInitTerm" position="(259,7)"/>
+          <Simulink:SF_Parameter RefId="ID24" Value="Inherit from model" _id="id1C1" name="RTWMemSecFuncExecute" position="(259,133)"/>
+          <Simulink:SF_Parameter RefId="ID23" Value="Inherit from model" _id="id1C2" name="RTWMemSecDataParameters" position="(259,259)"/>
+          <Simulink:SF_Parameter RefId="ID22" Value="Inherit from model" _id="id1C3" name="RTWMemSecDataInternal" position="(7,259)"/>
+          <Simulink:SF_Parameter RefId="ID21" Value="Inherit from model" _id="id1C4" name="RTWMemSecDataConstants" position="(133,259)"/>
+          <Simulink:SF_Parameter RefId="ID20" Value="Auto" _id="id1C5" name="RTWFileNameOpts" position="(322,70)"/>
+          <Simulink:SF_Parameter RefId="ID19" Value="" _id="id1C6" name="RTWFileName" position="(322,196)"/>
+          <Simulink:SF_Parameter RefId="ID18" Value="Auto" _id="id1C7" name="RTWFcnNameOpts" position="(322,322)"/>
+          <Simulink:SF_Parameter RefId="ID17" Value="" _id="id1C8" name="RTWFcnName" position="(7,322)"/>
+          <Simulink:SF_Parameter RefId="ID16" Value="off" _id="id1C9" name="PropExecContextOutsideSubsystem" position="(133,322)"/>
+          <Simulink:SF_Parameter RefId="ID15" Value="All" _id="id1CA" name="PermitHierarchicalResolution" position="(385,7)"/>
+          <Simulink:SF_Parameter RefId="ID14" Value="ReadWrite" _id="id1CB" name="Permissions" position="(385,133)"/>
+          <Simulink:SF_Parameter RefId="ID13" Value="" _id="id1CC" name="OverrideUsingVariant" position="(385,259)"/>
+          <Simulink:SF_Parameter RefId="ID12" Value="off" _id="id1CD" name="MinAlgLoopOccurrences" position="(385,385)"/>
+          <Simulink:SF_Parameter RefId="ID11" Value="" _id="id1Ce" name="MemberBlocks" position="(7,385)"/>
+          <Simulink:SF_Parameter RefId="ID10" Value="on" _id="id1CF" name="IsSubsystemVirtual" position="(133,385)"/>
+          <Simulink:SF_Parameter RefId="ID9" Value="off" _id="id1D0" name="GeneratePreprocessorConditionals" position="(259,385)"/>
+          <Simulink:SF_Parameter RefId="ID8" Value="off" _id="id1D1" name="FunctionWithSeparateData" position="(448,70)"/>
+          <Simulink:SF_Parameter RefId="ID7" Value="void_void" _id="id1D2" name="FunctionInterfaceSpec" position="(448,196)"/>
+          <Simulink:SF_Parameter RefId="ID6" Value="" _id="id1D3" name="ErrorFcn" position="(448,322)"/>
+          <Simulink:SF_Parameter RefId="ID5" Value="off" _id="id1D4" name="CheckFcnCallInpInsideContextMsg" position="(448,448)"/>
+          <Simulink:SF_Parameter RefId="ID4" Value="" _id="id1D5" name="BlockChoice" position="(7,448)"/>
+          <Simulink:SF_Parameter RefId="ID3" Value="" _id="id1D6" name="ActiveVariantBlock" position="(133,448)"/>
+          <Simulink:SF_Parameter RefId="ID2" Value="" _id="id1D7" name="ActiveVariant" position="(259,448)"/>
+          <Simulink:Subsystem BlockType="SubSystem" Description="" Name="Controller" Priority="2" RefId="ID38" SampleTime="0.01" Tag="" UserData="" _id="id20e" name="Controller" position="(133,511)">
+            <Simulink:InputPort Number="2" RefId="ID174" _id="id23D" dstLine="id234" name="In2" position="(133,196)" srcLine="id1D8">
+              <Simulink:TypeBaseRef MemberIndex="0" _id="id23e" name="double" position="(-1,-1)" ref="id34F"/>
+            </Simulink:InputPort>
+            <Simulink:InputPort Number="1" RefId="ID173" _id="id23F" dstLine="id238 id239 id23A" name="In1" position="(259,322)" srcLine="id1DA">
+              <Simulink:TypeBaseRef MemberIndex="0" _id="id240" name="double" position="(-1,-1)" ref="id34F"/>
+            </Simulink:InputPort>
+            <Simulink:Line Name="" RefId="ID355" _id="id22F" dstLine_end_="id264" name="" position="(-1,-1)" srcLine_end_="id24F"/>
+            <Simulink:Line Name="" RefId="ID353" _id="id230" dstLine_end_="id251" name="" position="(-1,-1)" srcLine_end_="id273"/>
+            <Simulink:Line Name="" RefId="ID351" _id="id231" dstLine_end_="id253" name="" position="(-1,-1)" srcLine_end_="id2BD"/>
+            <Simulink:Line Name="" RefId="ID349" _id="id232" dstLine_end_="id255" name="" position="(-1,-1)" srcLine_end_="id29D"/>
+            <Simulink:Line Name="" RefId="ID333" _id="id233" dstLine_end_="id23B" name="" position="(-1,-1)" srcLine_end_="id262"/>
+            <Simulink:Line Name="" RefId="ID318" _id="id234" dstLine_end_="id275" name="" position="(-1,-1)" srcLine_end_="id23D"/>
+            <Simulink:Line Name="" RefId="ID316" _id="id235" dstLine_end_="id277" name="" position="(-1,-1)" srcLine_end_="id2F5"/>
+            <Simulink:Line Name="" RefId="ID300" _id="id236" dstLine_end_="id29F" name="" position="(-1,-1)" srcLine_end_="id2CD"/>
+            <Simulink:Line Name="" RefId="ID263" _id="id237" dstLine_end_="id2F7" name="" position="(-1,-1)" srcLine_end_="id2AD"/>
+            <Simulink:Line Name="" RefId="ID261" _id="id238" dstLine_end_="id2AF" name="" position="(-1,-1)" srcLine_end_="id23F"/>
+            <Simulink:Line Name="" RefId="ID246" _id="id239" dstLine_end_="id2BF" name="" position="(-1,-1)" srcLine_end_="id23F"/>
+            <Simulink:Line Name="" RefId="ID231" _id="id23A" dstLine_end_="id2CF" name="" position="(-1,-1)" srcLine_end_="id23F"/>
+            <Simulink:OutputPort Number="1" RefId="ID175" _id="id23B" dstLine="id1D9" name="Out1" position="(7,70)" srcLine="id233">
+              <Simulink:TypeBaseRef MemberIndex="0" _id="id23C" name="double" position="(-1,-1)" ref="id34F"/>
+            </Simulink:OutputPort>
+            <Simulink:Primitive BlockType="Sum" Description="" Name="Sum" Priority="6" RefId="ID335" SampleTime="0.01" Tag="" UserData="" _id="id241" name="Sum" position="(511,511)">
+              <Simulink:InputPort Number="3" RefId="ID352" _id="id251" name="In_3" position="(-1,-1)" srcLine="id230">
+                <Simulink:TypeBaseRef MemberIndex="0" _id="id252" name="double" position="(-1,-1)" ref="id34F"/>
+              </Simulink:InputPort>
+              <Simulink:InputPort Number="2" RefId="ID350" _id="id253" name="In_2" position="(-1,-1)" srcLine="id231">
+                <Simulink:TypeBaseRef MemberIndex="0" _id="id254" name="double" position="(-1,-1)" ref="id34F"/>
+              </Simulink:InputPort>
+              <Simulink:InputPort Number="1" RefId="ID348" _id="id255" name="In_1" position="(-1,-1)" srcLine="id232">
+                <Simulink:TypeBaseRef MemberIndex="0" _id="id256" name="double" position="(-1,-1)" ref="id34F"/>
+              </Simulink:InputPort>
+              <Simulink:OutputPort Number="1" RefId="ID354" _id="id24F" dstLine="id22F" name="Out_1" position="(-1,-1)">
+                <Simulink:TypeBaseRef MemberIndex="0" _id="id250" name="double" position="(-1,-1)" ref="id34F"/>
+              </Simulink:OutputPort>
+              <Simulink:SF_Parameter RefId="ID356" Value="double" _id="id242" name="ParamDataTypeStr" position="(-1,-1)"/>
+              <Simulink:SF_Parameter RefId="ID347" Value="off" _id="id243" name="SaturateOnIntegerOverflow" position="(-1,-1)"/>
+              <Simulink:SF_Parameter RefId="ID346" Value="Floor" _id="id244" name="RndMeth" position="(-1,-1)"/>
+              <Simulink:SF_Parameter RefId="ID345" Value="[]" _id="id245" name="OutMin" position="(-1,-1)"/>
+              <Simulink:SF_Parameter RefId="ID344" Value="[]" _id="id246" name="OutMax" position="(-1,-1)"/>
+              <Simulink:SF_Parameter RefId="ID343" Value="Inherit: Inherit via internal rule" _id="id247" name="OutDataTypeStr" position="(-1,-1)"/>
+              <Simulink:SF_Parameter RefId="ID342" Value="off" _id="id248" name="LockScale" position="(-1,-1)"/>
+              <Simulink:SF_Parameter RefId="ID341" Value="|+++" _id="id249" name="Inputs" position="(-1,-1)"/>
+              <Simulink:SF_Parameter RefId="ID340" Value="off" _id="id24A" name="InputSameDT" position="(-1,-1)"/>
+              <Simulink:SF_Parameter RefId="ID339" Value="round" _id="id24B" name="IconShape" position="(-1,-1)"/>
+              <Simulink:SF_Parameter RefId="ID338" Value="All dimensions" _id="id24C" name="CollapseMode" position="(-1,-1)"/>
+              <Simulink:SF_Parameter RefId="ID337" Value="1" _id="id24D" name="CollapseDim" position="(-1,-1)"/>
+              <Simulink:SF_Parameter RefId="ID336" Value="Inherit: Inherit via internal rule" _id="id24e" name="AccumDataTypeStr" position="(-1,-1)"/>
+            </Simulink:Primitive>
+            <Simulink:Primitive BlockType="Saturate" Description="" Name="Saturation" Priority="7" RefId="ID321" SampleTime="0.01" Tag="" UserData="" _id="id257" name="Saturation" position="(7,511)">
+              <Simulink:InputPort Number="1" RefId="ID331" _id="id264" name="In_1" position="(-1,-1)" srcLine="id22F">
+                <Simulink:TypeBaseRef MemberIndex="0" _id="id265" name="double" position="(-1,-1)" ref="id34F"/>
+              </Simulink:InputPort>
+              <Simulink:OutputPort Number="1" RefId="ID332" _id="id262" dstLine="id233" name="Out_1" position="(-1,-1)">
+                <Simulink:TypeBaseRef MemberIndex="0" _id="id263" name="double" position="(-1,-1)" ref="id34F"/>
+              </Simulink:OutputPort>
+              <Simulink:SF_Parameter RefId="ID334" Value="double" _id="id258" name="ParamDataTypeStr" position="(-1,-1)"/>
+              <Simulink:SF_Parameter RefId="ID330" Value="on" _id="id259" name="ZeroCross" position="(-1,-1)"/>
+              <Simulink:SF_Parameter RefId="ID329" Value="10" _id="id25A" name="UpperLimit" position="(-1,-1)"/>
+              <Simulink:SF_Parameter RefId="ID328" Value="Floor" _id="id25B" name="RndMeth" position="(-1,-1)"/>
+              <Simulink:SF_Parameter RefId="ID327" Value="[]" _id="id25C" name="OutMin" position="(-1,-1)"/>
+              <Simulink:SF_Parameter RefId="ID326" Value="[]" _id="id25D" name="OutMax" position="(-1,-1)"/>
+              <Simulink:SF_Parameter RefId="ID325" Value="Inherit: Same as input" _id="id25e" name="OutDataTypeStr" position="(-1,-1)"/>
+              <Simulink:SF_Parameter RefId="ID324" Value="0" _id="id25F" name="LowerLimit" position="(-1,-1)"/>
+              <Simulink:SF_Parameter RefId="ID323" Value="off" _id="id260" name="LockScale" position="(-1,-1)"/>
+              <Simulink:SF_Parameter RefId="ID322" Value="on" _id="id261" name="LinearizeAsGain" position="(-1,-1)"/>
+            </Simulink:Primitive>
+            <Simulink:Primitive BlockType="Product" Description="" Name="Product" Priority="5" RefId="ID303" SampleTime="0.01" Tag="" UserData="" _id="id266" name="Product" position="(133,511)">
+              <Simulink:InputPort Number="2" RefId="ID317" _id="id275" name="In_2" position="(-1,-1)" srcLine="id234">
+                <Simulink:TypeBaseRef MemberIndex="0" _id="id276" name="double" position="(-1,-1)" ref="id34F"/>
+              </Simulink:InputPort>
+              <Simulink:InputPort Number="1" RefId="ID315" _id="id277" name="In_1" position="(-1,-1)" srcLine="id235">
+                <Simulink:TypeBaseRef MemberIndex="0" _id="id278" name="double" position="(-1,-1)" ref="id34F"/>
+              </Simulink:InputPort>
+              <Simulink:OutputPort Number="1" RefId="ID319" _id="id273" dstLine="id230" name="Out_1" position="(-1,-1)">
+                <Simulink:TypeBaseRef MemberIndex="0" _id="id274" name="double" position="(-1,-1)" ref="id34F"/>
+              </Simulink:OutputPort>
+              <Simulink:SF_Parameter RefId="ID320" Value="double" _id="id267" name="ParamDataTypeStr" position="(-1,-1)"/>
+              <Simulink:SF_Parameter RefId="ID314" Value="off" _id="id268" name="SaturateOnIntegerOverflow" position="(-1,-1)"/>
+              <Simulink:SF_Parameter RefId="ID313" Value="Floor" _id="id269" name="RndMeth" position="(-1,-1)"/>
+              <Simulink:SF_Parameter RefId="ID312" Value="[]" _id="id26A" name="OutMin" position="(-1,-1)"/>
+              <Simulink:SF_Parameter RefId="ID311" Value="[]" _id="id26B" name="OutMax" position="(-1,-1)"/>
+              <Simulink:SF_Parameter RefId="ID310" Value="Inherit: Inherit via internal rule" _id="id26C" name="OutDataTypeStr" position="(-1,-1)"/>
+              <Simulink:SF_Parameter RefId="ID309" Value="Element-wise(.*)" _id="id26D" name="Multiplication" position="(-1,-1)"/>
+              <Simulink:SF_Parameter RefId="ID308" Value="off" _id="id26e" name="LockScale" position="(-1,-1)"/>
+              <Simulink:SF_Parameter RefId="ID307" Value="2" _id="id26F" name="Inputs" position="(-1,-1)"/>
+              <Simulink:SF_Parameter RefId="ID306" Value="off" _id="id270" name="InputSameDT" position="(-1,-1)"/>
+              <Simulink:SF_Parameter RefId="ID305" Value="All dimensions" _id="id271" name="CollapseMode" position="(-1,-1)"/>
+              <Simulink:SF_Parameter RefId="ID304" Value="1" _id="id272" name="CollapseDim" position="(-1,-1)"/>
+            </Simulink:Primitive>
+            <Simulink:Primitive BlockType="DiscreteTransferFcn" Description="" Name="Integrator" Priority="4" RefId="ID264" SampleTime="0.01" Tag="" UserData="" _id="id279" name="Integrator" position="(259,511)">
+              <Simulink:InputPort Number="1" RefId="ID299" _id="id29F" name="In_1" position="(-1,-1)" srcLine="id236">
+                <Simulink:TypeBaseRef MemberIndex="0" _id="id2A0" name="double" position="(-1,-1)" ref="id34F"/>
+              </Simulink:InputPort>
+              <Simulink:OutputPort Number="1" RefId="ID301" _id="id29D" dstLine="id232" name="Out_1" position="(-1,-1)">
+                <Simulink:TypeBaseRef MemberIndex="0" _id="id29e" name="double" position="(-1,-1)" ref="id34F"/>
+              </Simulink:OutputPort>
+              <Simulink:SF_Parameter RefId="ID302" Value="double" _id="id27A" name="ParamDataTypeStr" position="(-1,-1)"/>
+              <Simulink:SF_Parameter RefId="ID298" Value="off" _id="id27B" name="a0EqualsOne" position="(-1,-1)"/>
+              <Simulink:SF_Parameter RefId="ID297" Value="[]" _id="id27C" name="StateSignalObject" position="(-1,-1)"/>
+              <Simulink:SF_Parameter RefId="ID296" Value="off" _id="id27D" name="StateMustResolveToSignalObject" position="(-1,-1)"/>
+              <Simulink:SF_Parameter RefId="ID295" Value="" _id="id27e" name="StateIdentifier" position="(-1,-1)"/>
+              <Simulink:SF_Parameter RefId="ID294" Value="Inherit: Same as input" _id="id27F" name="StateDataTypeStr" position="(-1,-1)"/>
+              <Simulink:SF_Parameter RefId="ID293" Value="off" _id="id280" name="SaturateOnIntegerOverflow" position="(-1,-1)"/>
+              <Simulink:SF_Parameter RefId="ID292" Value="Floor" _id="id281" name="RndMeth" position="(-1,-1)"/>
+              <Simulink:SF_Parameter RefId="ID291" Value="" _id="id282" name="RTWStateStorageTypeQualifier" position="(-1,-1)"/>
+              <Simulink:SF_Parameter RefId="ID290" Value="Auto" _id="id283" name="RTWStateStorageClass" position="(-1,-1)"/>
+              <Simulink:SF_Parameter RefId="ID289" Value="[]" _id="id284" name="OutMin" position="(-1,-1)"/>
+              <Simulink:SF_Parameter RefId="ID288" Value="[]" _id="id285" name="OutMax" position="(-1,-1)"/>
+              <Simulink:SF_Parameter RefId="ID287" Value="Inherit: Inherit via internal rule" _id="id286" name="OutDataTypeStr" position="(-1,-1)"/>
+              <Simulink:SF_Parameter RefId="ID286" Value="Dialog" _id="id287" name="NumeratorSource" position="(-1,-1)"/>
+              <Simulink:SF_Parameter RefId="ID285" Value="0.01" _id="id288" name="Numerator" position="(-1,-1)"/>
+              <Simulink:SF_Parameter RefId="ID284" Value="Inherit: Inherit via internal rule" _id="id289" name="NumProductDataTypeStr" position="(-1,-1)"/>
+              <Simulink:SF_Parameter RefId="ID283" Value="[]" _id="id28A" name="NumCoefMin" position="(-1,-1)"/>
+              <Simulink:SF_Parameter RefId="ID282" Value="[]" _id="id28B" name="NumCoefMax" position="(-1,-1)"/>
+              <Simulink:SF_Parameter RefId="ID281" Value="Inherit: Inherit via internal rule" _id="id28C" name="NumCoefDataTypeStr" position="(-1,-1)"/>
+              <Simulink:SF_Parameter RefId="ID280" Value="Inherit: Inherit via internal rule" _id="id28D" name="NumAccumDataTypeStr" position="(-1,-1)"/>
+              <Simulink:SF_Parameter RefId="ID279" Value="Inherit: Same as input" _id="id28e" name="MultiplicandDataTypeStr" position="(-1,-1)"/>
+              <Simulink:SF_Parameter RefId="ID278" Value="off" _id="id28F" name="LockScale" position="(-1,-1)"/>
+              <Simulink:SF_Parameter RefId="ID277" Value="Elements as channels (sample based)" _id="id290" name="InputProcessing" position="(-1,-1)"/>
+              <Simulink:SF_Parameter RefId="ID276" Value="Dialog" _id="id291" name="InitialStatesSource" position="(-1,-1)"/>
+              <Simulink:SF_Parameter RefId="ID275" Value="0" _id="id292" name="InitialStates" position="(-1,-1)"/>
+              <Simulink:SF_Parameter RefId="ID274" Value="0" _id="id293" name="InitialDenominatorStates" position="(-1,-1)"/>
+              <Simulink:SF_Parameter RefId="ID273" Value="Direct form II" _id="id294" name="FilterStructure" position="(-1,-1)"/>
+              <Simulink:SF_Parameter RefId="ID272" Value="None" _id="id295" name="ExternalReset" position="(-1,-1)"/>
+              <Simulink:SF_Parameter RefId="ID271" Value="Dialog" _id="id296" name="DenominatorSource" position="(-1,-1)"/>
+              <Simulink:SF_Parameter RefId="ID270" Value="[1 -1]" _id="id297" name="Denominator" position="(-1,-1)"/>
+              <Simulink:SF_Parameter RefId="ID269" Value="Inherit: Inherit via internal rule" _id="id298" name="DenProductDataTypeStr" position="(-1,-1)"/>
+              <Simulink:SF_Parameter RefId="ID268" Value="[]" _id="id299" name="DenCoefMin" position="(-1,-1)"/>
+              <Simulink:SF_Parameter RefId="ID267" Value="[]" _id="id29A" name="DenCoefMax" position="(-1,-1)"/>
+              <Simulink:SF_Parameter RefId="ID266" Value="Inherit: Inherit via internal rule" _id="id29B" name="DenCoefDataTypeStr" position="(-1,-1)"/>
+              <Simulink:SF_Parameter RefId="ID265" Value="Inherit: Inherit via internal rule" _id="id29C" name="DenAccumDataTypeStr" position="(-1,-1)"/>
+            </Simulink:Primitive>
+            <Simulink:Primitive BlockType="Gain" Description="" Name="Gain2" Priority="2" RefId="ID248" SampleTime="0.01" Tag="" UserData="" _id="id2A1" name="Gain2" position="(385,511)">
+              <Simulink:InputPort Number="1" RefId="ID260" _id="id2AF" name="In_1" position="(-1,-1)" srcLine="id238">
+                <Simulink:TypeBaseRef MemberIndex="0" _id="id2B0" name="double" position="(-1,-1)" ref="id34F"/>
+              </Simulink:InputPort>
+              <Simulink:OutputPort Number="1" RefId="ID262" _id="id2AD" dstLine="id237" name="Out_1" position="(-1,-1)">
+                <Simulink:TypeBaseRef MemberIndex="0" _id="id2Ae" name="double" position="(-1,-1)" ref="id34F"/>
+              </Simulink:OutputPort>
+              <Simulink:SF_Parameter RefId="ID259" Value="off" _id="id2A2" name="SaturateOnIntegerOverflow" position="(-1,-1)"/>
+              <Simulink:SF_Parameter RefId="ID258" Value="Floor" _id="id2A3" name="RndMeth" position="(-1,-1)"/>
+              <Simulink:SF_Parameter RefId="ID257" Value="[]" _id="id2A4" name="ParamMin" position="(-1,-1)"/>
+              <Simulink:SF_Parameter RefId="ID256" Value="[]" _id="id2A5" name="ParamMax" position="(-1,-1)"/>
+              <Simulink:SF_Parameter RefId="ID255" Value="double" _id="id2A6" name="ParamDataTypeStr" position="(-1,-1)"/>
+              <Simulink:SF_Parameter RefId="ID254" Value="[]" _id="id2A7" name="OutMin" position="(-1,-1)"/>
+              <Simulink:SF_Parameter RefId="ID253" Value="[]" _id="id2A8" name="OutMax" position="(-1,-1)"/>
+              <Simulink:SF_Parameter RefId="ID252" Value="Inherit: Inherit via internal rule" _id="id2A9" name="OutDataTypeStr" position="(-1,-1)"/>
+              <Simulink:SF_Parameter RefId="ID251" Value="Element-wise(K.*u)" _id="id2AA" name="Multiplication" position="(-1,-1)"/>
+              <Simulink:SF_Parameter RefId="ID250" Value="off" _id="id2AB" name="LockScale" position="(-1,-1)"/>
+              <Simulink:SF_Parameter RefId="ID249" Value="0.20000000000000001" _id="id2AC" name="Gain" position="(-1,-1)"/>
+            </Simulink:Primitive>
+            <Simulink:Primitive BlockType="Gain" Description="" Name="Gain1" Priority="1" RefId="ID233" SampleTime="0.01" Tag="" UserData="" _id="id2B1" name="Gain1" position="(574,7)">
+              <Simulink:InputPort Number="1" RefId="ID245" _id="id2BF" name="In_1" position="(-1,-1)" srcLine="id239">
+                <Simulink:TypeBaseRef MemberIndex="0" _id="id2C0" name="double" position="(-1,-1)" ref="id34F"/>
+              </Simulink:InputPort>
+              <Simulink:OutputPort Number="1" RefId="ID247" _id="id2BD" dstLine="id231" name="Out_1" position="(-1,-1)">
+                <Simulink:TypeBaseRef MemberIndex="0" _id="id2Be" name="double" position="(-1,-1)" ref="id34F"/>
+              </Simulink:OutputPort>
+              <Simulink:SF_Parameter RefId="ID244" Value="off" _id="id2B2" name="SaturateOnIntegerOverflow" position="(-1,-1)"/>
+              <Simulink:SF_Parameter RefId="ID243" Value="Floor" _id="id2B3" name="RndMeth" position="(-1,-1)"/>
+              <Simulink:SF_Parameter RefId="ID242" Value="[]" _id="id2B4" name="ParamMin" position="(-1,-1)"/>
+              <Simulink:SF_Parameter RefId="ID241" Value="[]" _id="id2B5" name="ParamMax" position="(-1,-1)"/>
+              <Simulink:SF_Parameter RefId="ID240" Value="double" _id="id2B6" name="ParamDataTypeStr" position="(-1,-1)"/>
+              <Simulink:SF_Parameter RefId="ID239" Value="[]" _id="id2B7" name="OutMin" position="(-1,-1)"/>
+              <Simulink:SF_Parameter RefId="ID238" Value="[]" _id="id2B8" name="OutMax" position="(-1,-1)"/>
+              <Simulink:SF_Parameter RefId="ID237" Value="Inherit: Inherit via internal rule" _id="id2B9" name="OutDataTypeStr" position="(-1,-1)"/>
+              <Simulink:SF_Parameter RefId="ID236" Value="Element-wise(K.*u)" _id="id2BA" name="Multiplication" position="(-1,-1)"/>
+              <Simulink:SF_Parameter RefId="ID235" Value="off" _id="id2BB" name="LockScale" position="(-1,-1)"/>
+              <Simulink:SF_Parameter RefId="ID234" Value="0.40000000000000002" _id="id2BC" name="Gain" position="(-1,-1)"/>
+            </Simulink:Primitive>
+            <Simulink:Primitive BlockType="Gain" Description="" Name="Gain" Priority="0" RefId="ID218" SampleTime="0.01" Tag="" UserData="" _id="id2C1" name="Gain" position="(574,91)">
+              <Simulink:InputPort Number="1" RefId="ID230" _id="id2CF" name="In_1" position="(-1,-1)" srcLine="id23A">
+                <Simulink:TypeBaseRef MemberIndex="0" _id="id2D0" name="double" position="(-1,-1)" ref="id34F"/>
+              </Simulink:InputPort>
+              <Simulink:OutputPort Number="1" RefId="ID232" _id="id2CD" dstLine="id236" name="Out_1" position="(-1,-1)">
+                <Simulink:TypeBaseRef MemberIndex="0" _id="id2Ce" name="double" position="(-1,-1)" ref="id34F"/>
+              </Simulink:OutputPort>
+              <Simulink:SF_Parameter RefId="ID229" Value="off" _id="id2C2" name="SaturateOnIntegerOverflow" position="(-1,-1)"/>
+              <Simulink:SF_Parameter RefId="ID228" Value="Floor" _id="id2C3" name="RndMeth" position="(-1,-1)"/>
+              <Simulink:SF_Parameter RefId="ID227" Value="[]" _id="id2C4" name="ParamMin" position="(-1,-1)"/>
+              <Simulink:SF_Parameter RefId="ID226" Value="[]" _id="id2C5" name="ParamMax" position="(-1,-1)"/>
+              <Simulink:SF_Parameter RefId="ID225" Value="double" _id="id2C6" name="ParamDataTypeStr" position="(-1,-1)"/>
+              <Simulink:SF_Parameter RefId="ID224" Value="[]" _id="id2C7" name="OutMin" position="(-1,-1)"/>
+              <Simulink:SF_Parameter RefId="ID223" Value="[]" _id="id2C8" name="OutMax" position="(-1,-1)"/>
+              <Simulink:SF_Parameter RefId="ID222" Value="Inherit: Inherit via internal rule" _id="id2C9" name="OutDataTypeStr" position="(-1,-1)"/>
+              <Simulink:SF_Parameter RefId="ID221" Value="Element-wise(K.*u)" _id="id2CA" name="Multiplication" position="(-1,-1)"/>
+              <Simulink:SF_Parameter RefId="ID220" Value="off" _id="id2CB" name="LockScale" position="(-1,-1)"/>
+              <Simulink:SF_Parameter RefId="ID219" Value="0.5" _id="id2CC" name="Gain" position="(-1,-1)"/>
+            </Simulink:Primitive>
+            <Simulink:Primitive BlockType="DiscreteTransferFcn" Description="" Name="DiscTransferFcn" Priority="3" RefId="ID180" SampleTime="0.01" Tag="" UserData="" _id="id2D1" name="DiscTransferFcn" position="(574,175)">
+              <Simulink:InputPort Number="1" RefId="ID215" _id="id2F7" name="In_1" position="(-1,-1)" srcLine="id237">
+                <Simulink:TypeBaseRef MemberIndex="0" _id="id2F8" name="double" position="(-1,-1)" ref="id34F"/>
+              </Simulink:InputPort>
+              <Simulink:OutputPort Number="1" RefId="ID216" _id="id2F5" dstLine="id235" name="Out_1" position="(-1,-1)">
+                <Simulink:TypeBaseRef MemberIndex="0" _id="id2F6" name="double" position="(-1,-1)" ref="id34F"/>
+              </Simulink:OutputPort>
+              <Simulink:SF_Parameter RefId="ID217" Value="double" _id="id2D2" name="ParamDataTypeStr" position="(-1,-1)"/>
+              <Simulink:SF_Parameter RefId="ID214" Value="off" _id="id2D3" name="a0EqualsOne" position="(-1,-1)"/>
+              <Simulink:SF_Parameter RefId="ID213" Value="[]" _id="id2D4" name="StateSignalObject" position="(-1,-1)"/>
+              <Simulink:SF_Parameter RefId="ID212" Value="off" _id="id2D5" name="StateMustResolveToSignalObject" position="(-1,-1)"/>
+              <Simulink:SF_Parameter RefId="ID211" Value="" _id="id2D6" name="StateIdentifier" position="(-1,-1)"/>
+              <Simulink:SF_Parameter RefId="ID210" Value="Inherit: Same as input" _id="id2D7" name="StateDataTypeStr" position="(-1,-1)"/>
+              <Simulink:SF_Parameter RefId="ID209" Value="off" _id="id2D8" name="SaturateOnIntegerOverflow" position="(-1,-1)"/>
+              <Simulink:SF_Parameter RefId="ID208" Value="Floor" _id="id2D9" name="RndMeth" position="(-1,-1)"/>
+              <Simulink:SF_Parameter RefId="ID207" Value="" _id="id2DA" name="RTWStateStorageTypeQualifier" position="(-1,-1)"/>
+              <Simulink:SF_Parameter RefId="ID206" Value="Auto" _id="id2DB" name="RTWStateStorageClass" position="(-1,-1)"/>
+              <Simulink:SF_Parameter RefId="ID205" Value="[]" _id="id2DC" name="OutMin" position="(-1,-1)"/>
+              <Simulink:SF_Parameter RefId="ID204" Value="[]" _id="id2DD" name="OutMax" position="(-1,-1)"/>
+              <Simulink:SF_Parameter RefId="ID203" Value="Inherit: Inherit via internal rule" _id="id2De" name="OutDataTypeStr" position="(-1,-1)"/>
+              <Simulink:SF_Parameter RefId="ID202" Value="Dialog" _id="id2DF" name="NumeratorSource" position="(-1,-1)"/>
+              <Simulink:SF_Parameter RefId="ID201" Value="[1 -1]" _id="id2e0" name="Numerator" position="(-1,-1)"/>
+              <Simulink:SF_Parameter RefId="ID200" Value="Inherit: Inherit via internal rule" _id="id2e1" name="NumProductDataTypeStr" position="(-1,-1)"/>
+              <Simulink:SF_Parameter RefId="ID199" Value="[]" _id="id2e2" name="NumCoefMin" position="(-1,-1)"/>
+              <Simulink:SF_Parameter RefId="ID198" Value="[]" _id="id2e3" name="NumCoefMax" position="(-1,-1)"/>
+              <Simulink:SF_Parameter RefId="ID197" Value="Inherit: Inherit via internal rule" _id="id2e4" name="NumCoefDataTypeStr" position="(-1,-1)"/>
+              <Simulink:SF_Parameter RefId="ID196" Value="Inherit: Inherit via internal rule" _id="id2e5" name="NumAccumDataTypeStr" position="(-1,-1)"/>
+              <Simulink:SF_Parameter RefId="ID195" Value="Inherit: Same as input" _id="id2e6" name="MultiplicandDataTypeStr" position="(-1,-1)"/>
+              <Simulink:SF_Parameter RefId="ID194" Value="off" _id="id2e7" name="LockScale" position="(-1,-1)"/>
+              <Simulink:SF_Parameter RefId="ID193" Value="Elements as channels (sample based)" _id="id2e8" name="InputProcessing" position="(-1,-1)"/>
+              <Simulink:SF_Parameter RefId="ID192" Value="Dialog" _id="id2e9" name="InitialStatesSource" position="(-1,-1)"/>
+              <Simulink:SF_Parameter RefId="ID191" Value="0" _id="id2eA" name="InitialStates" position="(-1,-1)"/>
+              <Simulink:SF_Parameter RefId="ID190" Value="0" _id="id2eB" name="InitialDenominatorStates" position="(-1,-1)"/>
+              <Simulink:SF_Parameter RefId="ID189" Value="Direct form II" _id="id2eC" name="FilterStructure" position="(-1,-1)"/>
+              <Simulink:SF_Parameter RefId="ID188" Value="None" _id="id2eD" name="ExternalReset" position="(-1,-1)"/>
+              <Simulink:SF_Parameter RefId="ID187" Value="Dialog" _id="id2ee" name="DenominatorSource" position="(-1,-1)"/>
+              <Simulink:SF_Parameter RefId="ID186" Value="[0.01 0]" _id="id2eF" name="Denominator" position="(-1,-1)"/>
+              <Simulink:SF_Parameter RefId="ID185" Value="Inherit: Inherit via internal rule" _id="id2F0" name="DenProductDataTypeStr" position="(-1,-1)"/>
+              <Simulink:SF_Parameter RefId="ID184" Value="[]" _id="id2F1" name="DenCoefMin" position="(-1,-1)"/>
+              <Simulink:SF_Parameter RefId="ID183" Value="[]" _id="id2F2" name="DenCoefMax" position="(-1,-1)"/>
+              <Simulink:SF_Parameter RefId="ID182" Value="Inherit: Inherit via internal rule" _id="id2F3" name="DenCoefDataTypeStr" position="(-1,-1)"/>
+              <Simulink:SF_Parameter RefId="ID181" Value="Inherit: Inherit via internal rule" _id="id2F4" name="DenAccumDataTypeStr" position="(-1,-1)"/>
+            </Simulink:Primitive>
+            <Simulink:SF_Parameter RefId="ID179" Value="double" _id="id20F" name="ParamDataTypeStr" position="(-1,-1)"/>
+            <Simulink:SF_Parameter RefId="ID172" Value="" _id="id210" name="VariantControl" position="(70,70)"/>
+            <Simulink:SF_Parameter RefId="ID171" Value="off" _id="id211" name="Variant" position="(133,7)"/>
+            <Simulink:SF_Parameter RefId="ID170" Value="off" _id="id212" name="TreatAsAtomicUnit" position="(133,133)"/>
+            <Simulink:SF_Parameter RefId="ID169" Value="" _id="id213" name="TemplateBlock" position="(7,133)"/>
+            <Simulink:SF_Parameter RefId="ID168" Value="-1" _id="id214" name="SystemSampleTime" position="(196,70)"/>
+            <Simulink:SF_Parameter RefId="ID167" Value="FromPortIcon" _id="id215" name="ShowPortLabels" position="(196,196)"/>
+            <Simulink:SF_Parameter RefId="ID166" Value="Auto" _id="id216" name="RTWSystemCode" position="(7,196)"/>
+            <Simulink:SF_Parameter RefId="ID165" Value="Inherit from model" _id="id217" name="RTWMemSecFuncInitTerm" position="(259,7)"/>
+            <Simulink:SF_Parameter RefId="ID164" Value="Inherit from model" _id="id218" name="RTWMemSecFuncExecute" position="(259,133)"/>
+            <Simulink:SF_Parameter RefId="ID163" Value="Inherit from model" _id="id219" name="RTWMemSecDataParameters" position="(259,259)"/>
+            <Simulink:SF_Parameter RefId="ID162" Value="Inherit from model" _id="id21A" name="RTWMemSecDataInternal" position="(7,259)"/>
+            <Simulink:SF_Parameter RefId="ID161" Value="Inherit from model" _id="id21B" name="RTWMemSecDataConstants" position="(133,259)"/>
+            <Simulink:SF_Parameter RefId="ID160" Value="Auto" _id="id21C" name="RTWFileNameOpts" position="(322,70)"/>
+            <Simulink:SF_Parameter RefId="ID159" Value="" _id="id21D" name="RTWFileName" position="(322,196)"/>
+            <Simulink:SF_Parameter RefId="ID158" Value="Auto" _id="id21e" name="RTWFcnNameOpts" position="(322,322)"/>
+            <Simulink:SF_Parameter RefId="ID157" Value="" _id="id21F" name="RTWFcnName" position="(7,322)"/>
+            <Simulink:SF_Parameter RefId="ID156" Value="off" _id="id220" name="PropExecContextOutsideSubsystem" position="(133,322)"/>
+            <Simulink:SF_Parameter RefId="ID155" Value="All" _id="id221" name="PermitHierarchicalResolution" position="(385,7)"/>
+            <Simulink:SF_Parameter RefId="ID154" Value="ReadWrite" _id="id222" name="Permissions" position="(385,133)"/>
+            <Simulink:SF_Parameter RefId="ID153" Value="" _id="id223" name="OverrideUsingVariant" position="(385,259)"/>
+            <Simulink:SF_Parameter RefId="ID152" Value="off" _id="id224" name="MinAlgLoopOccurrences" position="(385,385)"/>
+            <Simulink:SF_Parameter RefId="ID151" Value="" _id="id225" name="MemberBlocks" position="(7,385)"/>
+            <Simulink:SF_Parameter RefId="ID150" Value="on" _id="id226" name="IsSubsystemVirtual" position="(133,385)"/>
+            <Simulink:SF_Parameter RefId="ID149" Value="off" _id="id227" name="GeneratePreprocessorConditionals" position="(259,385)"/>
+            <Simulink:SF_Parameter RefId="ID148" Value="off" _id="id228" name="FunctionWithSeparateData" position="(448,70)"/>
+            <Simulink:SF_Parameter RefId="ID147" Value="void_void" _id="id229" name="FunctionInterfaceSpec" position="(448,196)"/>
+            <Simulink:SF_Parameter RefId="ID146" Value="" _id="id22A" name="ErrorFcn" position="(448,322)"/>
+            <Simulink:SF_Parameter RefId="ID145" Value="off" _id="id22B" name="CheckFcnCallInpInsideContextMsg" position="(448,448)"/>
+            <Simulink:SF_Parameter RefId="ID144" Value="" _id="id22C" name="BlockChoice" position="(7,448)"/>
+            <Simulink:SF_Parameter RefId="ID143" Value="" _id="id22D" name="ActiveVariantBlock" position="(133,448)"/>
+            <Simulink:SF_Parameter RefId="ID142" Value="" _id="id22e" name="ActiveVariant" position="(259,448)"/>
+          </Simulink:Subsystem>
+          <Simulink:Subsystem BlockType="SubSystem" Description="" Name="Chart" Priority="1" RefId="ID37" SampleTime="0.01" Tag="" UserData="" _id="id2F9" name="Chart" position="(259,511)">
+            <Simulink:InputPort Number="1" RefId="ID109" _id="id321" dstLine="id31D" name="input" position="(-1,-1)" srcLine="id1DC">
+              <Simulink:TypeBaseRef MemberIndex="0" _id="id322" name="double" position="(-1,-1)" ref="id34F"/>
+            </Simulink:InputPort>
+            <Simulink:Line Name="" RefId="ID134" _id="id31B" dstLine_end_="id31F" name="" position="(-1,-1)" srcLine_end_="id32C"/>
+            <Simulink:Line Name="" RefId="ID132" _id="id31C" dstLine_end_="id344" name="" position="(-1,-1)" srcLine_end_="id32e"/>
+            <Simulink:Line Name="" RefId="ID130" _id="id31D" dstLine_end_="id330" name="" position="(-1,-1)" srcLine_end_="id321"/>
+            <Simulink:Line Name="" RefId="ID124" _id="id31e" dstLine_end_="id325" name="" position="(-1,-1)" srcLine_end_="id342"/>
+            <Simulink:OutputPort Number="1" RefId="ID110" _id="id31F" dstLine="id1D8 id1DB" name="dgain" position="(-1,-1)" srcLine="id31B">
+              <Simulink:TypeBaseRef MemberIndex="0" _id="id320" name="double" position="(-1,-1)" ref="id34F"/>
+            </Simulink:OutputPort>
+            <Simulink:Primitive BlockType="Terminator" Description="" Name="Terminator" Priority="0" RefId="ID122" SampleTime="0.01" Tag="" UserData="" _id="id323" name="Terminator" position="(-1,-1)">
+              <Simulink:InputPort Number="1" RefId="ID123" _id="id325" name="In_1" position="(-1,-1)" srcLine="id31e">
+                <Simulink:TypeBaseRef MemberIndex="0" _id="id326" name="float" position="(-1,-1)" ref="id34e"/>
+              </Simulink:InputPort>
+              <Simulink:SF_Parameter RefId="ID125" Value="double" _id="id324" name="ParamDataTypeStr" position="(-1,-1)"/>
+            </Simulink:Primitive>
+            <Simulink:Primitive BlockType="S-Function" Description="" Name="SFunction" Priority="0" RefId="ID121" SampleTime="0.01" Tag="Stateflow S-Function DiscreteControllerOnlyWithSFSaturationXmdl2mga 2" UserData="" _id="id327" name="SFunction" position="(-1,-1)">
+              <Simulink:InputPort Number="1" RefId="ID129" _id="id330" name="In_1" position="(-1,-1)" srcLine="id31D">
+                <Simulink:TypeBaseRef MemberIndex="0" _id="id331" name="double" position="(-1,-1)" ref="id34F"/>
+              </Simulink:InputPort>
+              <Simulink:OutputPort Number="2" RefId="ID133" _id="id32C" dstLine="id31B" name="Out_2" position="(-1,-1)">
+                <Simulink:TypeBaseRef MemberIndex="0" _id="id32D" name="double" position="(-1,-1)" ref="id34F"/>
+              </Simulink:OutputPort>
+              <Simulink:OutputPort Number="1" RefId="ID131" _id="id32e" dstLine="id31C" name="Out_1" position="(-1,-1)">
+                <Simulink:TypeBaseRef MemberIndex="0" _id="id32F" name="double" position="(-1,-1)" ref="id34F"/>
+              </Simulink:OutputPort>
+              <Simulink:SF_Parameter RefId="ID135" Value="double" _id="id328" name="ParamDataTypeStr" position="(-1,-1)"/>
+              <Simulink:SF_Parameter RefId="ID128" Value="''" _id="id329" name="SFunctionModules" position="(-1,-1)"/>
+              <Simulink:SF_Parameter RefId="ID127" Value="" _id="id32A" name="Parameters" position="(-1,-1)"/>
+              <Simulink:SF_Parameter RefId="ID126" Value="sf_sfun" _id="id32B" name="FunctionName" position="(-1,-1)"/>
+              <Simulink:State Decomposition="OR_STATE" Description="" DuringAction="" EnterAction="" ExitAction="" Methods="" Name="Chart" Order="0" RefId="ID137" _id="id332" name="Chart" position="(-1,-1)">
+                <Simulink:Data ArrayFirstIndex="" ArraySize="" DataType="" Description="" InitialValue="" Max="" Min="" Name="dgain" Port="1" RefId="ID141" Scope="OUTPUT_DATA" Units="" _id="id339" name="dgain" position="(-1,-1)">
+                  <Simulink:TypeBaseRef MemberIndex="0" _id="id33A" name="double" position="(-1,-1)" ref="id34F"/>
+                </Simulink:Data>
+                <Simulink:Data ArrayFirstIndex="" ArraySize="" DataType="" Description="" InitialValue="" Max="" Min="" Name="input" Port="1" RefId="ID140" Scope="INPUT_DATA" Units="" _id="id33B" name="input" position="(-1,-1)">
+                  <Simulink:TypeBaseRef MemberIndex="0" _id="id33C" name="double" position="(-1,-1)" ref="id34F"/>
+                </Simulink:Data>
+                <Simulink:State Decomposition="OR_STATE" Description="" DuringAction="" EnterAction="dgain = 1" ExitAction="" Methods="" Name="GainOn" Order="0" RefId="ID139" _id="id336" dstTransition="id333" name="GainOn" position="(-1,-1)" srcTransition="id334 id335"/>
+                <Simulink:State Decomposition="OR_STATE" Description="" DuringAction="" EnterAction="dgain = 0" ExitAction="" Methods="" Name="GainOff" Order="0" RefId="ID138" _id="id337" dstTransition="id334" name="GainOff" position="(-1,-1)" srcTransition="id333"/>
+                <Simulink:TransStart RefId="" _id="id338" dstTransition="id335" name="" position="(-1,-1)"/>
+                <Simulink:Transition Action="" ConditionAction="" Guard="input &lt; 2" Order="1" RefId="ID359" Trigger="" _id="id333" dstTransition_end_="id337" name="" position="(-1,-1)" srcTransition_end_="id336"/>
+                <Simulink:Transition Action="" ConditionAction="" Guard="input > 6" Order="1" RefId="ID358" Trigger="" _id="id334" dstTransition_end_="id336" name="" position="(-1,-1)" srcTransition_end_="id337"/>
+                <Simulink:Transition Action="" ConditionAction="dgain = 1" Guard="" Order="1" RefId="ID357" Trigger="" _id="id335" dstTransition_end_="id336" name="" position="(-1,-1)" srcTransition_end_="id338"/>
+              </Simulink:State>
+            </Simulink:Primitive>
+            <Simulink:Primitive BlockType="Demux" Description="" Name="Demux" Priority="0" RefId="ID114" SampleTime="0.01" Tag="" UserData="" _id="id33D" name="Demux" position="(-1,-1)">
+              <Simulink:InputPort Number="1" RefId="ID118" _id="id344" name="In_1" position="(-1,-1)" srcLine="id31C">
+                <Simulink:TypeBaseRef MemberIndex="0" _id="id345" name="double" position="(-1,-1)" ref="id34F"/>
+              </Simulink:InputPort>
+              <Simulink:OutputPort Number="1" RefId="ID119" _id="id342" dstLine="id31e" name="Out_1" position="(-1,-1)">
+                <Simulink:TypeBaseRef MemberIndex="0" _id="id343" name="float" position="(-1,-1)" ref="id34e"/>
+              </Simulink:OutputPort>
+              <Simulink:SF_Parameter RefId="ID120" Value="double" _id="id33e" name="ParamDataTypeStr" position="(-1,-1)"/>
+              <Simulink:SF_Parameter RefId="ID117" Value="1" _id="id33F" name="Outputs" position="(-1,-1)"/>
+              <Simulink:SF_Parameter RefId="ID116" Value="none" _id="id340" name="DisplayOption" position="(-1,-1)"/>
+              <Simulink:SF_Parameter RefId="ID115" Value="off" _id="id341" name="BusSelectionMode" position="(-1,-1)"/>
+            </Simulink:Primitive>
+            <Simulink:SF_Parameter RefId="ID136" Value="off" _id="id2FA" name="ExecuteAtInitialization" position="(-1,-1)"/>
+            <Simulink:SF_Parameter RefId="ID113" Value="double" _id="id2FB" name="ParamDataTypeStr" position="(-1,-1)"/>
+            <Simulink:SF_Parameter RefId="ID108" Value="" _id="id2FC" name="VariantControl" position="(-1,-1)"/>
+            <Simulink:SF_Parameter RefId="ID107" Value="off" _id="id2FD" name="Variant" position="(-1,-1)"/>
+            <Simulink:SF_Parameter RefId="ID106" Value="on" _id="id2Fe" name="TreatAsAtomicUnit" position="(-1,-1)"/>
+            <Simulink:SF_Parameter RefId="ID105" Value="" _id="id2FF" name="TemplateBlock" position="(-1,-1)"/>
+            <Simulink:SF_Parameter RefId="ID104" Value="-1" _id="id300" name="SystemSampleTime" position="(-1,-1)"/>
+            <Simulink:SF_Parameter RefId="ID103" Value="FromPortIcon" _id="id301" name="ShowPortLabels" position="(-1,-1)"/>
+            <Simulink:SF_Parameter RefId="ID102" Value="Auto" _id="id302" name="RTWSystemCode" position="(-1,-1)"/>
+            <Simulink:SF_Parameter RefId="ID101" Value="Inherit from model" _id="id303" name="RTWMemSecFuncInitTerm" position="(-1,-1)"/>
+            <Simulink:SF_Parameter RefId="ID100" Value="Inherit from model" _id="id304" name="RTWMemSecFuncExecute" position="(-1,-1)"/>
+            <Simulink:SF_Parameter RefId="ID99" Value="Inherit from model" _id="id305" name="RTWMemSecDataParameters" position="(-1,-1)"/>
+            <Simulink:SF_Parameter RefId="ID98" Value="Inherit from model" _id="id306" name="RTWMemSecDataInternal" position="(-1,-1)"/>
+            <Simulink:SF_Parameter RefId="ID97" Value="Inherit from model" _id="id307" name="RTWMemSecDataConstants" position="(-1,-1)"/>
+            <Simulink:SF_Parameter RefId="ID96" Value="Auto" _id="id308" name="RTWFileNameOpts" position="(-1,-1)"/>
+            <Simulink:SF_Parameter RefId="ID95" Value="" _id="id309" name="RTWFileName" position="(-1,-1)"/>
+            <Simulink:SF_Parameter RefId="ID94" Value="Auto" _id="id30A" name="RTWFcnNameOpts" position="(-1,-1)"/>
+            <Simulink:SF_Parameter RefId="ID93" Value="" _id="id30B" name="RTWFcnName" position="(-1,-1)"/>
+            <Simulink:SF_Parameter RefId="ID92" Value="off" _id="id30C" name="PropExecContextOutsideSubsystem" position="(-1,-1)"/>
+            <Simulink:SF_Parameter RefId="ID91" Value="ExplicitOnly" _id="id30D" name="PermitHierarchicalResolution" position="(-1,-1)"/>
+            <Simulink:SF_Parameter RefId="ID90" Value="ReadWrite" _id="id30e" name="Permissions" position="(-1,-1)"/>
+            <Simulink:SF_Parameter RefId="ID89" Value="" _id="id30F" name="OverrideUsingVariant" position="(-1,-1)"/>
+            <Simulink:SF_Parameter RefId="ID88" Value="off" _id="id310" name="MinAlgLoopOccurrences" position="(-1,-1)"/>
+            <Simulink:SF_Parameter RefId="ID87" Value="" _id="id311" name="MemberBlocks" position="(-1,-1)"/>
+            <Simulink:SF_Parameter RefId="ID86" Value="off" _id="id312" name="IsSubsystemVirtual" position="(-1,-1)"/>
+            <Simulink:SF_Parameter RefId="ID85" Value="off" _id="id313" name="GeneratePreprocessorConditionals" position="(-1,-1)"/>
+            <Simulink:SF_Parameter RefId="ID84" Value="off" _id="id314" name="FunctionWithSeparateData" position="(-1,-1)"/>
+            <Simulink:SF_Parameter RefId="ID83" Value="void_void" _id="id315" name="FunctionInterfaceSpec" position="(-1,-1)"/>
+            <Simulink:SF_Parameter RefId="ID82" Value="[]" _id="id316" name="ErrorFcn" position="(-1,-1)"/>
+            <Simulink:SF_Parameter RefId="ID81" Value="off" _id="id317" name="CheckFcnCallInpInsideContextMsg" position="(-1,-1)"/>
+            <Simulink:SF_Parameter RefId="ID80" Value="" _id="id318" name="BlockChoice" position="(-1,-1)"/>
+            <Simulink:SF_Parameter RefId="ID79" Value="" _id="id319" name="ActiveVariantBlock" position="(-1,-1)"/>
+            <Simulink:SF_Parameter RefId="ID78" Value="" _id="id31A" name="ActiveVariant" position="(-1,-1)"/>
+          </Simulink:Subsystem>
+        </Simulink:Subsystem>
+      </Simulink:Subsystem>
+    </SimulinkWrapper>
+  </Components>
+
+  <Simulink:Types _id="id34D" name="Types">
+    <Simulink:SF_Matrix Type="float" _id="id34e" columns="1" name="float" position="" referedbyTypeStructRef="id326 id343" rows="1"/>
+    <Simulink:SF_Matrix Type="double" _id="id34F" columns="1" name="double" position="" referedbyTypeStructRef="id1B4 id1B6 id1B2 id1e2 id1e0 id1e4 id1F6 id1F4 id1F8 id20D id23C id23e id240 id252 id250 id254 id256 id265 id263 id274 id276 id278 id2A0 id29e id2Ae id2B0 id2Be id2C0 id2Ce id2D0 id2F8 id2F6 id322 id320 id32D id32F id331 id33A id33C id345" rows="1"/>
+  </Simulink:Types>
+
+</RootFolder>

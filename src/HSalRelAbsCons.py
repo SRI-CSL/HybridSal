@@ -1076,6 +1076,10 @@ def hsal2hxml(filename):
             if os.path.isfile(exefile):
                 return exefile
         # also search in CLASSPATH -- for jar files
+        if not os.environ.has_key('CLASSPATH'):
+          print 'ERROR: File {0} not found in PATH.'.format(filename)
+          print 'ERROR: Add path of the file to CLASSPATH.'
+          return None
         exepaths = os.environ['CLASSPATH'].split(os.path.pathsep)
         for i in exepaths:
             exefile = os.path.join(i, filename)
@@ -1096,7 +1100,7 @@ def hsal2hxml(filename):
         java = checkexe('java.exe' if sys.platform.startswith('win') else 'java')
         assert java != None, 'ERROR: java not found in PATH {0}'.format(os.environ['PATH'])
         hybridsal2xml_jar = checkexe('hybridsal2xml.jar')
-        assert hybridsal2xml_jar != None, 'ERROR: hybridsal2xml.jar not found in CLASSPATH {0}'.format(os.environ['CLASSPATH'])
+        assert hybridsal2xml_jar != None, 'ERROR: hybridsal2xml.jar not found in CLASSPATH'    # .format(os.environ['CLASSPATH'])
         ''' old code:
         hybridsal2xml = 'hybridsal2xml'
         if sys.platform.startswith('win'):
