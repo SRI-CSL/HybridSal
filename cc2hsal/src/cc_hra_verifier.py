@@ -54,6 +54,7 @@ def checkexe(filename, env_names, flags = None):
 
 def find_sal_exe():
     salinfbmc = 'sal-inf-bmc'
+    salinfbmc_nexe = checkexe(salinfbmc, ['PATH'], flags = None])
     salinfbmc_exe = checkexe(salinfbmc, ['PATH'], flags = ['-V'])
     if salinfbmc_exe != None:
         print "Using {0}".format(salinfbmc_exe)
@@ -76,8 +77,11 @@ def find_sal_exe():
         return None
     print 'cygwin found at {0}'.format(cygwin)
     print 'searching for sal-inf-bmc...'
-    blacklist = ['zoneinfo','cache','locale','font','doc','include','examples','terminfo','man','lib']
-    salinfbmc = findFile(cygwin, 'sal-inf-bmc', blacklist)
+    if salinfbmc_nexe != None:
+      salinfbmc = salinfbmc_nexe
+    else:
+      blacklist = ['zoneinfo','cache','locale','font','doc','include','examples','terminfo','man','lib']
+      salinfbmc = findFile(cygwin, 'sal-inf-bmc', blacklist)
     if salinfbmc != None:
         print 'sal-inf-bmc found at {0}'.format(salinfbmc)
     elif os.environ.has_key('SAL_HOME'):
