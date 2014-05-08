@@ -73,9 +73,10 @@ def handleContext(ctxt):
         # print mdecl.toxml()
     return ctxt
 
-def extractRelAbs(dom, filePtr=sys.stdout):
+def extractRelAbs(dom, filePtr=sys.stdout, ptf=False):
     dom = handleContext(dom)	# Destructive
-    print >> filePtr, dom.toxml() 
+    if ptf:
+      print >> filePtr, dom.toxml() 
     return dom
 
 def main():

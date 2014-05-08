@@ -29,101 +29,101 @@ TorqueConverter: MODULE =
   LOCAL pedal_disable_thresh: REAL
   LOCAL pedal_enable_thresh: REAL
   INITIALIZATION
-    fall_step = amplitude / (fall_time / sample_period);
-    pedal_disable_thresh = 0.85;
     rise_time = 0.2;
     rise_step = amplitude / (rise_time / sample_period);
     amplitude = 1.0;
+    pedal_enable_thresh = 0.8;
     offset = 0.0;
     lid356 = FALSE;
-    pedal_enable_thresh = 0.8;
+    triggeredTrapezoidMode = Low;
     y = 0.0;
     lid3DC = FALSE;
-    triggeredTrapezoidMode = Low;
     fall_time = 0.2;
     lid2D0 = FALSE;
+    pedal_disable_thresh = 0.85;
+    fall_step = amplitude / (fall_time / sample_period);
   TRANSITION
   [
    triggeredTrapezoidMode = High
     AND NOT(((min_speed_ratio_thresh > (output_speed_torque_converter * input_speed_torque_converter)) AND ((output_speed_torque_converter >= 100.0) AND (lid3DC OR (output_speed_torque_converter > 110.0))) AND (min_gear_number_thresh >= gear_selected) AND (NOT((acceleratorPedalPosition >= 0.8) AND (lid356 OR (acceleratorPedalPosition > 0.85)))) AND ((acceleratorPedalPosition >= 0.01) AND (lid2D0 OR (acceleratorPedalPosition > 0.02)))) = false)
     AND output_speed_torque_converter >= 1.0 -->
-    lockup_torque_converter' = y';
     lid356' = (acceleratorPedalPosition >= 0.8) AND (lid356 OR (acceleratorPedalPosition > 0.85));
     y' = amplitude + offset;
     lid3DC' = (output_speed_torque_converter >= 100.0) AND (lid3DC OR (output_speed_torque_converter > 110.0));
     lid2D0' = (acceleratorPedalPosition >= 0.01) AND (lid2D0 OR (acceleratorPedalPosition > 0.02));
+    lockup_torque_converter' = y';
   []
    triggeredTrapezoidMode = High
     AND NOT(((min_speed_ratio_thresh > (1.0 * input_speed_torque_converter)) AND ((1.0 >= 100.0) AND (lid3DC OR (1.0 > 110.0))) AND (min_gear_number_thresh >= gear_selected) AND (NOT((acceleratorPedalPosition >= 0.8) AND (lid356 OR (acceleratorPedalPosition > 0.85)))) AND ((acceleratorPedalPosition >= 0.01) AND (lid2D0 OR (acceleratorPedalPosition > 0.02)))) = false)
     AND output_speed_torque_converter <= 1.0 -->
-    lockup_torque_converter' = y';
     lid356' = (acceleratorPedalPosition >= 0.8) AND (lid356 OR (acceleratorPedalPosition > 0.85));
     y' = amplitude + offset;
     lid3DC' = (1.0 >= 100.0) AND (lid3DC OR (1.0 > 110.0));
     lid2D0' = (acceleratorPedalPosition >= 0.01) AND (lid2D0 OR (acceleratorPedalPosition > 0.02));
+    lockup_torque_converter' = y';
   []
    triggeredTrapezoidMode = Falling
     AND NOT(((min_speed_ratio_thresh > (output_speed_torque_converter * input_speed_torque_converter)) AND ((output_speed_torque_converter >= 100.0) AND (lid3DC OR (output_speed_torque_converter > 110.0))) AND (min_gear_number_thresh >= gear_selected) AND (NOT((acceleratorPedalPosition >= 0.8) AND (lid356 OR (acceleratorPedalPosition > 0.85)))) AND ((acceleratorPedalPosition >= 0.01) AND (lid2D0 OR (acceleratorPedalPosition > 0.02)))) = true)
     AND NOT(y <= offset)
     AND output_speed_torque_converter >= 1.0 -->
-    lockup_torque_converter' = y';
     lid356' = (acceleratorPedalPosition >= 0.8) AND (lid356 OR (acceleratorPedalPosition > 0.85));
     y' = y - fall_step;
     lid3DC' = (output_speed_torque_converter >= 100.0) AND (lid3DC OR (output_speed_torque_converter > 110.0));
     lid2D0' = (acceleratorPedalPosition >= 0.01) AND (lid2D0 OR (acceleratorPedalPosition > 0.02));
+    lockup_torque_converter' = y';
   []
    triggeredTrapezoidMode = Falling
     AND NOT(((min_speed_ratio_thresh > (1.0 * input_speed_torque_converter)) AND ((1.0 >= 100.0) AND (lid3DC OR (1.0 > 110.0))) AND (min_gear_number_thresh >= gear_selected) AND (NOT((acceleratorPedalPosition >= 0.8) AND (lid356 OR (acceleratorPedalPosition > 0.85)))) AND ((acceleratorPedalPosition >= 0.01) AND (lid2D0 OR (acceleratorPedalPosition > 0.02)))) = true)
     AND NOT(y <= offset)
     AND output_speed_torque_converter <= 1.0 -->
-    lockup_torque_converter' = y';
     lid356' = (acceleratorPedalPosition >= 0.8) AND (lid356 OR (acceleratorPedalPosition > 0.85));
     y' = y - fall_step;
     lid3DC' = (1.0 >= 100.0) AND (lid3DC OR (1.0 > 110.0));
     lid2D0' = (acceleratorPedalPosition >= 0.01) AND (lid2D0 OR (acceleratorPedalPosition > 0.02));
+    lockup_torque_converter' = y';
   []
    triggeredTrapezoidMode = Rising
     AND NOT(y >= (amplitude + offset))
     AND NOT(((min_speed_ratio_thresh > (output_speed_torque_converter * input_speed_torque_converter)) AND ((output_speed_torque_converter >= 100.0) AND (lid3DC OR (output_speed_torque_converter > 110.0))) AND (min_gear_number_thresh >= gear_selected) AND (NOT((acceleratorPedalPosition >= 0.8) AND (lid356 OR (acceleratorPedalPosition > 0.85)))) AND ((acceleratorPedalPosition >= 0.01) AND (lid2D0 OR (acceleratorPedalPosition > 0.02)))) = false)
     AND output_speed_torque_converter >= 1.0 -->
-    lockup_torque_converter' = y';
     lid356' = (acceleratorPedalPosition >= 0.8) AND (lid356 OR (acceleratorPedalPosition > 0.85));
     y' = y + rise_step;
     lid3DC' = (output_speed_torque_converter >= 100.0) AND (lid3DC OR (output_speed_torque_converter > 110.0));
     lid2D0' = (acceleratorPedalPosition >= 0.01) AND (lid2D0 OR (acceleratorPedalPosition > 0.02));
+    lockup_torque_converter' = y';
   []
    triggeredTrapezoidMode = Rising
     AND NOT(y >= (amplitude + offset))
     AND NOT(((min_speed_ratio_thresh > (1.0 * input_speed_torque_converter)) AND ((1.0 >= 100.0) AND (lid3DC OR (1.0 > 110.0))) AND (min_gear_number_thresh >= gear_selected) AND (NOT((acceleratorPedalPosition >= 0.8) AND (lid356 OR (acceleratorPedalPosition > 0.85)))) AND ((acceleratorPedalPosition >= 0.01) AND (lid2D0 OR (acceleratorPedalPosition > 0.02)))) = false)
     AND output_speed_torque_converter <= 1.0 -->
-    lockup_torque_converter' = y';
     lid356' = (acceleratorPedalPosition >= 0.8) AND (lid356 OR (acceleratorPedalPosition > 0.85));
     y' = y + rise_step;
     lid3DC' = (1.0 >= 100.0) AND (lid3DC OR (1.0 > 110.0));
     lid2D0' = (acceleratorPedalPosition >= 0.01) AND (lid2D0 OR (acceleratorPedalPosition > 0.02));
+    lockup_torque_converter' = y';
   []
    triggeredTrapezoidMode = Low
     AND NOT(((min_speed_ratio_thresh > (output_speed_torque_converter * input_speed_torque_converter)) AND ((output_speed_torque_converter >= 100.0) AND (lid3DC OR (output_speed_torque_converter > 110.0))) AND (min_gear_number_thresh >= gear_selected) AND (NOT((acceleratorPedalPosition >= 0.8) AND (lid356 OR (acceleratorPedalPosition > 0.85)))) AND ((acceleratorPedalPosition >= 0.01) AND (lid2D0 OR (acceleratorPedalPosition > 0.02)))) = true)
     AND output_speed_torque_converter >= 1.0 -->
-    lockup_torque_converter' = y';
     lid356' = (acceleratorPedalPosition >= 0.8) AND (lid356 OR (acceleratorPedalPosition > 0.85));
     y' = offset;
     lid3DC' = (output_speed_torque_converter >= 100.0) AND (lid3DC OR (output_speed_torque_converter > 110.0));
     lid2D0' = (acceleratorPedalPosition >= 0.01) AND (lid2D0 OR (acceleratorPedalPosition > 0.02));
+    lockup_torque_converter' = y';
   []
    triggeredTrapezoidMode = Low
     AND NOT(((min_speed_ratio_thresh > (1.0 * input_speed_torque_converter)) AND ((1.0 >= 100.0) AND (lid3DC OR (1.0 > 110.0))) AND (min_gear_number_thresh >= gear_selected) AND (NOT((acceleratorPedalPosition >= 0.8) AND (lid356 OR (acceleratorPedalPosition > 0.85)))) AND ((acceleratorPedalPosition >= 0.01) AND (lid2D0 OR (acceleratorPedalPosition > 0.02)))) = true)
     AND output_speed_torque_converter <= 1.0 -->
-    lockup_torque_converter' = y';
     lid356' = (acceleratorPedalPosition >= 0.8) AND (lid356 OR (acceleratorPedalPosition > 0.85));
     y' = offset;
     lid3DC' = (1.0 >= 100.0) AND (lid3DC OR (1.0 > 110.0));
     lid2D0' = (acceleratorPedalPosition >= 0.01) AND (lid2D0 OR (acceleratorPedalPosition > 0.02));
+    lockup_torque_converter' = y';
   [](triggeredTrapezoidMode = High) AND (((min_speed_ratio_thresh > (output_speed_torque_converter * input_speed_torque_converter)) AND ((output_speed_torque_converter >= 100.0) AND (lid3DC OR (output_speed_torque_converter > 110.0))) AND (min_gear_number_thresh >= gear_selected) AND (NOT((acceleratorPedalPosition >= 0.8) AND (lid356 OR (acceleratorPedalPosition > 0.85)))) AND ((acceleratorPedalPosition >= 0.01) AND (lid2D0 OR (acceleratorPedalPosition > 0.02)))) = false) -->
     triggeredTrapezoidMode' = Falling
   [](triggeredTrapezoidMode = Rising) AND (y >= (amplitude + offset)) -->
-    y' = amplitude + offset;
-    triggeredTrapezoidMode' = High
+    triggeredTrapezoidMode' = High;
+    y' = amplitude + offset
   [](triggeredTrapezoidMode = Falling) AND (((min_speed_ratio_thresh > (output_speed_torque_converter * input_speed_torque_converter)) AND ((output_speed_torque_converter >= 100.0) AND (lid3DC OR (output_speed_torque_converter > 110.0))) AND (min_gear_number_thresh >= gear_selected) AND (NOT((acceleratorPedalPosition >= 0.8) AND (lid356 OR (acceleratorPedalPosition > 0.85)))) AND ((acceleratorPedalPosition >= 0.01) AND (lid2D0 OR (acceleratorPedalPosition > 0.02)))) = true) -->
     triggeredTrapezoidMode' = Rising
   [](triggeredTrapezoidMode = Rising) AND (((min_speed_ratio_thresh > (output_speed_torque_converter * input_speed_torque_converter)) AND ((output_speed_torque_converter >= 100.0) AND (lid3DC OR (output_speed_torque_converter > 110.0))) AND (min_gear_number_thresh >= gear_selected) AND (NOT((acceleratorPedalPosition >= 0.8) AND (lid356 OR (acceleratorPedalPosition > 0.85)))) AND ((acceleratorPedalPosition >= 0.01) AND (lid2D0 OR (acceleratorPedalPosition > 0.02)))) = false) -->
@@ -131,8 +131,8 @@ TorqueConverter: MODULE =
   [](triggeredTrapezoidMode = Low) AND (((min_speed_ratio_thresh > (output_speed_torque_converter * input_speed_torque_converter)) AND ((output_speed_torque_converter >= 100.0) AND (lid3DC OR (output_speed_torque_converter > 110.0))) AND (min_gear_number_thresh >= gear_selected) AND (NOT((acceleratorPedalPosition >= 0.8) AND (lid356 OR (acceleratorPedalPosition > 0.85)))) AND ((acceleratorPedalPosition >= 0.01) AND (lid2D0 OR (acceleratorPedalPosition > 0.02)))) = true) -->
     triggeredTrapezoidMode' = Rising
   [](triggeredTrapezoidMode = Falling) AND (y <= offset) -->
-    y' = offset;
-    triggeredTrapezoidMode' = Low
+    triggeredTrapezoidMode' = Low;
+    y' = offset
   ]
  END;
 
@@ -152,14 +152,14 @@ TorqueReductionSignal: MODULE =
   LOCAL triggeredTrapezoidMode: triggeredTrapezoidModeType
   INITIALIZATION
     rise_time = 0.01;
-    sample_period = 0.01;
     amplitude = -0.2;
-    rise_step = amplitude / (rise_time / sample_period);
-    y = 0.0;
     fall_time = 0.05;
-    offset = 1.0;
+    rise_step = amplitude / (rise_time / sample_period);
     triggeredTrapezoidMode = Low;
+    y = 0.0;
     fall_step = amplitude / (fall_time / sample_period);
+    sample_period = 0.01;
+    offset = 1.0;
   TRANSITION
   [
    triggeredTrapezoidMode = High
@@ -188,13 +188,13 @@ TorqueReductionSignal: MODULE =
   [](triggeredTrapezoidMode = Falling) AND (shifting = true) -->
     triggeredTrapezoidMode' = Rising
   [](triggeredTrapezoidMode = Rising) AND (y >= (amplitude + offset)) -->
-    y' = amplitude + offset;
-    triggeredTrapezoidMode' = High
+    triggeredTrapezoidMode' = High;
+    y' = amplitude + offset
   [](triggeredTrapezoidMode = Rising) AND (shifting = false) -->
     triggeredTrapezoidMode' = Falling
   [](triggeredTrapezoidMode = Falling) AND (y <= offset) -->
-    y' = offset;
-    triggeredTrapezoidMode' = Low
+    triggeredTrapezoidMode' = Low;
+    y' = offset
   [](triggeredTrapezoidMode = Low) AND (shifting = true) -->
     triggeredTrapezoidMode' = Rising
   ]
@@ -218,13 +218,13 @@ ShiftController: MODULE =
   LOCAL min_shift_timer_std: REAL
   LOCAL sample_period: REAL
   INITIALIZATION
-    low_gear = 1.0;
     min_shift_timer_std = 2.0;
     top_gear = 4.0;
+    ShiftControllerMode = gear0;
     min_shift_timer_extd = 5.5;
     sample_period = 0.01;
     SamplePeriod = 0.01;
-    ShiftControllerMode = gear0;
+    low_gear = 1.0;
   TRANSITION
   [
    ShiftControllerMode = gear0
@@ -275,56 +275,56 @@ ShiftController: MODULE =
     AND NOT(current_time >= lockout_time) -->
     current_time' = current_time + SamplePeriod;
   [](ShiftControllerMode = lockoutU4) AND (current_time >= lockout_time) -->
-    gear_selected' = 4.0;
-    ShiftControllerMode' = gear4
+    ShiftControllerMode' = gear4;
+    gear_selected' = 4.0
   [](ShiftControllerMode = gear4) AND ((shift_requested = 1.0) AND (gear /= 6.0) AND (gear /= 1.0) AND (input_speed_torque_converter > output_speed_torque_converter)) -->
-    ShiftControllerMode' = lockoutD3;
-    current_time' = 0.0
+    current_time' = 0.0;
+    ShiftControllerMode' = lockoutD3
   [](ShiftControllerMode = gear3) AND ((shift_requested = 3.0) AND (gear /= 6.0) AND (gear /= 1.0)) -->
-    ShiftControllerMode' = lockoutU4;
-    current_time' = 0.0
+    current_time' = 0.0;
+    ShiftControllerMode' = lockoutU4
   [](ShiftControllerMode = lockoutD3) AND (current_time >= lockout_time) -->
-    gear_selected' = 3.0;
-    ShiftControllerMode' = gear3
+    ShiftControllerMode' = gear3;
+    gear_selected' = 3.0
   [](ShiftControllerMode = lockoutU3) AND (current_time >= lockout_time) -->
-    gear_selected' = 3.0;
-    ShiftControllerMode' = gear3
+    ShiftControllerMode' = gear3;
+    gear_selected' = 3.0
   [](ShiftControllerMode = gear3) AND ((shift_requested = 1.0) AND (gear /= 6.0) AND (gear /= 1.0) AND (input_speed_torque_converter > output_speed_torque_converter)) -->
-    ShiftControllerMode' = lockoutD2;
-    current_time' = 0.0
+    current_time' = 0.0;
+    ShiftControllerMode' = lockoutD2
   [](ShiftControllerMode = gear2) AND ((shift_requested = 3.0) AND (gear /= 6.0) AND (gear /= 1.0)) -->
-    ShiftControllerMode' = lockoutU3;
-    current_time' = 0.0
+    current_time' = 0.0;
+    ShiftControllerMode' = lockoutU3
   [](ShiftControllerMode = lockoutD2) AND (current_time >= lockout_time) -->
-    gear_selected' = 2.0;
-    ShiftControllerMode' = gear2
+    ShiftControllerMode' = gear2;
+    gear_selected' = 2.0
   [](ShiftControllerMode = gear2) AND ((shift_requested = 1.0) AND (gear /= 6.0) AND (gear /= 1.0) AND (input_speed_torque_converter > output_speed_torque_converter)) -->
-    ShiftControllerMode' = lockoutD1;
-    current_time' = 0.0
+    current_time' = 0.0;
+    ShiftControllerMode' = lockoutD1
   [](ShiftControllerMode = gear4) AND ((gear = 6.0) OR (gear = 1.0)) -->
-    ShiftControllerMode' = lockoutD1;
-    current_time' = 0.0
+    current_time' = 0.0;
+    ShiftControllerMode' = lockoutD1
   [](ShiftControllerMode = gear3) AND ((gear = 6.0) OR (gear = 1.0)) -->
-    ShiftControllerMode' = lockoutD1;
-    current_time' = 0.0
+    current_time' = 0.0;
+    ShiftControllerMode' = lockoutD1
   [](ShiftControllerMode = lockoutU2) AND (current_time >= lockout_time) -->
-    gear_selected' = 2.0;
-    ShiftControllerMode' = gear2
+    ShiftControllerMode' = gear2;
+    gear_selected' = 2.0
   [](ShiftControllerMode = gear1) AND ((shift_requested = 3.0) AND (gear /= 6.0) AND (gear /= 1.0)) -->
-    ShiftControllerMode' = lockoutU2;
-    current_time' = 0.0
+    current_time' = 0.0;
+    ShiftControllerMode' = lockoutU2
   [](ShiftControllerMode = lockoutD1) AND (current_time >= lockout_time) -->
-    gear_selected' = 1.0;
-    ShiftControllerMode' = gear1
+    ShiftControllerMode' = gear1;
+    gear_selected' = 1.0
   [](ShiftControllerMode = gear0) AND ((gear = 6.0) OR (gear = 7.0)) -->
-    gear_selected' = 1.0;
-    ShiftControllerMode' = gear1
+    ShiftControllerMode' = gear1;
+    gear_selected' = 1.0
   ]
  END;
 
 
 
 AbsenceProperty: THEOREM
-  ShiftController |- G(NOT (gear_selected = 5));
+  ShiftController |- (X(NOT (gear_selected = 5)) OR X(X(NOT (gear_selected = 5))) OR X(X(X(NOT (gear_selected = 5)))));
 
 END

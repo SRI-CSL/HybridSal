@@ -1032,7 +1032,8 @@ def handleContext(ctxt):
             #newnode = ctxt.createTextNode(i.data+"ABS")
             #idnode.replaceChild(newnode, i)
     #return ctxt
-def hxml2sal(xmlfilename, optarg = 0, timearg = None):
+def hxml2sal(xmlfilename, optarg = 0, timearg = None, ptf=False):
+    "ptf = preserve-tmp-files, i.e. save .xml corr. to .sal"
     global dom
     global opt
     global time
@@ -1055,10 +1056,13 @@ def hxml2sal(xmlfilename, optarg = 0, timearg = None):
         HSalXMLPP.HSalPPContext(newctxt, fp)
     print "Created file %s containing the original+abstract model" % absfilename
     '''
-    absXMLFile = basename + ".xml"
-    moveIfExists(absXMLFile)
-    with open(absXMLFile, "w") as fp:
-        HSalExtractRelAbs.extractRelAbs(newctxt, fp)
+    if ptf:
+      absXMLFile = basename + ".xml"
+      moveIfExists(absXMLFile)
+      with open(absXMLFile, "w") as fp:
+        HSalExtractRelAbs.extractRelAbs(newctxt, fp, ptf=True)
+    else:
+        HSalExtractRelAbs.extractRelAbs(newctxt)
     absSalFile = basename + ".sal"
     moveIfExists(absSalFile)
     with open(absSalFile, "w") as fp:
@@ -1077,7 +1081,7 @@ def hsal2hxml(filename):
                 return exefile
         # also search in CLASSPATH -- for jar files
         if not os.environ.has_key('CLASSPATH'):
-          print 'ERROR: File {0} not found in PATH.'.format(filename)
+          print 'ERROR: File {0} not found in PATH {1}.'.format(filename, exepaths)
           print 'ERROR: Add path of the file to CLASSPATH.'
           return None
         exepaths = os.environ['CLASSPATH'].split(os.path.pathsep)
@@ -1085,7 +1089,7 @@ def hsal2hxml(filename):
             exefile = os.path.join(i, filename)
             if os.path.isfile(exefile):
                 return exefile
-        print 'ERROR: File {0} not found in PATH/CLASSPATH.'.format(filename)
+        print 'ERROR: File {0} not found in PATH/CLASSPATH {1}.'.format(filename, exepaths)
         return None
     def getexe():
         folder = os.path.split(inspect.getfile( inspect.currentframe() ))[0]
@@ -1239,6 +1243,7 @@ def main():
             print "-t|--time should be followed by a float"
             printUsage()
             return 1
+    ptf = ('-ptf' in args) | ('--preserve-tmp-files' in args)
     if ('-ta' in args) | ('--timeaware' in args) :
         opt |= 0x20
         if ('-ta' in args):
@@ -1266,7 +1271,7 @@ def main():
         print "File does not exist. Quitting."
         return 1
     xmlfilename = hsal2hxml(filename)
-    ans = hxml2sal(xmlfilename, opt, time)
+    ans = hxml2sal(xmlfilename, opt, time, ptf=ptf)
     return ans
 
 if __name__ == '__main__':

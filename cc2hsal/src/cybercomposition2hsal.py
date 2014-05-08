@@ -1,12 +1,10 @@
 # TODO list:
-# transition -- need to be composed...
-# guard,action of trans = strings --> expr...
-# global decl needed for constants whose value = str...
-# Bug: Property is stored as a STRING; it is not UPDATED during COMPOSITION
+# 1. transition -- need to be composed...
+# 2. Bug: Property is stored as a STRING; it is not UPDATED during COMPOSITION
+# INTERFACE: (base_filename,propNameList) = cybercomposition2hsal(cc_xml_filename)
 import sys
 import os
 import copy
-#import ddae
 import xml.dom.minidom 
 
 def printUsage():
@@ -40,9 +38,35 @@ testStr3 = '''<?xml version=&quot;1.0&quot; encoding=&quot;UTF-8&quot; standalon
 
 def process_propStr(componentObj):
   '''Parse propstr - convert to SAL property'''
-  def ltl2sal( ltlstr):
+  def match_brac_index( propstr, i):
+    '''return index j s.t. propstr[j-1] is matching ')' for '(' at propstr[i+]'''
+    start = i
+    length = len(propstr)
+    while start < length and propstr[start] == ' ' :
+      start += 1
+    assert start < length and propstr[start] == '(', 'ERR: Expecting ( after <> in LTL property'
+    end, count = start + 1, 1
+    while end < length and count > 0:
+      if propstr[end] == ')':
+        count = count - 1
+      elif propstr[end] == '(':
+        count = count + 1
+      end = end + 1
+    assert end <= length and propstr[end-1] == ')', 'ERR: Closing ) missing in LTL property'
+    return end
+  def remove_F(propstr, ff, xx):
+    ltlstr = propstr
+    while ltlstr.find(ff) != -1:
+      i = ltlstr.find(ff)
+      i += len(ff)
+      j = match_brac_index( ltlstr, i )
+      newstr = '({1}{0} OR {1}({1}{0}) OR {1}({1}({1}{0})))'.format(ltlstr[i:j],xx)
+      ltlstr = ltlstr[0:i-len(ff)] + newstr + ltlstr[j:]
+    return ltlstr
+  def ltl2sal( propstr ):
+    ltlstr = remove_F(propstr, '<>', 'X')
     ltlstr = ltlstr.replace( '[]', 'G' )
-    ltlstr = ltlstr.replace( '<>', 'F' )
+    #ltlstr = ltlstr.replace( '<>', 'F' )
     ltlstr = ltlstr.replace( '&&', ' AND ' )
     ltlstr = ltlstr.replace( '||', ' OR ' )
     ltlstr = ltlstr.replace( '&', ' AND ' )
@@ -52,10 +76,25 @@ def process_propStr(componentObj):
     ltlstr = ltlstr.replace( '!', 'NOT ' )
     ltlstr = ltlstr.replace( '->', '=>' )
     return ltlstr
+  def re_escape_ops( pstr ):
+    '''replace < by &lt; and > by &gt; in pstr's expr attribute'''
+    i = pstr.find( 'expr' )
+    assert i != -1, 'ERR: LTL property has no expr attribute?'
+    i = pstr.find( '"', i)
+    assert i != -1, 'ERR: LTL property has no expr attribute?'
+    j = pstr.find( '"', i+1)
+    assert j != -1, 'ERR: LTL property expr attribute is incomplete?'
+    expr = pstr[i:j+1]
+    expr = expr.replace( '&', '&amp;' )
+    expr = expr.replace( '<', '&lt;' )
+    expr = expr.replace( '>', '&gt;' )
+    ans = pstr[0:i] + expr + pstr[j+1:]
+    return ans
   propStr = componentObj.prop
   if propStr == '':
-    return propStr
+    return propStr, []
   propStr1 = propStr.replace("&quot;", '"')
+  propStr1 = re_escape_ops( propStr1 )
   try:
     prop_dom = xml.dom.minidom.parseString(propStr1)
   except Exception, e:
@@ -68,13 +107,17 @@ def process_propStr(componentObj):
     print 'Quitting', sys.exc_info()[0]
     sys.exit(-1)
   props = prop_dom.getElementsByTagName('ltlProperty')
-  ans = ''
+  ans, propNameList = '', []
   for pnode in props:
-    ans += '\n{0}: THEOREM\n  '.format( pnode.getAttribute('name') )
-    ans += '{1} |- {0}'.format( ltl2sal(pnode.getAttribute('expr')), componentObj.get_name() )
+    propName = pnode.getAttribute('name')
+    propStr = pnode.getAttribute('expr')
+    newPropStr = ltl2sal( propStr )
+    ans += '\n{0}: THEOREM\n  '.format( propName )
+    ans += '{1} |- {0}'.format( newPropStr, componentObj.get_name() )
     ans += ';\n'
+    propNameList.append( propName )
   print ans
-  return ans
+  return (ans, propNameList)
 
 
 # -------------------------------------------------------------------
@@ -1392,8 +1435,20 @@ def cybercomposition2hsal(filename, options = []):
     hsalfilename = basename + '.hsal'
     if not existsAndNew(hsalfilename, filename):
         component_list = ccdom2hsal(ccdom)
-        component_list2hsal( component_list, hsalfilename)
+        propList = component_list2hsal( component_list, hsalfilename)
     else: 
+        f = open( hsalfilename, 'r' )
+        hsal_model = f.read()
+        f.close()
+        propList = []
+        offset, index = 0, hsal_model.find("THEOREM")
+        while index != -1:
+          endindex = hsal_model.rfind( ':', 0, index )
+          startindex = hsal_model.rfind( ';', 0, endindex )
+          propName = hsal_model[startindex+1:endindex].strip()
+          propList.append( propName )
+          offset = index + 1
+          index = hsal_model.find("THEOREM", offset)
         print >> sys.stderr, 'Using existing {0} file'.format(hsalfilename)
         '''
         try:
@@ -1402,13 +1457,15 @@ def cybercomposition2hsal(filename, options = []):
             print 'Model not supported: Unable to handle some expressions currently'
             sys.exit(-1)
         '''
-    return (ccdom, hsalfilename)
+    print 'Properties in hybridsal model are ', propList
+    return (basename, propList)
 
 def component_list2hsal( component_list, hsalfilename):
   '''Dump the components, in my internal representation, to HSAL file'''
+  contextname = os.path.basename(hsalfilename)
   with open(hsalfilename, 'w') as fp:
     print >> fp, '% Automatically generated by cybercomposition2hsal'
-    print >> fp, '{0}: CONTEXT = '.format( hsalfilename[:-5] )
+    print >> fp, '{0}: CONTEXT = '.format( contextname[:-5] )
     print >> fp, 'BEGIN'
 
     # print global declarations.... first collect them
@@ -1429,10 +1486,14 @@ def component_list2hsal( component_list, hsalfilename):
     print >> fp, ans
     for component in component_list:
       print >> fp, component.toHSalModDecl(params) 
+    propList = []
     for component in component_list:
-      print >> fp, process_propStr( component )
+      propSal, ipropList = process_propStr( component )
+      print >> fp, propSal
+      propList.extend( ipropList )    # update list of property names
     print >> fp, 'END'
     print >> sys.stderr, 'Created file {0}'.format(hsalfilename)
+    return propList
 
 def argCheck(args, printUsage):
     "args = sys.argv list"
