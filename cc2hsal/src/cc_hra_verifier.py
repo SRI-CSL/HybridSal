@@ -16,7 +16,7 @@ folder = os.path.realpath(os.path.abspath(folder))
 for i in [folder, relabsfolder]:
     if i not in sys.path:
         sys.path.insert(0, i)
-os.environ['PATH'] += '{0}::'.format(relabsrootfolder)    # insert for jar file
+os.environ['PATH'] += '{1}{0}{1}'.format(relabsrootfolder,os.path.pathsep)    # insert for jar file
 # insert modelicafolder too later and then import modelica2hsal if needed later
 
 import HSalRelAbsCons
@@ -54,7 +54,7 @@ def checkexe(filename, env_names, flags = None):
 
 def find_sal_exe():
     salinfbmc = 'sal-inf-bmc'
-    salinfbmc_nexe = checkexe(salinfbmc, ['PATH'], flags = None])
+    salinfbmc_nexe = checkexe(salinfbmc, ['PATH'], flags = None)
     salinfbmc_exe = checkexe(salinfbmc, ['PATH'], flags = ['-V'])
     if salinfbmc_exe != None:
         print "Using {0}".format(salinfbmc_exe)

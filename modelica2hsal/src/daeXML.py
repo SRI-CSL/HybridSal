@@ -598,18 +598,25 @@ def simplify0ITE(node):
                 done = False
                 print 'ITE ',
         # UNSOUND code: begin
+        '''
         else:
             then_xml = getArg(parentnode, 2)
             else_xml = getArg(parentnode, 3)
-            if not then_xml.tagName == 'number':
-                continue
-            if not else_xml.tagName == 'number':
-                continue
-            ans = (float(valueOf(then_xml)) + float(valueOf(else_xml)))/2.0
-            ans_xml = helper_create_tag_val('number', str(ans))
-            node = replace(parentnode, ans_xml, node)
-            done = False
-            print 'ITEx ',
+            if then_xml.tagName == 'number' and else_xml.tagName == 'number':
+              ans = (float(valueOf(then_xml)) + float(valueOf(else_xml)))/2.0
+              ans_xml = helper_create_tag_val('number', str(ans))
+              node = replace(parentnode, ans_xml, node)
+              done = False
+              print 'ITEx ',
+            elif then_xml.tagName in ['number', 'identifier']:
+              node = replace(parentnode, then_xml, node)
+              done = False
+              print 'ITExx ',
+            elif else_xml.tagName in ['number', 'identifier']:
+              node = replace(parentnode, else_xml, node)
+              done = False
+              print 'ITExx ',
+        '''
         # UNSOUND code: end
     return done
 
@@ -1805,7 +1812,7 @@ def simplifydaexml_old(dom1, filename, library = None):
     print 'cstate = {0}'.format(cstate)
     print 'dstate = {0}'.format(dstate)
     print '-------------Simplification: Expression Propagation starting......'
-    dom = SimplifyEqnsPhase4_simple(dom, cstate, dstate)
+    dom = SimplifyEqnsPhase4(dom, cstate, dstate)
     create_output_file(filename, dom, '.daexml3') 
     #print '-----------------------------------------------------------------'
     print '-------------Simplification: Expression propagation 4 over......'
@@ -1852,7 +1859,7 @@ def simplifydaexml(dom1, filename, library = None, ctxt = None):
         print '----------Simplification: Library Substitution over.......'
         print '----------Simplification: Expression Propagation starting..'
         (cstate, dstate) = ctxt if ctxt != None else get_cd_state(dom)
-        dom = SimplifyEqnsPhase4_simple(dom, cstate, dstate)
+        dom = SimplifyEqnsPhase4(dom, cstate, dstate)
         create_output_file(filename, dom, '.daexml3') 
         print '----------Simplification: Expression propagation over......'
         return simplifydaexml(dom, filename, library, (cstate,dstate))

@@ -434,6 +434,8 @@ def preprocessEqnNEW(eL,cstate,dstate):
         elif op=='^':
             print 'WARNING: ^ applied to polynomial. Unsound handling'
             return p
+        elif op in ['==', '<', '>', '<=', '>=']:	# ASHISH: New addition 04/08/14
+            return None
         else:
             assert False, 'Error: Unknown binary operator {0} applied on {1},{2}; cannot handle'.format(op, p, q)
     def polyrepUOp(op,p):
@@ -441,6 +443,8 @@ def preprocessEqnNEW(eL,cstate,dstate):
             for (x,c) in p.items():
                 p[x] = -c
             return p
+        elif op == 'not':
+            return None
         else:
             assert False, 'Error: Unknown unary operator {0}; cannot handle'.format(op)
     def expr2polyrep(e):
@@ -473,6 +477,8 @@ def preprocessEqnNEW(eL,cstate,dstate):
                 return expr2polyrep( getArg(e,3) )
             else:
                 return { e:1 }
+        elif e.tagName == 'INITIAL':	# ASHISH: 04/08/14 added
+            return None
         else:
             print 'unable to convert expr {0} to polyrep form'.format(e.toxml())
             assert False,'ERROR: Unable to convert expression to linear form'
@@ -1150,7 +1156,7 @@ def createPlant(state, ceqns, oeqns, iEqns = {}):
       values = expr.getElementsByTagName('number')
       val_names = [valueOf(i).strip() for i in values]
       val_names.sort()
-      str_val = ''.join(var_names).join(op_names).join(val_names)
+      str_val = ''.join(var_names[:10]).join(op_names[:10]).join(val_names[:10])
       sym_tab[xmlnode] = str_val
       return str_val
     def hash_it(case, symbol_table):
@@ -1203,9 +1209,14 @@ def createPlant(state, ceqns, oeqns, iEqns = {}):
         else:
             print 'Found unhandled operator {0} combining ITEs'.format(valueOf(op).strip())
             assert False, 'No other operator supported'
-        # print 'Unoptimized # case = {0}'.format(len(ans))
-        ans = collapse_cases(ans)
-        # print 'Optimized # case = {0}'.format(len(ans))
+        n_cases = len(ans)
+        # print 'Unoptimized # case = {0}'.format( n_cases )
+        if n_cases >= 100:
+          print 'WARNING: Too many cases, ignoring those more than 200'
+          ans = collapse_cases(ans[0:99]) 
+        else:
+          ans = collapse_cases(ans) 
+        print 'Optimized # case = {0}'.format(len(ans))
         return ans
     def expr2cexpr2( val ):
         if val.tagName == 'BAPP':

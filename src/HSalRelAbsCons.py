@@ -1079,6 +1079,7 @@ def hsal2hxml(filename):
             exefile = os.path.join(i, filename)
             if os.path.isfile(exefile):
                 return exefile
+        print 'Note: File {0} not found in PATH {1}.'.format(filename, exepaths)
         # also search in CLASSPATH -- for jar files
         if not os.environ.has_key('CLASSPATH'):
           print 'ERROR: File {0} not found in PATH {1}.'.format(filename, exepaths)
@@ -1089,7 +1090,7 @@ def hsal2hxml(filename):
             exefile = os.path.join(i, filename)
             if os.path.isfile(exefile):
                 return exefile
-        print 'ERROR: File {0} not found in PATH/CLASSPATH {1}.'.format(filename, exepaths)
+        print 'ERROR: File {0} not found in CLASSPATH {1}.'.format(filename, exepaths)
         return None
     def getexe():
         folder = os.path.split(inspect.getfile( inspect.currentframe() ))[0]

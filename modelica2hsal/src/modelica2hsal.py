@@ -26,12 +26,17 @@ Modelica.Blocks.Tables.CombiTable1D.getTableValue(table,icol,u,d) = mytable(u,ta
 Modelica.Blocks.Tables.CombiTable2D.getTableValue(table,u1,u2,d) = mytable2(u1,u2,table)
 Modelica.Blocks.Tables.CombiTable1D.tableIpo(table,icol,u)=mytable(u,table,icol)
 Modelica.Math.tempInterpol1(u,table,icol)=mytable(u,table,icol)
+Modelica.Blocks.Sources.CombiTimeTable.getNextTimeEvent(x,y,z) = y
+Modelica.Blocks.Sources.CombiTimeTable.getTableValue(x,y,z,u,v,w) = 12
+Modelica.Blocks.Sources.CombiTimeTable.getTableTimeTmin(x, y) = 0
+Modelica.Blocks.Sources.CombiTimeTable.getTableTimeTmax(x, y) = 1900
 max({{x, 1.0001}}) = 1.0001
 transpose(x) = x
 vector(x) = x
 real(x) = x
 sign(x) = x
 selector(x,y) = x[y]
+selector(x,y,z) = x[y][z]
 '''
 
 propStr = '''
