@@ -139,11 +139,15 @@ def main():
         print 'ERROR: Failed to parse HybridSal file. Quitting.'
         return -1
     try:
-        ans, prop_exists = HSalRelAbsCons.hxml2sal(xmlfilename, optarg=0, timearg=None, ptf=False)
+        ans_prop_exists = HSalRelAbsCons.hxml2sal(xmlfilename, optarg=0, timearg=None, ptf=False)
     except Exception, e:
         print e
         print 'ERROR: Relational abstracter can not abstract this model. Quitting.'
         return -1
+    if not isinstance(ans_prop_exists, tuple):
+        print 'ERROR: Relational abstracter failed to abstract this model. Quitting.'
+        return -1
+    (ans, prop_exists) = ans_prop_exists
     if not(type(ans) == str and os.path.isfile(ans) and os.path.getsize(ans) > 100):
         print 'ERROR: Failed to abstract HybridSal model into a SAL model. Quitting.'
         return -1
@@ -168,8 +172,9 @@ def main():
           f = open(result_filename, 'w')
         except Exception, e:
           print 'Failed to open file {0} for writing results'.format(result_filename)
-          print 'Results will be displaced on stdout'
-          f = sys.stdout
+          return -1
+          #print 'Results will be displaced on stdout'
+          #f = sys.stdout
         #hsal_file_path = hsal_file_path.replace('C:', '/c/')
         #os.environ['SALCONTEXTPATH'] = hsal_file_path + ':' + oldpath 
         #print 'SALCONTEXTPATH = ', os.environ['SALCONTEXTPATH']
@@ -188,13 +193,13 @@ def main():
         f.close()
         #print 'NOTE: Download and install SAL from sal.csl.sri.com'
     else:
-        print 'No property-context file was provided'
-        print 'For verifying the model, add a property in the generated SAL file'
+        print 'No LTL properties were provided'
+        print 'For verifying the model, add a property either in the Matlab model or in the translated SAL file directly'
         print 'Then, Use the command: sal-inf-bmc -d 4 <GeneratedSALFile> <propertyName added in generated SAL file>'
         return -1
     return 0
 
 if __name__ == "__main__":
-    main()
-    #pass
+    ret_code = main()
+    sys.exit(ret_code)
 
