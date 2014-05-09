@@ -1,3 +1,0 @@
-PropertyName: AbsenceProperty
-no counterexample between depths: [0, 10].
-~~~~~~~~~~
