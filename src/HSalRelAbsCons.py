@@ -1276,5 +1276,6 @@ def main():
     return ans
 
 if __name__ == '__main__':
-    main()
+    ret_code = main()
+    sys.exit( ret_code )
 
