@@ -872,8 +872,10 @@ def createReleaseExe(srcdir):
     #os.mkdir(distdir, 0755)
     # run python setup.py py2exe
     if (not isdir('dist') or not isfile(join('dist','hsalRA.exe'))) and (not isdir(distdir) or not isfile(join(distdir,'hsalRA.exe'))):
-        python26 = join('C:',os.path.sep,'Python26','python.exe')
-        subprocess.call([python26,'setup.py','py2exe'])
+        # python26 = join('C:',os.path.sep,'Python26','python.exe')
+        # subprocess.call([python26,'setup.py','py2exe'])
+        python27 = join('C:',os.path.sep,'Python27','python.exe')
+        subprocess.call([python27,'setup.py','py2exe'])
     if isdir('dist') and not isdir(distdir):
         os.rename('dist', distdir)
     assert isdir(distdir) and isfile(join(distdir,'hsalRA.exe'))

@@ -10,7 +10,7 @@ import xml.parsers.expat
 import sys
 import os.path
 import daexmlPP
-from pympler.asizeof import asizeof
+#from pympler.asizeof import asizeof
 
 TRUE = [ 'true', 'True' ]
 FALSE = [ 'false', 'False' ]
