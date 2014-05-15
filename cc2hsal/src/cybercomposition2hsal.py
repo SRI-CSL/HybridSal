@@ -906,7 +906,9 @@ def parse_SFunction(ins, outs, params, lines, subsystems, xmlnode):
       xmlnodes = getArgs(state_xml)
       transNode = find_node_attr_val(xmlnodes, '_id', dst_trans_id)
       init_state_id = transNode.getAttribute('dstTransition_end_')
-      init_state = find_magic(xmlnodes, '_id', init_state_id, 'name')
+      init_state_node = find_node_attr_val(xmlnodes, '_id', init_state_id)
+      init_state_xmlnode = find_magic(xmlnodes, '_id', init_state_id, 'name')
+      init_state = init_state_xmlnode.getAttribute( 'name')
       assert init_state != None, 'ERR: Dst of init transition not found'
       initialization[mode_var] = init_state
       actionStr = transNode.getAttribute('Action')
@@ -914,6 +916,9 @@ def parse_SFunction(ins, outs, params, lines, subsystems, xmlnode):
         actionStr += ';'
       cond_action_str = transNode.getAttribute('ConditionAction')
       actionStr += cond_action_str
+      if not actionStr.endswith(';'):
+        actionStr += ';'
+      actionStr += init_state_xmlnode.getAttribute('EnterAction')
       init_actions = parse_actions(actionStr, symtab, flag=False)
       initialization.update( init_actions )
       #print 'Stateflow init: {0} = {1}'.format(mode_var.name,init_state)
