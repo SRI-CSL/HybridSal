@@ -1199,7 +1199,7 @@
               <Simulink:SF_Parameter RefId="ID110" Value="double" _id="id598" name="ParamDataTypeStr" position="(-1,-1)"/>
             </Simulink:Primitive>
             <Simulink:Primitive BlockType="S-Function" Description="&lt;ltlProperties&gt;
-              &lt;ltlProperty expr=&quot;&lt;&gt;(!(gear_selected==5))&quot; name=&quot;AbsenceProperty&quot;/&gt;
+              &lt;ltlProperty expr=&quot;&lt;&gt;(!(gear_selected==5) U (gear_selected==3))&quot; name=&quot;AbsenceProperty&quot;/&gt;
               &lt;/ltlProperties&gt;" Name="SFunction" Priority="0" RefId="ID106" SampleTime="0" Tag="Stateflow S-Function SimplifiedShiftControllerXmdl2mga 1" UserData="" _id="id59B" name="SFunction" position="(-1,-1)">
               <Simulink:InputPort Number="4" RefId="ID120" _id="id5A4" name="In_4" position="(-1,-1)" srcLine="id588">
                 <Simulink:TypeBaseRef MemberIndex="0" _id="id5A5" name="int32" position="(-1,-1)" ref="id5F9"/>

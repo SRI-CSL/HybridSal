@@ -38,35 +38,61 @@ testStr3 = '''<?xml version=&quot;1.0&quot; encoding=&quot;UTF-8&quot; standalon
 
 def process_propStr(componentObj):
   '''Parse propstr - convert to SAL property'''
-  def match_brac_index( propstr, i):
+  def match_brac_index( propstr, i, leftbrac='(', rightbrac=')'):
     '''return index j s.t. propstr[j-1] is matching ')' for '(' at propstr[i+]'''
     start = i
     length = len(propstr)
     while start < length and propstr[start] == ' ' :
       start += 1
-    assert start < length and propstr[start] == '(', 'ERR: Expecting ( after <> in LTL property'
+    assert start < length and propstr[start] == leftbrac, 'ERR: Expecting {3} in LTL property {0} at index {1}+; but start={2}'.format(propstr,i,start,leftbrac)
     end, count = start + 1, 1
     while end < length and count > 0:
-      if propstr[end] == ')':
+      if propstr[end] == rightbrac:
         count = count - 1
-      elif propstr[end] == '(':
+      elif propstr[end] == leftbrac:
         count = count + 1
       end = end + 1
-    assert end <= length and propstr[end-1] == ')', 'ERR: Closing ) missing in LTL property'
+    assert end <= length and propstr[end-1] == rightbrac, 'ERR: Closing {0} missing in LTL property {1} at end position {2}'.format(rightbrac, propstr, end)
+    # The following is a hack for handling !(something) U (something)
+    if rightbrac == '(' and end < length and propstr[end] == '!':
+      end += 1
     return end
+  def remove_U(propstr, op):
+    '''replace (A U B) by U(A, B); op = U'''
+    def find_pos(propstr, op):
+      '''find index of op in propstr'''
+      tests = [ ' '+op+' ',  ')'+op+'(',  ')'+op+' ',  ' '+op+'(' ]
+      for test in tests:
+        i = propstr.find( test )
+        if i != -1:
+          return i + 1
+      return -1
+    pos = find_pos(propstr, op)
+    if pos == -1:
+      return propstr
+    # now pos points to the index of U in propstr
+    # print 'found op {0} at position {1} in {2}'.format( op, pos, propstr )
+    right_end = match_brac_index(propstr, pos+1, '(', ')') 
+    propstr_reverse = propstr[pos::-1]
+    left_begin = pos+1 - match_brac_index(propstr_reverse, 1, ')', '(')
+    ltlstr = '{0} {4}({1},{2}) {3}'.format(propstr[0:left_begin], propstr[left_begin:pos], propstr[pos+1:right_end], propstr[right_end:], op)
+    # print 'done ', ltlstr
+    return ltlstr
   def remove_F(propstr, ff, xx):
     ltlstr = propstr
     while ltlstr.find(ff) != -1:
       i = ltlstr.find(ff)
       i += len(ff)
-      j = match_brac_index( ltlstr, i )
-      newstr = '({1}{0} OR {1}({1}{0}) OR {1}({1}({1}{0})))'.format(ltlstr[i:j],xx)
+      j = match_brac_index( ltlstr, i, '(', ')' )
+      newstr = '({0} OR {1}{0} OR {1}({1}{0}) OR {1}({1}({1}{0})))'.format(ltlstr[i:j],xx)
       ltlstr = ltlstr[0:i-len(ff)] + newstr + ltlstr[j:]
     return ltlstr
   def ltl2sal( propstr ):
-    ltlstr = remove_F(propstr, '<>', 'X')
+    ltlstr = remove_U(propstr, 'U')
+    ltlstr = remove_U(ltlstr, 'W')
+    #ltlstr = remove_F(ltlstr, '<>', 'X')
     ltlstr = ltlstr.replace( '[]', 'G' )
-    #ltlstr = ltlstr.replace( '<>', 'F' )
+    ltlstr = ltlstr.replace( '<>', 'F' )
     ltlstr = ltlstr.replace( '&&', ' AND ' )
     ltlstr = ltlstr.replace( '||', ' OR ' )
     ltlstr = ltlstr.replace( '&', ' AND ' )
@@ -906,8 +932,8 @@ def parse_SFunction(ins, outs, params, lines, subsystems, xmlnode):
       xmlnodes = getArgs(state_xml)
       transNode = find_node_attr_val(xmlnodes, '_id', dst_trans_id)
       init_state_id = transNode.getAttribute('dstTransition_end_')
-      init_state_node = find_node_attr_val(xmlnodes, '_id', init_state_id)
-      init_state_xmlnode = find_magic(xmlnodes, '_id', init_state_id, 'name')
+      init_state_xmlnode = find_node_attr_val(xmlnodes, '_id', init_state_id)
+      # init_state_xmlnode = find_magic(xmlnodes, '_id', init_state_id, 'name')
       init_state = init_state_xmlnode.getAttribute( 'name')
       assert init_state != None, 'ERR: Dst of init transition not found'
       initialization[mode_var] = init_state
