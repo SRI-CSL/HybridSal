@@ -1095,13 +1095,15 @@ def parse_fmla(estr, symtab):
   if estr.find('||') != -1:
     pieces = estr.split('||')
     pieces = merge_splits( pieces, '||' )
-    ans = [ parse_fmla(i, symtab) for i in pieces ]
-    return Expr('OR', len(ans), ans)
+    if len(pieces) > 1:
+      ans = [ parse_fmla(i, symtab) for i in pieces ]
+      return Expr('OR', len(ans), ans)
   if estr.find('&&') != -1:
     pieces = estr.split('&&')
     pieces = merge_splits( pieces, '&&' )
-    ans = [ parse_fmla(i, symtab) for i in pieces ]
-    return Expr('AND', len(ans), ans)
+    if len(pieces) > 1:
+      ans = [ parse_fmla(i, symtab) for i in pieces ]
+      return Expr('AND', len(ans), ans)
   # if estr.find('=') != -1:
     # (lhs,rhs) = parse_eqn(estr, symtab)
     # return Expr('=', 2, [lhs, rhs])
