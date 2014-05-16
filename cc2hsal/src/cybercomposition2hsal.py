@@ -106,16 +106,19 @@ def process_propStr(componentObj):
     '''replace < by &lt; and > by &gt; in pstr's expr attribute'''
     i = pstr.find( 'expr' )
     assert i != -1, 'ERR: LTL property has no expr attribute?'
-    i = pstr.find( '"', i)
-    assert i != -1, 'ERR: LTL property has no expr attribute?'
-    j = pstr.find( '"', i+1)
-    assert j != -1, 'ERR: LTL property expr attribute is incomplete?'
-    expr = pstr[i:j+1]
-    expr = expr.replace( '&', '&amp;' )
-    expr = expr.replace( '<', '&lt;' )
-    expr = expr.replace( '>', '&gt;' )
-    ans = pstr[0:i] + expr + pstr[j+1:]
-    return ans
+    while i != -1:
+      i = pstr.find( '"', i)
+      assert i != -1, 'ERR: LTL property has no expr attribute?'
+      j = pstr.find( '"', i+1)
+      assert j != -1, 'ERR: LTL property expr attribute is incomplete?'
+      expr = pstr[i:j+1]
+      expr = expr.replace( '&', '&amp;' )
+      expr = expr.replace( '<', '&lt;' )
+      expr = expr.replace( '>', '&gt;' )
+      ans = pstr[0:i] + expr + pstr[j+1:]
+      pstr = ans
+      i = pstr.find( 'expr', j )
+    return pstr
   propStr = componentObj.prop
   if propStr == '':
     return propStr, []
