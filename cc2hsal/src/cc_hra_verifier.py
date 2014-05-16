@@ -98,6 +98,15 @@ def find_sal_exe():
     assert os.path.isfile(cygwinbash), "ERROR: {0} not found".format(cygwinbash)
     return [cygwinbash, '-li', salinfbmc]
 
+def get_prop_str( sal_file, prop_name ):
+  '''sal_file = relevant file content as string, prop_name = string'''
+  i = sal_file.find( prop_name )
+  if i == -1:
+    return 'Failed to get property string'
+  i = sal_file.find( '|-', i )
+  j = sal_file.find( ';', i )
+  return sal_file[ i+2: j]
+
 def printUsage():
     print '''
 cc_hra_verifier: A Verifier for CyberComposition models 
@@ -178,8 +187,19 @@ def main():
         #hsal_file_path = hsal_file_path.replace('C:', '/c/')
         #os.environ['SALCONTEXTPATH'] = hsal_file_path + ':' + oldpath 
         #print 'SALCONTEXTPATH = ', os.environ['SALCONTEXTPATH']
+        hsal_str = ''
+        with open(hsalfile, 'r') as hsal_fp:
+          old_pos = hsal_fp.tell()
+          line_str = hsal_fp.readline()
+          while line_str != '' and line_str.find('THEOREM') == -1:
+            old_pos = hsal_fp.tell()
+            line_str = hsal_fp.readline()
+          if line_str != '':  # if there are properties
+            hsal_fp.seek( old_pos )
+            hsal_str = hsal_fp.read()
         for p1 in propNameList:
           print >> f, 'PropertyName: {0}'.format(p1)
+          print >> f, 'PropertyStr: {0}'.format(get_prop_str(hsal_str,p1))
           f.flush()
           cmd = list(salinfbmcexe)
           cmd.extend(["-d", "10", hsal_file_path, p1])
