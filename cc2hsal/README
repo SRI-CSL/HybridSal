@@ -1,0 +1,29 @@
+
+Usage:
+
+
+python src/cybercomposition2hsal.py <filename.xml>
+
+where
+<filename.xml> = Name of the XML file generated from Simulink/Stateflow
+  using the Vanderbilt mdl2xml translater
+
+cybercomposition2hsal.py = Python script under src/ subdirectory
+
+Output is <filename.hsal> -- a HybridSal file that is a translation of
+the XML file
+
+Use the relational abstraction tool to analyze the hybridsal model.
+(see ../README)
+
+
+See also:
+
+python src/cybercomposition2hsal.py --help
+
+
+See also:
+
+Documents under doc/*.pdf
+
+Author: Ashish Tiwari (ashish.tiwari@sri.com)
