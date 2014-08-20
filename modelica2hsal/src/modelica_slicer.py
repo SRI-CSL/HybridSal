@@ -1,22 +1,26 @@
 import sys
 import os
-import ddae
 import xml.dom.minidom 
 
-# Notes: TODO
-# handling of kvars at line 356 - please improve
-# for all kvars; just print variablevalue pairs.
-# for all missing ones; raise an alarm
-# 5 Aug, 2014: Using only orderedVariables for creating slices...
-
+# Notes: 
+# 05 Aug, 2014: Using only orderedVariables for creating slices...
 # 17 Aug, 2014: initialEquations absent in slice -- fixed
 # 17 Aug, 2014: aliasVariables  absent in slice -- fixed
 
-# Notes for SLICER:
-# 2. Maintain equivalence class of variables
-#  if x+y=10 is an equation, then x,y are in the same class
-#  if dx/dt = x+y+z, then x points_to y,z
-# compute influence variables modulo equivalence...
+# Algorithm for SLICER:
+# Maintain equivalence class of variables
+#  if x+y=10 is an equation, then x,y are in the same class (UF data-struct)
+#  if dx/dt = x+y+z, then x points_to y,z (reliesOn data-struct)
+# slice = compute influence variables modulo equivalence
+
+# Usage:
+# Inside python call:
+#  modelica_slicer.modelica_slice_file(filename, varlist)
+#    where varlist = list of variable names (str)
+# Command line:
+#  python src/modelica_slicer.py examples/no_controls_dae.xml --slicewrt "driveLine.pTM_with_TC.torque_Converter_Lockup.clutch_lockup.phi_rel" > tmp.txt
+#
+#  python src/modelica_slicer.py  examples/SystemDesignTest-r663.xml  --slicewrt "driver_gear_select, shift_request_state, output_speed_torque_converter, input_speed_torque_converter, prndl" > tmp.txt
 
 # ----------------------------------------------------------------------
 # Union Find data structure
@@ -407,7 +411,8 @@ def modelicadom_slicer(modelicadom, varlist):
     # set kvars = all externalVariables + aliasVariables
     kvars = []
     tmp = getChildByTagName(variables, 'externalVariables')
-    kvars.extend( tmp.getElementsByTagName('variable') if tmp != None else [] )
+    extVars = tmp.getElementsByTagName('variable') if tmp != None else []
+    kvars.extend( extVars )
     tmp = getChildByTagName(variables, 'aliasVariables')
     aliases = tmp.getElementsByTagName('variable') if tmp != None else []
     kvars.extend( aliases )
@@ -474,6 +479,13 @@ def modelicadom_slicer(modelicadom, varlist):
     tmp = getChildByTagName(variables, 'knownVariables')
     kvars = tmp.getElementsByTagName('variable') if tmp != None else []
     (sliced_kv, rest2) = map_name_to_xml(other_v, kvars)
+    (sliced_ev, rest2) = map_name_to_xml(rest2, extVars)
+    sliced_kv.extend( sliced_ev )
+
+    # addTime if needed
+    if 'time' in rest2:
+      rest2.remove('time')
+      (sliced_v, slice_e) = addTime( modelicadom, sliced_v, slice_e )
 
     # check nothing is left out
     assert len(rest) == 0, 'Err: Rest has {0} elements: {1}'.format(len(rest), rest)
@@ -502,7 +514,7 @@ def argCheck(args, printUsage):
     return filename
 
 
-def addTime(dom2):
+def addTime(dom2, varlist, eqnlist):
     'add time as a new continuousState variable in the model'
     node = dom2.createElement('variable')
     node.setAttribute('name', 'time')
@@ -513,16 +525,11 @@ def addTime(dom2):
     node.setAttribute('fixed', 'false')
     node.setAttribute('flow', 'NonConnector')
     node.setAttribute('stream', 'NonStreamConnector')
-    orderedVars_varlists = getElementsByTagTagName(dom2, 'orderedVariables', 'variablesList')
-    assert orderedVars_varlists != None and len(orderedVars_varlists) > 0
-    orderedVars_varlist = orderedVars_varlists[0]
-    orderedVars_varlist.appendChild(node)
-    equations = dom2.getElementsByTagName('equations')
+    varlist.append( node )
     newequation = dom2.createElement('equation')
     newequation.appendChild( dom2.createTextNode('der(time) = 1') )
-    assert equations != None and len(equations) > 0
-    equations[0].appendChild(newequation)
-    return dom2
+    eqnlist.append( newequation )
+    return (varlist, eqnlist)
 
 def output_sliced_dom(slice_filename, sliced_e, slice_ie, sliced_v, other_v, dom):
   '''output XML in the given filename'''
@@ -560,14 +567,13 @@ def output_sliced_dom(slice_filename, sliced_e, slice_ie, sliced_v, other_v, dom
     print >> fp, '</dae>'
   print 'Created file {0}'.format( slice_filename )
 
-def modelica_slice_file(filename, options = []):
+def modelica_slice_file(filename, varlist):
     '''create a file base(filename)_slice.xml'''
     def existsAndNew(filename1, filename2):
         if os.path.isfile(filename1) and os.path.getctime(filename1) >= os.path.getctime(filename2):
             print "File {0} exists and is new".format(filename1)
             return True
         return False
-    assert '--slicewrt' in options, 'Error: Specify slice variables. {0}'.format(printUsage())
     basename,ext = os.path.splitext(filename)
     try:
         modelicadom = xml.dom.minidom.parse(filename)
@@ -579,13 +585,9 @@ def modelica_slice_file(filename, options = []):
         print 'Error: Input XML file is not well-formed'
         print 'Quitting', sys.exc_info()[0]
         sys.exit(-1)
-    if '--addTime' in options:
-        modelicadom = addTime(modelicadom)
-    print >> sys.stderr, 'Creating basename_slice.xml file......'
-    index = options.index('--slicewrt')
-    varlist = options[index+1].split(',')
     (sliced_e, sliced_v, other_v, slice_ie) = modelicadom_slicer(modelicadom, varlist)
     slice_filename = basename + '_slice.xml'
+    print >> sys.stderr, 'Creating file {0}...'.format(slice_filename)
     output_sliced_dom(slice_filename, sliced_e, slice_ie, sliced_v, other_v, modelicadom)
     #if not existsAndNew(slice_filename, filename):
       # Bug: slice created using different variables have same filename
@@ -597,7 +599,11 @@ def modelica_slice_file(filename, options = []):
 def main():
     global dom
     filename = argCheck(sys.argv, printUsage)
-    modelica_slice_file(filename, sys.argv[2:])
+    options = sys.argv[2:]
+    assert '--slicewrt' in options, 'Error: Specify slice variables. {0}'.format(printUsage())
+    index = options.index('--slicewrt')
+    varlist = options[index+1].split(',')
+    modelica_slice_file(filename, varlist)
 
 if __name__ == "__main__":
     main()

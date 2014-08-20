@@ -7,6 +7,11 @@ import daeXML		# daexml -> simplified daexml
 import daexmlPP
 import daexml2hsal	# daexml -> hsal
 import modelica2daexml
+import modelica_slicer
+
+# USAGE:
+# modelica2hsal(filename, prop_filename, options)
+# where options = ['--slicewrt', varlist, ...]
 
 libraryStr = '''
 Modelica.Fluid.Utilities.regStep(x,y1,y2,e) = if (x > e) then y1 else y2
@@ -123,6 +128,12 @@ def addTime(dom2):
     return dom2
 
 def modelica2hsal(filename, pfilename = None, options = []):
+    if '--slicewrt' in options:
+      index = options.index('--slicewrt')
+      varlist = options[index+1]
+      if type(varlist) != list:
+        varlist = varlist.split(',')
+      (filename,mdom) = modelica_slicer.modelica_slice_file(filename, varlist)
     (dom2, dom1, daexmlfilename) = modelica2daexml.modelica2daexml(filename,options)
     basename,ext = os.path.splitext(filename)
     print >> sys.stderr, 'Trying to simplify the Modelica model...'
