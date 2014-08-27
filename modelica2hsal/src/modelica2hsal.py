@@ -14,6 +14,13 @@ import modelica_slicer
 # where options = ['--slicewrt', varlist, ...]
 
 libraryStr = '''
+C2M2L_Decl.Interfaces.Context_Interfaces.Driver.PRNDL_Setting.Reverse = 1
+C2M2L_Decl.Interfaces.Context_Interfaces.Driver.PRNDL_Setting.Park = 2
+C2M2L_Decl.Interfaces.Context_Interfaces.Driver.PRNDL_Setting.Swim_Mode = 3
+C2M2L_Decl.Interfaces.Context_Interfaces.Driver.PRNDL_Setting.Neutral = 4
+C2M2L_Decl.Interfaces.Context_Interfaces.Driver.PRNDL_Setting.Neutral_Pivot = 5
+C2M2L_Decl.Interfaces.Context_Interfaces.Driver.PRNDL_Setting.Low = 6
+C2M2L_Decl.Interfaces.Context_Interfaces.Driver.PRNDL_Setting.Drive = 7
 Modelica.Fluid.Utilities.regStep(x,y1,y2,e) = if (x > e) then y1 else y2
 abs(x) = if (x >= 0) then x else -x 
 power(x,2) = x * x

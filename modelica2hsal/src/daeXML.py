@@ -4,6 +4,8 @@
 # 2013/08/23: Added SimplifyAC (x + c) - d ==> x + (c-d)
 # 2014/02/24: Important bug fixed in getMapping
 # 2014/04/01: ... substitute: var->expr if var in expr IGNORE!
+
+# 2014/08/26: WRITING dom = arrayselect2if(dom) --
  
 import xml.dom.minidom
 import xml.parsers.expat
@@ -725,6 +727,8 @@ def simplify0uapp(node):
             val = math.sin(float(arg1))
         elif func == 'log':
             val = math.log(float(arg1))
+        elif func == 'exp':
+            val = math.exp(float(arg1))
         elif func == 'Real' or func == 'real':
             val = float(arg1)
         elif func == 'sign':
@@ -1642,7 +1646,7 @@ def SubstituteLibraryFunctions(dom, library):
     def substituteFunction(dom, allfunctions):
         '''fs = list of (fname, fargs, fval) where 
         fname = string, fargs = list of EXPRS-XML, fval = a DOM element'''
-        tagNames = ['IDENTIFIER', 'UAPP', 'BAPP', 'TAPP', 'QAPP', 'NAPP']
+        tagNames = ['identifier', 'UAPP', 'BAPP', 'TAPP', 'QAPP', 'NAPP']
         partition = {0:[],1:[],2:[],3:[],4:[],5:[]}
         for (fname, fargs, fval) in allfunctions:
           arity = len(fargs) 
@@ -1847,6 +1851,7 @@ def simplifydaexml(dom1, filename, library = None, ctxt = None):
         print '----------Simplification: Library Substitution over.......'
         print '-------------Simplification: IF-lifting starting......'
         (cstate, dstate) = get_cd_state(dom)
+        # dom = arrayselect2if(dom)
         dom = SimplifyEqnsPhase5(dom, cstate, dstate)
         create_output_file(filename, dom, '.daexml4') 
         print '-------------Simplification: IF-lifting over..........'
