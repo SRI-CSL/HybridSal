@@ -6,6 +6,7 @@ import xml.dom.minidom
 # 05 Aug, 2014: Using only orderedVariables for creating slices...
 # 17 Aug, 2014: initialEquations absent in slice -- fixed
 # 17 Aug, 2014: aliasVariables  absent in slice -- fixed
+# 22 Aug, 2014: knownVars defined using other vars -- include them too!
 
 # Algorithm for SLICER:
 # Maintain equivalence class of variables
@@ -388,6 +389,41 @@ def map_name_to_xml( var_name_l, ovars):
 # ----------------------------------------------------------------------
 
 # ----------------------------------------------------------------------
+# knownVar may be defined using other vars! Include them too!
+# ----------------------------------------------------------------------
+def saturate_kvars( sliced_kv, sliced_kv_names, kvars ):
+  '''look at definition of kvar, find all vars in it, put them in'''
+  stack, rest = sliced_kv, []
+  while len(stack) != 0:
+    new_kvs = []
+    for v in stack:
+      new_kvs = saturate_one_kvar( v, sliced_kv_names, new_kvs )
+    (new_kv_xmls, rest3) = map_name_to_xml( new_kvs, kvars )
+    rest.extend( rest3 )
+    sliced_kv.extend( new_kv_xmls )
+    sliced_kv_names.extend( new_kvs )
+    stack = new_kv_xmls
+  return (sliced_kv, sliced_kv_names, rest)
+
+def saturate_one_kvar( var, sliced_kv_names, new_kvs ):
+  n = var.getAttribute('name')
+  bindvalexpr = getChildByTagName(var, 'bindValueExpression')
+  if bindvalexpr == None:
+    return new_kvs
+  bindexpr = getChildByTagName(bindvalexpr, 'bindExpression')
+  assert bindexpr != None, 'Err: No bindExpression in kvar {0}'.format(n)
+  mml = getChildByTagName(bindexpr, 'MathML')
+  assert mml != None, 'Err: No MathML in kvar {0}'.format(n)
+  ciL = mml.getElementsByTagName('ci')
+  varsL = [ valueOf(i).strip() for i in ciL ]
+  for vname in varsL:
+    if vname not in sliced_kv_names and vname not in new_kvs:
+      if not vname.startswith('Modelica.Blocks.Types'):
+        new_kvs.append( vname )
+  return new_kvs
+# ----------------------------------------------------------------------
+
+# ----------------------------------------------------------------------
 def modelicadom_slicer(modelicadom, varlist):
     '''dom = modelicaXML dom; varlist = variables wrt which slice
        output a tuple with sliced_e, sliced_v, etc.'''
@@ -482,6 +518,9 @@ def modelicadom_slicer(modelicadom, varlist):
     (sliced_ev, rest2) = map_name_to_xml(rest2, extVars)
     sliced_kv.extend( sliced_ev )
 
+    # knownVar may be defined using other vars! Include them too!
+    (sliced_kv, other_v, rest3) = saturate_kvars(sliced_kv, other_v, kvars)
+
     # addTime if needed
     if 'time' in rest2:
       rest2.remove('time')
@@ -490,6 +529,7 @@ def modelicadom_slicer(modelicadom, varlist):
     # check nothing is left out
     assert len(rest) == 0, 'Err: Rest has {0} elements: {1}'.format(len(rest), rest)
     assert len(rest2) == 0, 'Err:Rest2 has {0} elements: {1}'.format(len(rest2), rest2)
+    assert len(rest3) == 0, 'Err:Rest3 has {0} elements: {1}'.format(len(rest3), rest3)
 
     return ( slice_e, sliced_v, sliced_kv, slice_ie )
 
@@ -534,8 +574,7 @@ def addTime(dom2, varlist, eqnlist):
 def output_sliced_dom(slice_filename, sliced_e, slice_ie, sliced_v, other_v, dom):
   '''output XML in the given filename'''
   with open(slice_filename, 'w') as fp:
-    print >> fp, '''
-<?xml version="1.0" encoding="UTF-8"?>
+    print >> fp, '''<?xml version="1.0" encoding="UTF-8"?>
 <dae xmlns:p1="http://www.w3.org/1998/Math/MathML"
     xmlns:xlink="http://www.w3.org/1999/xlink" 
     xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" 
