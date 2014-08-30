@@ -46,6 +46,120 @@ def replace(node, newnode, root):
         # root = simplify(parentnode, newnode, root)
     return root
 
+# ----------------------------------------------------------------------
+# PolyRep representation
+# ----------------------------------------------------------------------
+class PolyRep:
+  def __init__(self, expr):
+    if e.tagName == 'identifier':
+      self.p = { valueOf(e).strip():1 }
+    elif e.tagName == 'number':
+      self.p = { None: float( valueOf(e)) }
+    elif e.tagName == 'der':
+      self.p = { (valueOf(getArg(e,1)).strip(),True):1 }
+    elif e.tagName == 'pre':
+      self.p = { (valueOf(getArg(e,1)).strip(),False):1 }
+    elif e.tagName == 'BAPP':
+      self.p = PolyRep( getArg(e,2) )
+      e2 = expr2polyrep( getArg(e,3) )
+      if self.p != None and e2 != None:
+        self.p.bop( valueOf(getArg(e,1)).strip(), e2 )
+      else:
+        self.p = None
+    elif e.tagName == 'UAPP':
+      self.p = PolyRep( getArg(e,2) )
+      if self.p != None:
+        self.p.uop( valueOf(getArg(e,1)).strip() )
+    elif e.tagName == 'IF':
+      c = getArg(e, 1)
+      if evalCond(c) == True:
+        self.p = PolyRep( getArg(e,2) )
+      elif evalCond(c) == False:
+        self.p = PolyRep( getArg(e,3) )
+      else:
+        self.p = { e:1 }
+    elif e.tagName == 'INITIAL':	# ASHISH: 04/08/14 added
+      self.p = None
+    else:
+      print 'unable to convert expr {0} to polyrep form'.format(e.toxml())
+      assert False,'ERROR: Unable to convert expression to linear form'
+
+    def get_monos(self):
+      return self.p.items()
+
+    def isc(self):
+      n = len(self.get_monos())
+      return n==0 or (n==1 and p.has_key(None))
+
+    def cval(self):
+      return self.p[None] if self.p.has_key(None) else 0
+
+    def bOp(self, op, q):
+      if op in ['+','-']:
+        for (x,c) in q.get_monos():
+          if self.p.has_key(x):
+            self.p[x] = self.p[x] + c if op=='+' else self.p[x]-c
+          else:
+            self.p[x] = c if op=='+' else -c
+          if self.p[x] == 0 and x != None:
+            self.p.pop(x)
+      elif op=='*':
+        if not(self.isc() or q.isc()):
+          print 'ERROR: Nonlinear expression found {0}*{1}'.format(polyrepPrint(p),polyrepPrint(q))
+          print 'ERROR: Nonlinear expression found. UNSOUND'
+
+        d = self.cval() if self.isc() else q.cval()
+        if d==0:
+          self.p = {None:0}
+          return self
+        monos = self.monos() if not self.isc() else q.monos()
+        for (x,c) in monos:
+          self.p[x] = c*d
+      elif op=='/':
+        if not q.isc():
+          print 'ERROR: Dividing by non-constant; cannot handle {0}/{1}'.format(p,q)
+          return p
+        d = q.cval()
+        for (x,c) in self.monos():
+          self.p[x] = c/d
+      elif op=='max' or op=='min':
+        print 'WARNING: Max/Min applied to polynomial. Unsound handling'
+      elif op=='>' or op=='>=':
+        print 'WARNING: >/>= applied to polynomial. Unsound handling'
+        self.p = None
+      elif op=='^':
+        print 'WARNING: ^ applied to polynomial. Unsound handling'
+      elif op in ['==', '<', '>', '<=', '>=']:	# ASHISH: New addition 04/08/14
+        self.p = None
+      else:
+        assert False, 'Error: Unknown binary operator {0} applied on {1},{2}; cannot handle'.format(op, p, q)
+
+    def uop(self, op):
+      if op == '-':
+        for (x,c) in self.monos():
+          self.p[x] = -c
+      elif op == 'not':
+        self.p = None
+      else:
+        assert False, 'Error: Unknown unary operator {0}; cannot handle'.format(op)
+
+    def polyrepPrint(self, ans = ''):
+      for (var,coeff) in self.monos():
+        if var == None:
+          ans += '+{0}'.format(coeff)
+        elif type(var) == str or type(var) == unicode:
+          ans += '+{0}*{1}'.format(coeff,var)
+        elif type(var) == tuple and var[1]:
+          ans += '+{0}*der({1})'.format(coeff,var[0])
+        elif type(var) == tuple and var[1] == False:
+          ans += '+{0}*pre({1})'.format(coeff,var[0])
+        else: # xmlnode
+          print type(var)
+          ans += '+{0}*{1}'.format(coeff, daexmlPP.ppExpr(var))
+      return ans
+# ----------------------------------------------------------------------
+
+# ----------------------------------------------------------------------
 def getPredsInConds(contEqns):
     '''get all predicates used in IF conditions.
     Return value is a dict: identifier-name to list of float-values
@@ -107,13 +221,13 @@ def getPredsInConds(contEqns):
                 return add2Preds(preds, (s11,name1,name2), val)
             else:
                 #assert False, 'MISSING BAPP CODE: Found {0} expression...'.format(daexmlPP.ppExpr(c))
-                print 'Warning: MISSING BAPP CODE: Found {0} expression...'.format(daexmlPP.ppExpr(c))
+                print 'Warning: MISSING BAPP CODE1: Found {0} expression...'.format(daexmlPP.ppExpr(c))
                 return preds	# CHECK here ASHISH Ashish
         elif s1 in ['>', '<'] and a2.tagName == 'number' and a1.tagName == 'number':
             return preds
         else:
             # assert False, 'MISSING BAPP CODE: Found {0} expression.'.format(daexmlPP.ppExpr(c))
-            print 'Warning: MISSING BAPP CODE: Found {0} expression.'.format(daexmlPP.ppExpr(c))
+            print 'Warning: MISSING BAPP CODE2: Found {0} expression.'.format(daexmlPP.ppExpr(c))
             return preds
     def getPredsInExpr(c, preds):
         # print 'entering', preds
@@ -203,13 +317,13 @@ def getPredsInCondsNEW(contEqns):
                 return add2Preds(preds, (s11,name1,name2), val)
             else:
                 #assert False, 'MISSING BAPP CODE: Found {0} expression...'.format(daexmlPP.ppExpr(c))
-                print 'Warning: MISSING BAPP CODE: Found {0} expression...'.format(daexmlPP.ppExpr(c))
+                print 'Warning: MISSING BAPP CODE3: Found {0} expression...'.format(daexmlPP.ppExpr(c))
                 return preds	# CHECK here ASHISH Ashish
         elif s1 in ['>', '<'] and a2.tagName == 'number' and a1.tagName == 'number':
             return preds
         else:
             # assert False, 'MISSING BAPP CODE: Found {0} expression.'.format(daexmlPP.ppExpr(c))
-            print 'Warning: MISSING BAPP CODE: Found {0} expression.'.format(daexmlPP.ppExpr(c))
+            print 'Warning: MISSING BAPP CODE4: Found {0} expression.'.format(daexmlPP.ppExpr(c))
             return preds
     def getPredsInExpr(c, preds):
         # print 'entering', preds
@@ -760,6 +874,20 @@ def expr2sal(node, flag=True):
         return 'IF ' + s1 + ' THEN ' + s2 + ' ELSE ' + s3 + ' ENDIF '
     elif node.tagName == 'set':
         assert False, 'expr2sal missing code for set'
+    elif node.tagName == 'arrayselect':
+        set1 = getArg(node, 1)
+        index = getArg(node, 2)
+        assert set1.tagName=='set', 'MISSING Code: {0}'.format(node.toprettyxml())
+        setCard = int(set1.getAttribute('cardinality'))
+        if setCard==1:
+          return expr2sal(getArg(set1,1))
+        if setCard==2:
+          indexStr = expr2sal(index, flag)
+          val1 = expr2sal(getArg(set1,1))
+          val2 = expr2sal(getArg(set1,2))
+          return 'IF ' + indexStr + ' = 1 THEN ' + val1 + ' ELSE ' + val2 + ' ENDIF '
+        print >> sys.stderr, 'Warning: MISSING Code: {0}'.format(node.toprettyxml())
+        return expr2sal(getArg(set1,1))
     else:
         print >> sys.stderr, 'MISSING CODE: Found {0} expression.'.format(node.tagName)
         print >> sys.stderr, 'MISSING CODE: {0}'.format(node.toprettyxml())

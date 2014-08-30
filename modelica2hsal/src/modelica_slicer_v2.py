@@ -70,24 +70,6 @@ def getChildByTagName(node,tag):
             return i
     return None
 
-def jsonfile2dict(filename):
-  '''Return the dict obtained by reading given JSON file'''
-  def remove_bad_chars(c):
-    return c if c not in bad_chars else ''
-  if not os.path.isfile(filename):
-    return {}
-  try:
-    import json
-    with open(filename, 'r') as fp:
-      jsondata = fp.read()
-      bad_chars = ['\n', '\r', '\\']
-      jsondata = ''.join(map(remove_bad_chars, jsondata))
-      d = json.loads(jsondata)
-      return d
-  except SyntaxError, e:
-    print 'Syntax error in JSON file ', e
-    sys.exit(-1)
-
 def set_union(a, b):
   for i in b:
     if i not in a:
@@ -178,6 +160,43 @@ class VInfo:
 # ----------------------------------------------------------------------
 
 # ----------------------------------------------------------------------
+# Variable Type: for each ordered_var, store info if it is context/plant?
+# ----------------------------------------------------------------------
+class VariableType:
+  def __init__(self, varlistlist, meta):
+    self.d = {}
+    print meta
+    for i in varlistlist:
+      self.update(i, meta)
+  def update(self, xml_vars, meta):
+    for i in xml_vars:
+      self.add(i, meta)
+  def add(self, vxml, meta):
+    vname = vxml.getAttribute('name')
+    classes = getChildByTagName(vxml, 'classesNames')
+    if classes == None:
+      print >> sys.stderr, 'Var {0} has no classes'.format(vname)
+      return
+    elmts = classes.getElementsByTagName('element')
+    elmt_names = [valueOf(i).strip() for i in elmts]
+    for i in elmt_names:
+      typ = json_get_type(meta, i)
+      if typ != None:
+        self.d[vname] = typ
+        return
+    print >> sys.stderr, 'Var {0} has no type'.format(vname) 
+    self.d[vname] = 'ContextModel'
+  def iscontext(self, vname):
+    return self.istypval(vname, 'ContextModel')
+  def isplant(self, vname):
+    return self.istypval(vname, 'PlantModel')
+  def istypval(self, vname, val):
+    if self.d.has_key(vname):
+      return (val == self.d[vname])
+    return False
+# ----------------------------------------------------------------------
+
+# ----------------------------------------------------------------------
 # Information about each Equation. Used for creating slice.
 # Dict: Equation XML to EDetails object
 # ----------------------------------------------------------------------
@@ -232,6 +251,11 @@ class TreeNode:
     return self.vname
   def add_child_label( self, chosen_e ):
     self.label = chosen_e
+    if chosen_e.e.tagName in ['equation','whenEquation']:
+      print 'Var {0}: {1}'.format(self.vname, valueOf(chosen_e.e))
+    else:
+      bindE = chosen_e.e.getElementsByTagName('bindExpression')[0]
+      print 'Var {0}: {1}'.format(self.vname, bindE.getAttribute('string'))
   def add_child( self, new_node ):
     self.children.append( new_node )
   def get_all_nodes_eqns(self, nodes, eqns, rest):
@@ -293,31 +317,36 @@ def pick_defining_equation( var_name, nxtL, currL, preL ):
      if v occurs as CURR as sole LHS var, then add that eqn and vars
      if v occurs as CURR in RHS and LHS is 0, then add that eqn and vars
      else: mark v as INPUT'''
-  print >> sys.stderr, 'For {0}: {1}, {2}, {3}'.format( var_name, len(nxtL), len(currL), len(preL))
+  #print >> sys.stderr, 'For {0}: {1}, {2}, {3}'.format( var_name, len(nxtL), len(currL), len(preL))
+  if vtype.iscontext( var_name ):
+    print >> sys.stderr, 'I',
+    return None
   if len(nxtL) == 1:
-    print 'For variable {0}, found dx/dt equation'.format(var_name)
+    print >> sys.stderr, 'd!',
     return nxtL[0]
   if len(nxtL) > 1:
-    print >> sys.stderr, 'Warning: {1} equations contain d{0}/dt'.format(var_name, len(nxtL))
-    print >> sys.stderr, 'Warning: Need more analysis. Picking arbitrarily.'
+    #print >> sys.stderr, 'Warning: {1} equations contain d{0}/dt'.format(var_name, len(nxtL))
+    print >> sys.stderr, 'd+',
     return nxtL[0]
   new_currL = []
   for e_info in currL:
     lhs_var = e_info.get_lhs_var()
     if lhs_var == var_name and len(e_info.get_nxt()) == 0:
-      print >> sys.stderr, 'found x = sth equation, checking...'
+      #print >> sys.stderr, 'found x = sth equation, checking...'
       del new_currL
       if black_list( e_info ):
+        print 'equation for {0} blacklisted'.format(var_name)
+        print >> sys.stderr, 'b',
         return None
-      print >> sys.stderr, 'Using {0} = sth equation'.format(var_name)
+      print >> sys.stderr, '=',
       return e_info
     elif lhs_var == None:
       new_currL.append( e_info )
     # else: equation defines some variable, so ignore it...
-  print >> sys.stderr, '{0} choices remaining'.format(len(new_currL))
+  #print >> sys.stderr, '{0} choices remaining'.format(len(new_currL))
   for e_info in new_currL:
     if len(e_info.get_nxt()) == 0:
-      print >> sys.stderr, 'Picking ', valueOf(e_info.e)
+      print >> sys.stderr, '=+',
       return e_info
   return None
 # ----------------------------------------------------------------------
@@ -348,8 +377,8 @@ def varbackwardsREC( todo_nodes, eInfo, vInfo, processed ):
           new_node = processed[vname]
           node.add_child( new_node )	# It is a DAG now
     else:
-      print >> sys.stderr, '{0}: No defining equation found'.format(node_name )
-      print >> sys.stderr, 'Assuming it is an INPUT'
+      print >> sys.stderr, 'F',
+      #print >> sys.stderr, '{0}: No defining eqn found, ass. input'.format(node_name)
   return
 
 def varbackwardsDS( varlist, eInfo, vInfo): 
@@ -358,7 +387,7 @@ def varbackwardsDS( varlist, eInfo, vInfo):
     nodes.append( TreeNode( v ) )
   todo_nodes, processed_nodes = list( nodes ), {}
   varbackwardsREC( todo_nodes, eInfo, vInfo, processed_nodes)
-  print >> sys.stderr 'varbackwardsDS terminated!!!!!'
+  print >> sys.stderr, 'varbackwardsDS terminated!!!!!'
   return nodes
 # ----------------------------------------------------------------------
 
@@ -442,16 +471,17 @@ def find_matching_vars( varlist, ovarl ):
 # Extend orderedVariables by their aliases before MATCHING.
 # ----------------------------------------------------------------------
 def extend_ovarl( ovarl, aliases ):
-  '''add alias names into ovarl'''
-  ans = []
+  '''ovarl = var_name_list, aliases = XML node-list; add alias names into ovarl'''
+  xmls = []
   for i in aliases:
     bind = i.getElementsByTagName('bindExpression')[0]
     ci = bind.getElementsByTagName('ci')[0]
     varname = valueOf(ci).strip()
     if varname in ovarl:
-      ans.append(i.getAttribute('name'))
+      xmls.append(i)
+  ans = [i.getAttribute('name') for i in xmls]
   ovarl.extend( ans )
-  return ovarl
+  return (ovarl, xmls)
 # ----------------------------------------------------------------------
 
 # ----------------------------------------------------------------------
@@ -563,11 +593,61 @@ def addTime(dom2, varlist, eqnlist):
 # ----------------------------------------------------------------------
 
 # ----------------------------------------------------------------------
+# Functions for JSON dict manipulation.
+# ----------------------------------------------------------------------
+def jsonfile2dict(filename):
+  '''Return the dict obtained by reading given JSON file'''
+  def remove_bad_chars(c):
+    return c if c not in bad_chars else ''
+  if not os.path.isfile(filename):
+    return {}
+  try:
+    import json
+    with open(filename, 'r') as fp:
+      jsondata = fp.read()
+      bad_chars = ['\n', '\r', '\\']
+      jsondata = ''.join(map(remove_bad_chars, jsondata))
+      d = json.loads(jsondata)
+      return consolidate(d)
+  except SyntaxError, e:
+    print 'Syntax error in JSON file ', e
+    sys.exit(-1)
+
+def project(d):
+  '''d[x] = d[x]["ModelType"]'''
+  for i in d.keys():
+    if d[i].has_key('ModelType'):
+      d[i] = d[i]['ModelType']
+    else: 
+      del d[i]
+  return d
+
+def consolidate(jsond):
+  '''get the three different dicts in jsond and merge them'''
+  d1 = {}
+  if jsond.has_key('InstanceMapping'):
+    d1.update( project(jsond['InstanceMapping'] ))
+  if jsond.has_key('ModelMapping'):
+    d1.update( project(jsond['ModelMapping'] ))
+  if jsond.has_key('ExtendsMapping'):
+    d1.update( project(jsond['ExtendsMapping'] ))
+  del jsond
+  return d1
+
+def json_get_type(jsond, var_name):
+  if jsond.has_key(var_name):
+    return jsond[var_name]
+  return None
+# ----------------------------------------------------------------------
+
+# ----------------------------------------------------------------------
 # The two main functions... slice and then output to file.
 # ----------------------------------------------------------------------
 def modelicadom_slicer(modelicadom, varlist, meta={}):
     '''dom = modelicaXML dom; varlist = variables wrt which slice
-       output a tuple with sliced_e, sliced_v, etc.'''
+       output a tuple with sliced_e, sliced_v, etc. 
+       Optional arg meta = dict corresponding to the META-X JSON file
+    '''
     ctxt = modelicadom.getElementsByTagName('dae')[0]
     variables = getChildByTagName(ctxt, 'variables')
     equations = getChildByTagName(ctxt, 'equations')
@@ -592,7 +672,12 @@ def modelicadom_slicer(modelicadom, varlist, meta={}):
     kvars.extend( aliases )
 
     ## set ovarl = ordered_variable_list + their aliases
-    ovarl = extend_ovarl( ovarl, aliases )
+    ovarl, alias_xmls = extend_ovarl( ovarl, aliases )
+
+    # Variable Type: Context/Plant/Controller, is it good or black-listed?
+    global vtype
+    vtype = VariableType([ovars, alias_xmls], meta)
+    print vtype.d
 
     # Map given varlist to the ones we know in ovarl
     varlist = find_matching_vars( varlist, ovarl )
@@ -608,10 +693,8 @@ def modelicadom_slicer(modelicadom, varlist, meta={}):
     other_v = sliced_kv
     slice_e = sliced_e
 
-    print >> sys.stderr, 'sliced_v is '
-    print >> sys.stderr, sliced_v
-    print >> sys.stderr, 'other_v obtained from vars(sliced_e) - sliced_v '
-    print >> sys.stderr, other_v
+    print >> sys.stderr, 'len(sliced_v) = {0}'.format(len(sliced_v))
+    print >> sys.stderr, 'len(other_v) = {0}'.format(len(other_v))
 
     # get all relevant initial Equations the same way...
     init_equations = getChildByTagName(ctxt, 'initialEquations')
@@ -621,8 +704,7 @@ def modelicadom_slicer(modelicadom, varlist, meta={}):
       other_v = set_union(other_v, other_v1)
     else:
       slice_ie = []
-    print >> sys.stderr, 'other_v after processing init equations'
-    print >> sys.stderr, other_v
+    print >> sys.stderr, '{0} other_v after processing inits'.format(len(other_v))
 
     # sliced_v -> name -> XML map using ovars
     (sliced_v, rest) = map_name_to_xml( sliced_v, ovars)
