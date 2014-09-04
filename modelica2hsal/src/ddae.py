@@ -19,7 +19,6 @@ from xml.dom.minidom import getDOMImplementation
 import sys
 import os.path
 import pprint
-from ModelicaXML import getArg
 
 # ------------------------------------------------------------------
 # /* LIBRARY Source Text */
@@ -312,6 +311,15 @@ def d_equation(s, nodes):
     "equation: expression '=' expression"
     # print 'equation for {0} processed'.format(s[0].toprettyxml())
     return helper_create_app('equation', [s[0], s[2]], nodes[0].start_loc)
+
+def getArg(node,index):
+    j = 0
+    for i in node.childNodes:
+        if (i.nodeType == i.ELEMENT_NODE):
+            j = j+1
+            if j == index:
+                return(i)
+    return None
 
 def helper_create_app(tag, childs, position = None, arity = None):
     global dom

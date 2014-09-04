@@ -1,13 +1,15 @@
 import sys
 import os
 import xml.dom.minidom
-import ModelicaXML	# modelica -> dae
 import ddae		# dae -> daexml
 import daeXML		# daexml -> simplified daexml
-import daexmlPP
 import daexml2hsal	# daexml -> hsal
 import modelica2daexml
 import modelica_slicer
+
+#Outdated: before we used to go from modelica to daexml via dae
+#import ModelicaXML	# modelica -> dae
+#import daexmlPP
 
 # USAGE:
 # modelica2hsal(filename, prop_filename, options)
