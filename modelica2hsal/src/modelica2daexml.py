@@ -4,11 +4,24 @@ import ddae
 import xml.dom.minidom 
 
 # Notes: TODO
-# handling of kvars at line 356 - please improve
-# for all kvars; just print variablevalue pairs.
-# for all missing ones; raise an alarm
-# 
+# Sep 3, 2014: Initializations included for all ovars....
+# Sep 3, 2014: trackPreserve attribute is carried forward
 
+# -------------------------------------------------------------------
+# Usage: Via python call
+# -------------------------------------------------------------------
+# modelica2daexml(modelicaXML_filename, options = [])
+# options in '--addTime' or '--removeTime'
+# Returns (modelicadom, daexml-dom, daexmlfilename)
+#
+# Warning: Do not use "modelicadom2daexml(modelicadom)"
+# since it does not convert the MathML to my localXML
+# LocalXML is used by the simplifier later on.
+# -------------------------------------------------------------------
+
+# -------------------------------------------------------------------
+# Usage: Command-line
+# -------------------------------------------------------------------
 def printUsage():
     print '''
 modelica2daexml -- a converter from Modelica to internal daexml file
@@ -17,6 +30,7 @@ Usage: python src/modelica2daexml.py <modelica_file.xml> [--addTime|--removeTime
 
 Description: This will create a file called modelica_file.daexml
     '''
+# -------------------------------------------------------------------
 
 # -------------------------------------------------------------------
 # Helper functions
@@ -89,6 +103,7 @@ def helper_collect_child(node, base=0):
 
 # -------------------------------------------------------------------
 # mathml2localxml
+# -------------------------------------------------------------------
 def mathml2localxml(dom1):
     "dom1 = daexml DOM that uses MathML; rewrite mathml to my local XML on which simplifier works"
     mmls = dom1.getElementsByTagName('MathML')
@@ -228,9 +243,10 @@ def mlapply2myexpr(mle):
 
 def wrap_in_mathml(node):
     return helper_create_app('MathML', [helper_create_app('math',[node])])
-
 # -------------------------------------------------------------------
 
+# -------------------------------------------------------------------
+# REC apply: <MathML><math><expr></math></MathML> --> <expr>
 # -------------------------------------------------------------------
 def remove_nested_mathml(node, parentnode):
     '''in place removal; destructive operator'''
@@ -311,6 +327,10 @@ def getInitialValue(node):
         return None
     return getMathMLclone(ival[0], ival[0].getAttribute('string'))
 
+# -------------------------------------------------------------------
+# Get value of a variable, if possible, from its bindExpression
+# Used to create variable=value equations in daexml DOM
+# -------------------------------------------------------------------
 def getVariableValue(var, tags = ['bindExpression', 'initialValue']):
     "return value of the variable by looking at different places"
     # tags = [ 'bindExpression', 'initialValue' ]
@@ -325,7 +345,11 @@ def getVariableValue(var, tags = ['bindExpression', 'initialValue']):
         one = helper_create_tag_val('cn','1')
         return (wrap_in_mathml(one), False)
     return (None, False)
+# -------------------------------------------------------------------
 
+# -------------------------------------------------------------------
+# Modelica Var-xml list --> (variablevalue-list, rest-list)
+# -------------------------------------------------------------------
 def printFixedParametersNew(varList, tags=['bindExpression']):
     "return a list of variablevalue daexml-nodes"
     ans = []
@@ -339,10 +363,16 @@ def printFixedParametersNew(varList, tags=['bindExpression']):
             var = helper_create_tag_val('identifier',name)
             varval = helper_create_app('variablevalue', [var, value])
             varvals.append(varval)
+            if i.getAttribute('trackPreserve')=='1':
+              varval.setAttribute('trackPreserve', '1')
         else:
             ans.append(i)
     return (varvals, ans)
+# -------------------------------------------------------------------
 
+# -------------------------------------------------------------------
+# Same as above, but it is applied to ordered-variables.
+# -------------------------------------------------------------------
 def printFixedParameters(varList, varTypeList, valueTagList):
     "return a list of variablevalue daexml-nodes"
     ans = []
@@ -359,11 +389,17 @@ def printFixedParameters(varList, varTypeList, valueTagList):
                 var = helper_create_tag_val('identifier',name)
                 varval = helper_create_app('variablevalue', [var, value])
                 varvals.append(varval)
+                if i.getAttribute('trackPreserve')=='1':
+                  varval.setAttribute('trackPreserve', '1')
                 # print >> fp, '{0} = {1}'.format(name, value)
             else:
                 ans.append(name)
     return (varvals, ans)
+# -------------------------------------------------------------------
 
+# -------------------------------------------------------------------
+# This hack function is not used.
+# -------------------------------------------------------------------
 def printFixedParametersZero(varList):
     '''This is a hack. Set remaining params to ZERO'''
     ans = []
@@ -378,7 +414,11 @@ def printFixedParametersZero(varList):
         varvals.append(varval)
         # print >> fp, '{0} = 0'.format(i)
     return (varvals,ans)
+# -------------------------------------------------------------------
 
+# -------------------------------------------------------------------
+# Extract value from algorithm
+# -------------------------------------------------------------------
 def getVarValFromAlgo( simpleEquations, leftOutVars1 ):
     if simpleEquations == None or len(simpleEquations) == 0:
         return ([], leftOutVars1 )
@@ -407,7 +447,11 @@ def getVarValFromAlgo( simpleEquations, leftOutVars1 ):
             done_vars.append( dangling_var )
     leftOutVars = [ i for i in leftOutVars1 if i not in done_vars ]
     return (varvals, leftOutVars)
+# -------------------------------------------------------------------
 
+# -------------------------------------------------------------------
+# Main function to convert modelicaDOM to daexml-DOM
+# -------------------------------------------------------------------
 def modelicadom2daexml(modelicadom):
     "dom = modelicaXML dom; output daexml DOM... WITH MathMLs now"
     global dom
@@ -444,33 +488,34 @@ def modelicadom2daexml(modelicadom):
             statevars.append(newvar)
     discreteState = helper_create_app('discreteState', statevars, None, len(statevars))
     # print 'discreteState XML creation done............'
-    # print constants or parameters with their values
-    # print >> fp, '#####{0}'.format('knownVariables')
+
+    # Now collect variable=value expressions from knownVariables
     (vv1,leftOutVars1) = printFixedParametersNew(kvars)
     if len(leftOutVars1) > 0:
-        print 'Note: {0} known variable do not have a bindExpression; for e.g., {1}. Trying initialValue'.format(len(leftOutVars1), leftOutVars1[0].getAttribute('name'))
-        print 'Using initialValue as the values for these kvars'
+        print >> sys.stderr, 'Note: {0} known variable do not have a bindExpression; for e.g., {1}. Trying initialValue'.format(len(leftOutVars1), leftOutVars1[0].getAttribute('name'))
         (vv2,leftOutVars1) = printFixedParametersNew(leftOutVars1, ['initialValue'])
         vv1.extend(vv2)
-    #(vv2,leftOutVars1) = printFixedParametersZero(leftOutVars1)
-    #(vv3,leftOutVars1)  = printFixedParameters(kvars, ['continuous'])
     if len(leftOutVars1) > 0:
-        print 'Note: {0} known vars have no bind expr and no initialValue; for e.g., {1}'.format(len(leftOutVars1),leftOutVars1[0].getAttribute('name'))
-        print 'Trying to find bindExpression from initialEquations section'
+        print >> sys.stderr, 'Note: {0} known vars have no bind expr and no initialValue; for e.g., {1}'.format(len(leftOutVars1),leftOutVars1[0].getAttribute('name'))
+        print >> sys.stderr, 'Trying to find bindExpression from initialEquations section'
         simpleEquations = ctxt.getElementsByTagName('initialEquations')
         (vv3,leftOutVars1) = getVarValFromAlgo( simpleEquations, leftOutVars1 )
-        print 'Found values from initialEquations for {0} vars'.format(len(vv3))
         vv1.extend(vv3)
     if len(leftOutVars1) > 0:
-        print 'WARNING: {0} known vars have NO bindexpr/initialValue/initialEquation; for e.g., {1}'.format(len(leftOutVars1),leftOutVars1[0].getAttribute('name'))
-    # TODO: the following line is NOT SOUND.....
+        print >> sys.stderr, 'WARNING: {0} known vars have NO bindexpr/initialValue/initialEquation; for e.g., {1}'.format(len(leftOutVars1),leftOutVars1[0].getAttribute('name'))
+    # vv1 = all variable-value pairs from knownVariables
+
+    # Collect variable=value expressions from orderedVariables
     (vv4, leftOutVars)  = printFixedParameters(ovars, ['continuous'],['bindExpression'])
     leftOutVars.extend(leftOutVars1)
     print 'Note: {0} ordered vars have bind exprs; {1} ordered vars remaining now...'.format(len(vv4),len(leftOutVars))
     #vv1.extend(vv2)
     #vv1.extend(vv3)
     vv1.extend(vv4)
-    # 
+    # vv1 = all variable-value pairs from kvars and ovars
+    # leftOutVars = all ovars+kvars that are not= anything so far.
+
+    # Extract variable=value from the equations
     assert equations != None, 'No Equations found in input XML file!!'
     equationL = equations.getElementsByTagName('equation')
     eqns = []
@@ -487,24 +532,36 @@ def modelicadom2daexml(modelicadom):
             var = helper_create_tag_val('identifier', lhs)
             rhs = wrap_in_mathml(rhs)
             varval = helper_create_app('variablevalue', [var, rhs])
+            if i.getAttribute('trackPreserve')=='1':
+              varval.setAttribute('trackPreserve', '1')
             vv1.append(varval)
         else:
             eqns.append( val )
     print 'Note: Found {0} var=val equations'.format(len(equationL)-len(eqns))
+    # Now vv1 = all var-value pairs, eqns = remaining equations
+
+    # In daexml dom, put all of vv1
     knownVariables = helper_create_app('knownVariables', vv1, None, len(vv1))
     knownVariables.setAttribute('arity',str(len( vv1 )))
     # print 'knownVariables XML creation done............'
+
+    # Add whenEquation to eqns
     equationL = equations.getElementsByTagName('whenEquation')
     for i in equationL:
         (val, lhsrhs) = getMathMLcloneEqn( i, valueOf(i) )
         eqns.append( val )
+
+    # In daexml dom, put all of eqns
     # print >> fp, '#####equations'
     equations = helper_create_app('equations', eqns, None, len(eqns))
     equations.setAttribute('arity',str(len( eqns )))
     # print 'Equation XML creation done............'
     # print >> fp, '#####initializations'
+
+    # var=val and eqns have been added to the DOM. Now, get inits
     inits = []
-    for node in statevars:
+    # for node in statevars:
+    for node in ovars:
         val0 = getInitialValue(node)
         if val0 != None:
             initid = helper_create_tag_val('initidentifier', node.getAttribute('name'))
@@ -513,11 +570,17 @@ def modelicadom2daexml(modelicadom):
             #print >> fp, '{0} = {1}'.format(node.getAttribute('name'), val0)
     initializations = helper_create_app('initializations', inits, None, len(inits))
     #print 'Initializations XML creation done............'
+
+    # Now, var=val, eqns, and inits have been added to the daexml DOM
     allnodes = [continuousState, discreteState, knownVariables, equations, initializations]
     ans = helper_create_app('source_text', allnodes)
     dom.documentElement.appendChild(ans)
     return dom
+# -------------------------------------------------------------------
 
+# -------------------------------------------------------------------
+# argcheck function
+# -------------------------------------------------------------------
 def argCheck(args, printUsage):
     "args = sys.argv list"
     if not len(args) >= 2:
@@ -586,6 +649,9 @@ def removeTime(dom1):
             Eqn.removeChild(e)
     return dom1
 
+# -------------------------------------------------------------------
+# Main function -- from filename now.
+# -------------------------------------------------------------------
 def modelica2daexml(filename, options = []):
     def existsAndNew(filename1, filename2):
         if os.path.isfile(filename1) and os.path.getctime(filename1) >= os.path.getctime(filename2):
@@ -624,6 +690,7 @@ def modelica2daexml(filename, options = []):
             print 'Model not supported: Unable to handle some expressions currently'
             sys.exit(-1)
     return (modelicadom, dom1, daexmlfilename)
+# -------------------------------------------------------------------
 
 if __name__ == "__main__":
     main()

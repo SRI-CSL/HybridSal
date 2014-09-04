@@ -1531,6 +1531,9 @@ def SimplifyEqnsPPDaeXML(dom, cstate, dstate, options, filepointer=sys.stdout):
     '''perform substitutions in the dom; output new dom'''
     knownVars = dom.getElementsByTagName('knownVariables')[0]
     eqns = dom.getElementsByTagName('equations')[0]
+    initsL = dom.getElementsByTagName('initializations')
+    inits = initsL[0] if initsL != None and len(initsL) > 0 else None
+
     # alleqns = eqns.getElementsByTagName('equation')
     # substitute values for vars in alleqns
     # find all 'identifier nodes' in eqns...replace it by
@@ -1538,6 +1541,7 @@ def SimplifyEqnsPPDaeXML(dom, cstate, dstate, options, filepointer=sys.stdout):
     done = False
     newknownvars = knownVars
     neweqns = eqns
+    newinits = inits
     ppdebug(dom, 'Simplification Phase 0.0 over...printing {0} equations...')
     # options = ['number', 'identifier', 'set', 'string']
     while not done:
@@ -1563,6 +1567,8 @@ def SimplifyEqnsPPDaeXML(dom, cstate, dstate, options, filepointer=sys.stdout):
         if len(mapping) > 0:
             newknownvars = substitute(newknownvars, mapping)
             neweqns = substitute(neweqns, mapping)
+            if newinits != None:
+              newinits = substitute(newinits, mapping)
             # print 'eqns...'
             # ppEquations(neweqns.getElementsByTagName('equation'))
             done = False
@@ -1585,6 +1591,8 @@ def SimplifyEqnsPPDaeXML(dom, cstate, dstate, options, filepointer=sys.stdout):
         ppdebug(dom, 'Simplification Phase 0.6 over......')
     dom = replace(knownVars, newknownvars, dom)
     dom = replace(eqns, neweqns, dom)
+    if newinits != None:
+      dom = replace(inits, newinits, dom)
     return dom
 '''
     mapping = {}

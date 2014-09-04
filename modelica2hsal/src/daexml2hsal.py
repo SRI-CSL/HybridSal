@@ -2,6 +2,7 @@
 # I will maintain a global list of modesa
 # Todo: line 633
 # Sep 05, 2013: TODO: Avoid blowup in applyOp function. 
+# Sep 03, 2014: Bug fixed-- initializations were being ignored!
 
 import xml.dom.minidom
 import xml.parsers.expat
@@ -10,6 +11,7 @@ import os.path
 import daexmlPP
 import ddae
 import HSalXMLPP
+import re
 
 def valueOf(node):
     """return text value of node"""
@@ -50,7 +52,7 @@ def replace(node, newnode, root):
 # PolyRep representation
 # ----------------------------------------------------------------------
 class PolyRep:
-  def __init__(self, expr):
+  def __init__(self, e):
     if e.tagName == 'identifier':
       self.p = { valueOf(e).strip():1 }
     elif e.tagName == 'number':
@@ -60,22 +62,26 @@ class PolyRep:
     elif e.tagName == 'pre':
       self.p = { (valueOf(getArg(e,1)).strip(),False):1 }
     elif e.tagName == 'BAPP':
-      self.p = PolyRep( getArg(e,2) )
-      e2 = expr2polyrep( getArg(e,3) )
-      if self.p != None and e2 != None:
-        self.p.bop( valueOf(getArg(e,1)).strip(), e2 )
+      e1 = PolyRep( getArg(e,2) )
+      e2 = PolyRep( getArg(e,3) )
+      if e1.p != None and e2.p != None:
+        self.p = e1.p
+        self.bOp( valueOf(getArg(e,1)).strip(), e2 )
       else:
         self.p = None
     elif e.tagName == 'UAPP':
-      self.p = PolyRep( getArg(e,2) )
+      e1 = PolyRep( getArg(e,2) )
+      self.p = e1.p
       if self.p != None:
-        self.p.uop( valueOf(getArg(e,1)).strip() )
+        self.uOp( valueOf(getArg(e,1)).strip() )
     elif e.tagName == 'IF':
       c = getArg(e, 1)
       if evalCond(c) == True:
-        self.p = PolyRep( getArg(e,2) )
+        e1 = PolyRep( getArg(e,2) )
+        self.p = e1.p
       elif evalCond(c) == False:
-        self.p = PolyRep( getArg(e,3) )
+        e2 = PolyRep( getArg(e,3) )
+        self.p = e2.p
       else:
         self.p = { e:1 }
     elif e.tagName == 'INITIAL':	# ASHISH: 04/08/14 added
@@ -84,79 +90,91 @@ class PolyRep:
       print 'unable to convert expr {0} to polyrep form'.format(e.toxml())
       assert False,'ERROR: Unable to convert expression to linear form'
 
-    def get_monos(self):
-      return self.p.items()
+  def get_monos(self):
+    return self.p.items()
 
-    def isc(self):
-      n = len(self.get_monos())
-      return n==0 or (n==1 and p.has_key(None))
+  def isc(self):
+    n = len(self.get_monos())
+    return n==0 or (n==1 and self.p.has_key(None))
 
-    def cval(self):
-      return self.p[None] if self.p.has_key(None) else 0
+  def cval(self):
+    return self.p[None] if self.p.has_key(None) else 0
 
-    def bOp(self, op, q):
-      if op in ['+','-']:
-        for (x,c) in q.get_monos():
-          if self.p.has_key(x):
-            self.p[x] = self.p[x] + c if op=='+' else self.p[x]-c
-          else:
-            self.p[x] = c if op=='+' else -c
-          if self.p[x] == 0 and x != None:
-            self.p.pop(x)
-      elif op=='*':
-        if not(self.isc() or q.isc()):
-          print 'ERROR: Nonlinear expression found {0}*{1}'.format(polyrepPrint(p),polyrepPrint(q))
-          print 'ERROR: Nonlinear expression found. UNSOUND'
+  def bOp(self, op, q):
+    if op in ['+','-']:
+      for (x,c) in q.get_monos():
+        if self.p.has_key(x):
+          self.p[x] = self.p[x] + c if op=='+' else self.p[x]-c
+        else:
+          self.p[x] = c if op=='+' else -c
+        if self.p[x] == 0 and x != None:
+          self.p.pop(x)
+    elif op=='*':
+      if not(self.isc() or q.isc()):
+        print 'ERROR: Nonlinear expression found {0}*{1}'.format(polyrepPrint(p),polyrepPrint(q))
+        print 'ERROR: Nonlinear expression found. UNSOUND'
 
-        d = self.cval() if self.isc() else q.cval()
-        if d==0:
-          self.p = {None:0}
-          return self
-        monos = self.monos() if not self.isc() else q.monos()
-        for (x,c) in monos:
-          self.p[x] = c*d
-      elif op=='/':
-        if not q.isc():
-          print 'ERROR: Dividing by non-constant; cannot handle {0}/{1}'.format(p,q)
-          return p
-        d = q.cval()
-        for (x,c) in self.monos():
-          self.p[x] = c/d
-      elif op=='max' or op=='min':
-        print 'WARNING: Max/Min applied to polynomial. Unsound handling'
-      elif op=='>' or op=='>=':
-        print 'WARNING: >/>= applied to polynomial. Unsound handling'
-        self.p = None
-      elif op=='^':
-        print 'WARNING: ^ applied to polynomial. Unsound handling'
-      elif op in ['==', '<', '>', '<=', '>=']:	# ASHISH: New addition 04/08/14
-        self.p = None
-      else:
-        assert False, 'Error: Unknown binary operator {0} applied on {1},{2}; cannot handle'.format(op, p, q)
+      d = self.cval() if self.isc() else q.cval()
+      if d==0:
+        self.p = {None:0}
+        return self
+      monos = self.get_monos() if not self.isc() else q.get_monos()
+      for (x,c) in monos:
+        self.p[x] = c*d
+    elif op=='/':
+      if not q.isc():
+        print 'ERROR: Dividing by non-constant; cannot handle {0}/{1}'.format(p,q)
+        return p
+      d = q.cval()
+      for (x,c) in self.get_monos():
+        self.p[x] = c/d
+    elif op=='max' or op=='min':
+      print 'WARNING: Max/Min applied to polynomial. Unsound handling'
+    elif op=='>' or op=='>=':
+      print 'WARNING: >/>= applied to polynomial. Unsound handling'
+      self.p = None
+    elif op=='^':
+      print 'WARNING: ^ applied to polynomial. Unsound handling'
+    elif op in ['==', '<', '>', '<=', '>=']:	# ASHISH: New addition 04/08/14
+      self.p = None
+    else:
+      assert False, 'Error: Unknown binary operator {0} applied on {1},{2}; cannot handle'.format(op, p, q)
 
-    def uop(self, op):
-      if op == '-':
-        for (x,c) in self.monos():
-          self.p[x] = -c
-      elif op == 'not':
-        self.p = None
-      else:
-        assert False, 'Error: Unknown unary operator {0}; cannot handle'.format(op)
+  def uOp(self, op):
+    if op == '-':
+      for (x,c) in self.get_monos():
+        self.p[x] = -c
+    elif op == 'not':
+      self.p = None
+    else:
+      assert False, 'Error: Unknown unary operator {0}; cannot handle'.format(op)
 
-    def polyrepPrint(self, ans = ''):
-      for (var,coeff) in self.monos():
-        if var == None:
-          ans += '+{0}'.format(coeff)
-        elif type(var) == str or type(var) == unicode:
-          ans += '+{0}*{1}'.format(coeff,var)
-        elif type(var) == tuple and var[1]:
-          ans += '+{0}*der({1})'.format(coeff,var[0])
-        elif type(var) == tuple and var[1] == False:
-          ans += '+{0}*pre({1})'.format(coeff,var[0])
-        else: # xmlnode
-          print type(var)
-          ans += '+{0}*{1}'.format(coeff, daexmlPP.ppExpr(var))
-      return ans
+  def polyrepPrint(self, ans = '', pre = False):
+    preStr = "'" if pre else ""
+    for (var,coeff) in self.get_monos():
+      first = False if ans!='' else True
+      sep = ' + ' if not first else ''
+      if var == None:
+        if coeff != 0:
+          ans += '{1}{0}'.format(coeff,sep)
+      elif type(var) == str or type(var) == unicode:
+        if coeff != 1 and coeff != 0:
+          ans += '{3}{0}*{1}{2}'.format(coeff,var,preStr,sep)
+        elif coeff != 0:
+          ans += '{3}{1}{2}'.format(coeff,var,preStr,sep)
+      elif type(var) == tuple and var[1]:
+        ans += '{2}{0}*der({1})'.format(coeff,var[0],sep)
+      elif type(var) == tuple and var[1] == False:
+        if pre:
+          ans += '{2}{0}*{1}'.format(coeff,var[0],sep)
+        else:
+          ans += '{2}{0}*pre({1})'.format(coeff,var[0],sep)
+      elif pre:
+        return None
+      else: # xmlnode
+        print type(var)
+        ans += '{2}{0}*{1}'.format(coeff, daexmlPP.ppExpr(var),sep)
+    return ans
 # ----------------------------------------------------------------------
 
 # ----------------------------------------------------------------------
@@ -220,15 +238,23 @@ def getPredsInConds(contEqns):
                 val = float(valueOf(a2))
                 return add2Preds(preds, (s11,name1,name2), val)
             else:
+                lhs_prep = PolyRep( a1 )
+                rhs_prep = PolyRep( a2 )
+                lhs_prep.bOp('-', rhs_prep)
+                return add2Preds(preds, lhs_prep, 0)
                 #assert False, 'MISSING BAPP CODE: Found {0} expression...'.format(daexmlPP.ppExpr(c))
-                print 'Warning: MISSING BAPP CODE1: Found {0} expression...'.format(daexmlPP.ppExpr(c))
-                return preds	# CHECK here ASHISH Ashish
+                #print 'Warning: MISSING BAPP CODE1: Found {0} expression...'.format(daexmlPP.ppExpr(c))
+                #return preds	# CHECK here ASHISH Ashish
         elif s1 in ['>', '<'] and a2.tagName == 'number' and a1.tagName == 'number':
             return preds
         else:
+            lhs_prep = PolyRep(a1)
+            rhs_prep = PolyRep(a2)
+            lhs_prep.bOp('-', rhs_prep)
+            return add2Preds(preds, lhs_prep, 0)
             # assert False, 'MISSING BAPP CODE: Found {0} expression.'.format(daexmlPP.ppExpr(c))
-            print 'Warning: MISSING BAPP CODE2: Found {0} expression.'.format(daexmlPP.ppExpr(c))
-            return preds
+            #print 'Warning: MISSING BAPP CODE2: Found {0} expression.'.format(daexmlPP.ppExpr(c))
+            #return preds
     def getPredsInExpr(c, preds):
         # print 'entering', preds
         if c.tagName == 'identifier':
@@ -597,18 +623,21 @@ def preprocessEqnNEW(eL,cstate,dstate):
             print 'unable to convert expr {0} to polyrep form'.format(e.toxml())
             assert False,'ERROR: Unable to convert expression to linear form'
     def polyrepPrint(prep, ans = ''):
+      first = True if ans=='' else False
       for (var,coeff) in prep.items():
+        sep = ' + ' if not first else ''
+        first = False
         if var == None:
-          ans += '+{0}'.format(coeff)
+          ans += '{1}{0}'.format(coeff, sep)
         elif type(var) == str or type(var) == unicode:
-          ans += '+{0}*{1}'.format(coeff,var)
+          ans += '{2}{0}*{1}'.format(coeff,var,sep)
         elif type(var) == tuple and var[1]:
-          ans += '+{0}*der({1})'.format(coeff,var[0])
+          ans += '{2}{0}*der({1})'.format(coeff,var[0],sep)
         elif type(var) == tuple and var[1] == False:
-          ans += '+{0}*pre({1})'.format(coeff,var[0])
+          ans += '{2}{0}*pre({1})'.format(coeff,var[0],sep)
         else: # xmlnode
           print type(var)
-          ans += '+{0}*{1}'.format(coeff, daexmlPP.ppExpr(var))
+          ans += '{2}{0}*{1}'.format(coeff, daexmlPP.ppExpr(var),sep)
       return ans
     def freevar(p, dstate, cstate):
         varList = p.keys()
@@ -822,7 +851,7 @@ def findState(Eqn, cstate, dstate, var_details):
  
 # -----------------------------------------------------------------
 def expr2sal(node, flag=True):
-    opmap = {'==':'=', 'and':'AND', 'or':'OR', 'not':'NOT', 'gt':'>', 'lt':'<'}
+    opmap = {'==':'=', 'and':'AND', 'or':'OR', 'not':'NOT', 'gt':'>', 'lt':'<', 'leq':'<=', 'geq':'>='}
     def op2sal(node):
         op = valueOf(node).strip()
         ans = opmap[op] if opmap.has_key(op) else op
@@ -932,7 +961,7 @@ def getInitialValue(vmap, var, iEqns, enums):
     # convert2sal
     z = rename_enumValues( z, enums )
     ans = expr2sal(z,flag=False)
-    # print 'Converted to SAL as {0}'.format(ans)
+    print 'Initial value obtained as {0}'.format(ans)
     return ans
 
 # need to handle INITIAL properly
@@ -1517,6 +1546,7 @@ def createPlant(state, ceqns, oeqns, iEqns = {}):
     return ans
 # -----------------------------------------------------------------
 
+# -----------------------------------------------------------------
 def createEventsFromPreds(preds, reals, inputs):
     "preds = list of (var,val-list) or ((bop,e1,e2), val-list)"
     "output formula that says that one event is generated at each time step on reals"
@@ -1527,26 +1557,37 @@ def createEventsFromPreds(preds, reals, inputs):
             assert isinstance(e1, (str,unicode))
             assert isinstance(e2, (str,unicode))
             estr = e1 + "'" + bop + e2 + "'"
-        else:
-            assert isinstance(e, (str,unicode)), 'Error: Expecting str/unicode, found {0}'.format(type(e))
+        elif isinstance(e, (str,unicode)):
             estr = e + "'"
             if (e not in reals) or (e in inputs):
                 continue
+        else:
+            assert isinstance(e, PolyRep), 'Err: Unexpected type'
+            estr = e.polyrepPrint(ans = '', pre = True) 
+            if estr == None:
+              print >> sys.stderr, 'Warning: Ignoring event {0}'.format(e.polyrepPrint())
+              continue
         for v in vl:
             sep = " OR" if not first else ""
             first = False
             ans += "{2} {0} = {1}".format(estr,str(v),sep)
     return ans
+# -----------------------------------------------------------------
             
 
 # -----------------------------------------------------------------
 def convert2hsal(dom1, dom2, dom3 = None):
     '''dom1: DAE XML; dom2: original modelica XML; dom3: property XML
      return (HSal,PropHSal) as strings'''
+    global pattern
+    rep = {'.':'_', '$':'S', '[':'_', ']':'_', ',':'_'}
+    rep = dict((re.escape(k),v) for k,v in rep.iteritems())
+    pattern = re.compile('|'.join(rep.keys()))
     def alpha_rename_aux(ans, ans2, bools):
         for i in bools:
-            j = i.replace('.','_')
-            j = j.replace('$','S')
+            j = pattern.sub(lambda m: rep[re.escape(m.group(0))], i)
+            #j = i.replace('.','_')
+            #j = j.replace('$','S')
             if i != j:
                 # j = i.replace('.','_')
                 ans = ans.replace(i, j)
@@ -1621,6 +1662,7 @@ def convert2hsal(dom1, dom2, dom3 = None):
     #print >> sys.stderr, 'State: {0}'.format(state)
     # find and classify all equations in Eqn -- this messes up contEqns (essentially deletes them from Eqn)
     (discEqns,contEqns,oEqns,iEqns) = classifyEqnsNEW(eqns,cstate,dstate)
+    iEqns = handle_initializations( dom1, iEqns )
     print >> sys.stderr, 'Classified eqns into {0} discrete, {1} cont, {2} others'.format(len(discEqns),len(contEqns),len(oEqns))
     #print >> sys.stderr, 'discrete eqns: ', printE(discEqns)
     #print >> sys.stderr, 'cont eqns: ', printE(contEqns)
@@ -1651,6 +1693,15 @@ def convert2hsal(dom1, dom2, dom3 = None):
     propStr = createProperty(dom3)
     (ans, propStr) = alpha_rename(ans, propStr, state)
     return (ans, propStr)
+
+def handle_initializations(dom1, ans):
+    iEqns1 = dom1.getElementsByTagName('initializations')
+    iEqns2 = iEqns1[0].getElementsByTagName('equation') if iEqns1 != None and len(iEqns1) > 0 else []
+    for i in iEqns2:
+        lhs = getArg(i, 1)
+        rhs = getArg(i, 2)
+        ans[valueOf(lhs).strip()] = rhs
+    return ans
 
 def createProperty(dom3):
     if dom3 != None and not(isinstance(dom3, dict)):

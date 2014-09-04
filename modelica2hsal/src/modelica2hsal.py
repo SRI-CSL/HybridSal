@@ -46,6 +46,7 @@ max({{x, 1.0001}}) = 1.0001
 transpose(x) = x
 vector(x) = x
 real(x) = x
+integer(x,y) = x
 sign(x) = x
 selector(x,y) = x[y]
 selector(x,y,z) = x[y][z]

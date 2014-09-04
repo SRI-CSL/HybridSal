@@ -1272,6 +1272,9 @@ def main():
         print "File does not exist. Quitting."
         return 1
     xmlfilename = hsal2hxml(filename)
+    if type(xmlfilename) == int:
+        print "Unable to parse HybridSal file. Quitting."
+        return 1
     ans = hxml2sal(xmlfilename, opt, time, ptf=ptf)
     return ans
 

@@ -12,6 +12,15 @@ import xml.dom.minidom
 #  python src/modelica_slicer.py examples/no_controls_dae.xml --slicewrt "driveLine.pTM_with_TC.torque_Converter_Lockup.clutch_lockup.phi_rel" > tmp.txt
 #
 #  python src/modelica_slicer.py  examples/SystemDesignTest-r663.xml  --slicewrt "driver_gear_select, shift_request_state, output_speed_torque_converter, input_speed_torque_converter, prndl" > tmp.txt
+#
+# A attribute "trackPreserve" is added to the variable/equation 
+# that need to be preserved if slicing variables are to be computed.
+# ----------------------------------------------------------------------
+
+# ----------------------------------------------------------------------
+# Caveat:
+# initialValue expressions for variables must contain only knownVariables
+# This is assumed. Otherwise, we need to fix code.
 # ----------------------------------------------------------------------
 
 # ----------------------------------------------------------------------
@@ -105,13 +114,13 @@ def mml_eqn_get_lhs_rhs( mml ):
 # -------------------------------------------------------------------
 
 # -------------------------------------------------------------------
-# Details about an equation: its nxt, curr, pre vars for LHS, RHS
+# Details about an equation: its XML, nxt/curr/pre-vars for LHS/RHS
 # -------------------------------------------------------------------
 class EDetails:
   def __init__(self, e, lhs, rhs, ovarl, cond=None):
-    self.e = e
+    self.e = e		# XML
     if type(lhs) in [str, unicode]:
-      self.lhs = ([], [lhs], [], [])
+      self.lhs = ([], [lhs], [], [])	# nxt, curr, pre, rest-variables
     else:
       nxt, curr, pre, r = [], [], [], []
       self.lhs = classify_vars_as_curr_pre( lhs, nxt, curr, pre, ovarl, r)
@@ -144,61 +153,64 @@ class EDetails:
 # ----------------------------------------------------------------------
 
 # ----------------------------------------------------------------------
-# Information about each variable. Dict: Var_Name -> (nxtL,currL,preL)
+# Details about a variable: its XML, eqns where it occurs as nxt/curr/pre-vars
+# -------------------------------------------------------------------
+class VDetails:
+  def __init__(self, vname):
+    self.name = vname
+    self.as_nxts = []	# list of EDetails objects where v occurs as dv/dt
+    self.as_currs = []  # .. as v
+    self.as_pres = []   # .. as pre(v)
+    self.xml = None	# XML node for v
+  def update(self, index, value):
+    if index==0:
+      self.as_nxts.append( value )
+    elif index==1:
+      self.as_currs.append( value )
+    else:
+      self.as_pres.append( value )
+  def set_xml(self, vxml):
+    self.xml = vxml
+  def get_xml(self):
+    return self.xml
+  def get_nxts(self):
+    return self.as_nxts
+  def get_currs(self):
+    return self.as_currs
+  def get_pres(self):
+    return self.as_pres
+# ----------------------------------------------------------------------
+
+# ----------------------------------------------------------------------
+# Information about each variable. Dict: Var_Name -> VDetails-Object
 # ----------------------------------------------------------------------
 class VInfo:
   def __init__(self):
     self.d = {}
   def update(self, v, index, value):
     if not self.d.has_key(v):
-      self.d[v] = ([], [], [])
-    self.d[v][index].append( value )
+      self.d[v] = VDetails( v )
+    self.d[v].update( index, value )
+  def set_xml(self, vxml):
+    v = vxml.getAttribute('name').strip()
+    if self.d.has_key(v):
+      self.d[v].set_xml( vxml )
+  def get_xml(self, vname):
+    if self.d.has_key(vname):
+      return self.d[vname].get_xml()
+    return None
   def get(self, v):
     if not self.d.has_key(v):
       return ([],[],[])
-    return self.d[v]
-# ----------------------------------------------------------------------
-
-# ----------------------------------------------------------------------
-# Variable Type: for each ordered_var, store info if it is context/plant?
-# ----------------------------------------------------------------------
-class VariableType:
-  def __init__(self, varlistlist, meta):
-    self.d = {}
-    print meta
-    for i in varlistlist:
-      self.update(i, meta)
-  def update(self, xml_vars, meta):
-    for i in xml_vars:
-      self.add(i, meta)
-  def add(self, vxml, meta):
-    vname = vxml.getAttribute('name')
-    classes = getChildByTagName(vxml, 'classesNames')
-    if classes == None:
-      print >> sys.stderr, 'Var {0} has no classes'.format(vname)
-      return
-    elmts = classes.getElementsByTagName('element')
-    elmt_names = [valueOf(i).strip() for i in elmts]
-    for i in elmt_names:
-      typ = json_get_type(meta, i)
-      if typ != None:
-        self.d[vname] = typ
-        return
-    print >> sys.stderr, 'Var {0} has no type'.format(vname) 
-    self.d[vname] = 'ContextModel'
-  def iscontext(self, vname):
-    return self.istypval(vname, 'ContextModel')
-  def isplant(self, vname):
-    return self.istypval(vname, 'PlantModel')
-  def istypval(self, vname, val):
-    if self.d.has_key(vname):
-      return (val == self.d[vname])
-    return False
+    a = self.d[v].get_nxts()
+    b = self.d[v].get_currs()
+    c = self.d[v].get_pres()
+    return (a,b,c)
 # ----------------------------------------------------------------------
 
 # ----------------------------------------------------------------------
 # Information about each Equation. Used for creating slice.
-# Dict: Equation XML to EDetails object
+# Dict: Equation XML --> EDetails object
 # ----------------------------------------------------------------------
 class EInfo:
   def __init__(self):
@@ -239,12 +251,50 @@ class EInfo:
 # ----------------------------------------------------------------------
 
 # ----------------------------------------------------------------------
+# Variable Type: for each ordered_var, store info if it is context/plant?
+# ----------------------------------------------------------------------
+class VariableType:
+  def __init__(self, varlistlist, meta):
+    self.d = {}
+    print meta
+    for i in varlistlist:
+      self.update(i, meta)
+  def update(self, xml_vars, meta):
+    for i in xml_vars:
+      self.add(i, meta)
+  def add(self, vxml, meta):
+    vname = vxml.getAttribute('name')
+    classes = getChildByTagName(vxml, 'classesNames')
+    if classes == None:
+      print >> sys.stderr, 'Var {0} has no classes'.format(vname)
+      return
+    elmts = classes.getElementsByTagName('element')
+    elmt_names = [valueOf(i).strip() for i in elmts]
+    for i in elmt_names:
+      typ = json_get_type(meta, i)
+      if typ != None:
+        self.d[vname] = typ
+        return
+    print >> sys.stderr, 'Var {0} has no type'.format(vname) 
+    self.d[vname] = 'ContextModel'
+  def iscontext(self, vname):
+    return self.istypval(vname, 'ContextModel')
+  def isplant(self, vname):
+    return self.istypval(vname, 'PlantModel')
+  def istypval(self, vname, val):
+    if self.d.has_key(vname):
+      return (val == self.d[vname])
+    return False
+# ----------------------------------------------------------------------
+
+# ----------------------------------------------------------------------
 # Tree data-structure... Final slice is computed as a TREE/DAG
 # ----------------------------------------------------------------------
 class TreeNode:
   '''DAG. Hopefully no cycles in DAEs...'''
-  def __init__(self, v):
+  def __init__(self, v, vInfo):
     self.vname = v
+    self.vxml = vInfo.get_xml(v)	# XML node for v added
     self.children = []
     self.label = None
   def get_name(self):
@@ -258,10 +308,23 @@ class TreeNode:
       print 'Var {0}: {1}'.format(self.vname, bindE.getAttribute('string'))
   def add_child( self, new_node ):
     self.children.append( new_node )
+  def track_mark_preserve(self):
+    if self.label != None:
+      assert self.label.e.tagName in ['equation','variable'], 'Err: Here666'
+      self.label.e.setAttribute('trackPreserve', '1')
   def get_all_nodes_eqns(self, nodes, eqns, rest):
     if self.vname in nodes:
       return
     nodes.append( self.vname )
+    if self.vxml != None:
+      initV = self.vxml.getElementsByTagName('initialValue')
+      if initV != None and len(initV) > 0:
+        mmll = initV[0].getElementsByTagName('MathML')
+        if mmll != None and len(mmll) > 0:
+          mml = mmll[0]
+          nxt, curr, pre, vrest = [], [], [], []	# all vars classified as REST
+          classify_vars_as_curr_pre( mml, nxt, curr, pre, [], vrest )
+          rest.extend( vrest )
     if self.label != None:
       if self.label.e.tagName == 'equation':
         eqns.append( self.label.e )
@@ -370,7 +433,7 @@ def varbackwardsREC( todo_nodes, eInfo, vInfo, processed ):
       e_nxtL.extend( chosen_e.get_pre() )
       for vname in e_nxtL:
         if vname not in processed.keys():
-          new_node = TreeNode(vname)
+          new_node = TreeNode(vname, vInfo)
           todo_nodes.append( new_node )
           node.add_child( new_node )
         else:
@@ -384,7 +447,7 @@ def varbackwardsREC( todo_nodes, eInfo, vInfo, processed ):
 def varbackwardsDS( varlist, eInfo, vInfo): 
   nodes = []
   for v in varlist:
-    nodes.append( TreeNode( v ) )
+    nodes.append( TreeNode( v, vInfo ) )
   todo_nodes, processed_nodes = list( nodes ), {}
   varbackwardsREC( todo_nodes, eInfo, vInfo, processed_nodes)
   print >> sys.stderr, 'varbackwardsDS terminated!!!!!'
@@ -394,7 +457,7 @@ def varbackwardsDS( varlist, eInfo, vInfo):
 # ----------------------------------------------------------------------
 # Compute data-structures and the slice TREE
 # ----------------------------------------------------------------------
-def new_wrapper(varlist, eqns, kvars, ovarl):
+def new_wrapper(varlist, eqns, kvars, ovarl, varXMLs):
   '''use info in eqns and kvars to construct data-structs eInfo,vInfo
   Then use these DS to go backwards from varlist and compute slice'''
   # populate data-structures
@@ -402,8 +465,17 @@ def new_wrapper(varlist, eqns, kvars, ovarl):
   (eInfo, vInfo) = eqnsxml2dictDS(eqns, ovarl, eInfo, vInfo)
   (eInfo, vInfo) = kvarsxml2dictDS(kvars, ovarl, eInfo, vInfo)
 
+  # link all variable (VDetails object) to their XMLs
+  for var_xml_list in varXMLs:
+    for var_xml in var_xml_list:
+      vInfo.set_xml( var_xml )
+
   # compute the tree; returns the roots of the trees
   roots = varbackwardsDS( varlist, eInfo, vInfo)
+
+  # mark the edges on the roots to be "preserved"
+  for root in roots:
+    root.track_mark_preserve()
 
   # From the trees, extract sliced_v, sliced_kv, sliced_e, sliced_ie.....
   sliced_v, sliced_e, sliced_kv = [], [], []
@@ -456,15 +528,17 @@ def classify_vars_as_curr_pre( mml, nxt, curr, pre, ovarl, rest ):
 def find_matching_vars( varlist, ovarl ):
   '''replace v in varlist by v' s.t. v' in ovarl and v'.endswith(v)'''
   ans = []
+  track_map = {}
   for i in varlist:
     istrip = i.strip()
     print 'searching for {0}...'.format(istrip)
     for j in ovarl:
       if j.endswith(istrip):
-        print '{0} matched to {1}'.format(i, j)
+        track_map[istrip] = j
+        # print '{0} matched to {1}'.format(i, j)
         ans.append(j)
         break
-  return ans
+  return (ans, track_map)
 # ----------------------------------------------------------------------
 
 # ----------------------------------------------------------------------
@@ -673,21 +747,22 @@ def modelicadom_slicer(modelicadom, varlist, meta={}):
 
     ## set ovarl = ordered_variable_list + their aliases
     ovarl, alias_xmls = extend_ovarl( ovarl, aliases )
+    ovar_alias_xmls = [ ovars, alias_xmls ]
 
     # Variable Type: Context/Plant/Controller, is it good or black-listed?
     global vtype
-    vtype = VariableType([ovars, alias_xmls], meta)
-    print vtype.d
+    vtype = VariableType( ovar_alias_xmls, meta)
+    # print vtype.d
 
     # Map given varlist to the ones we know in ovarl
-    varlist = find_matching_vars( varlist, ovarl )
+    varlist, track_map = find_matching_vars( varlist, ovarl )
 
     # Initialize the data structures 
     equationL = equations.getElementsByTagName('equation')
     wequationL = equations.getElementsByTagName('whenEquation')
     equationL.extend( wequationL )
 
-    (sliced_v, sliced_e, sliced_kv) = new_wrapper( varlist, equationL, kvars, ovarl )
+    (sliced_v, sliced_e, sliced_kv) = new_wrapper( varlist, equationL, kvars, ovarl, ovar_alias_xmls )
 
     # compatible with names in old code
     other_v = sliced_kv
@@ -709,7 +784,6 @@ def modelicadom_slicer(modelicadom, varlist, meta={}):
     # sliced_v -> name -> XML map using ovars
     (sliced_v, rest) = map_name_to_xml( sliced_v, ovars)
     (sliced_av, rest) = map_name_to_xml( rest, aliases)
-    sliced_v.extend( sliced_av )
 
     # find other_v in knownVariables and get knownVar_slice
     tmp = getChildByTagName(variables, 'knownVariables')
@@ -720,6 +794,9 @@ def modelicadom_slicer(modelicadom, varlist, meta={}):
 
     # knownVar may be defined using other vars! Include them too!
     (sliced_kv, other_v, rest3) = saturate_kvars(sliced_kv, other_v, kvars)
+
+    # add the aliasVariables in slice to sliced_kv, AFTER saturation
+    sliced_kv.extend( sliced_av )
 
     # addTime if needed
     if 'time' in rest2:
@@ -793,6 +870,8 @@ def modelica_slice_file(filename, varlist):
     jsonfile = os.path.join(dirname, 'modelicaURI2CyPhyMap.json')
     d = jsonfile2dict( jsonfile )
     (sliced_e, sliced_v, other_v, slice_ie) = modelicadom_slicer(modelicadom, varlist, meta=d)
+    if basename.find('-') != -1:
+      basename = basename.replace('-','_')
     slice_filename = basename + '_slice.xml'
     print >> sys.stderr, 'Creating file {0}...'.format(slice_filename)
     output_sliced_dom(slice_filename, sliced_e, slice_ie, sliced_v, other_v, modelicadom)
