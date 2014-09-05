@@ -7,14 +7,18 @@ import daexml2hsal	# daexml -> hsal
 import modelica2daexml
 import modelica_slicer
 
-#Outdated: before we used to go from modelica to daexml via dae
-#import ModelicaXML	# modelica -> dae
-#import daexmlPP
-
+# ----------------------------------------------------------------------
 # USAGE:
+# ----------------------------------------------------------------------
 # modelica2hsal(filename, prop_filename, options)
-# where options = ['--slicewrt', varlist, ...]
+#  where options = ['--slicewrt', varlist, ...]
+#  Returns: (hsal_filename, track_map)
+#  where track_map = dict: Str->Str maps varlist to output vars in hsal
+# ----------------------------------------------------------------------
 
+# ----------------------------------------------------------------------
+# The library string. Update it if you see in a new function in modelica.
+# ----------------------------------------------------------------------
 libraryStr = '''
 C2M2L_Decl.Interfaces.Context_Interfaces.Driver.PRNDL_Setting.Reverse = 1
 C2M2L_Decl.Interfaces.Context_Interfaces.Driver.PRNDL_Setting.Park = 2
@@ -53,7 +57,12 @@ sign(x) = x
 selector(x,y) = x[y]
 selector(x,y,z) = x[y][z]
 '''
+# ----------------------------------------------------------------------
 
+# ----------------------------------------------------------------------
+# Properties can be given in json file. Following is an example
+# Assumes modelica file has an embedded property.
+# ----------------------------------------------------------------------
 propStr = '''
 {"context" : "TRUE",
  "property" : 
@@ -63,7 +72,11 @@ propStr = '''
     [{"f"    : "/=", 
      "nargs": 2, 
      "args" : ["__RequirementVar__", "violated"] }] } } '''
+# ----------------------------------------------------------------------
 
+# ----------------------------------------------------------------------
+# Usage from command-line 
+# ----------------------------------------------------------------------
 def printUsage():
     print '''
 modelica2hsal -- a converter from Modelica to HybridSal
@@ -72,14 +85,11 @@ Usage: python modelica2hsal.py <modelica_file.xml> [<context_property.xml>] [--a
 
 Description: This will create a file called modelica_fileModel.hsal
     '''
+# ----------------------------------------------------------------------
 
-def moveIfExists(filename):
-    import shutil
-    if os.path.isfile(filename):
-        print "File %s exists." % filename,
-        print "Renaming old file to %s." % filename+"~"
-        shutil.move(filename, filename + "~")
-
+# ----------------------------------------------------------------------
+# Check args when called from command-line
+# ----------------------------------------------------------------------
 def argCheck(args, printUsage):
     "args = sys.argv list"
     if not len(args) >= 2:
@@ -109,133 +119,119 @@ def argCheck(args, printUsage):
         printUsage()
         sys.exit(-1)
     return (filename, pfilename)
+# ----------------------------------------------------------------------
 
+# ----------------------------------------------------------------------
+# main function of entry when called from command-line
+# ----------------------------------------------------------------------
 def main():
     global dom
     (filename, pfilename) = argCheck(sys.argv, printUsage)
     modelica2hsal(filename, pfilename, sys.argv[1:])
+# ----------------------------------------------------------------------
 
-def addTime(dom2):
-    'add time as a new continuousState variable in the model'
-    node = dom2.createElement('variable')
-    node.setAttribute('name', 'time')
-    node.setAttribute('variability', 'continuousState')
-    node.setAttribute('direction', 'none')
-    node.setAttribute('type', 'Real')
-    node.setAttribute('index', '-1')
-    node.setAttribute('fixed', 'false')
-    node.setAttribute('flow', 'NonConnector')
-    node.setAttribute('stream', 'NonStreamConnector')
-    orderedVars_varlists = daexml2hsal.getElementsByTagTagName(dom2, 'orderedVariables', 'variablesList')
-    assert orderedVars_varlists != None and len(orderedVars_varlists) > 0
-    orderedVars_varlist = orderedVars_varlists[0]
-    orderedVars_varlist.appendChild(node)
-    equations = dom2.getElementsByTagName('equations')
-    newequation = dom2.createElement('equation')
-    newequation.appendChild( dom2.createTextNode('der(time) = 1') )
-    assert equations != None and len(equations) > 0
-    equations[0].appendChild(newequation)
-    return dom2
-
+# ----------------------------------------------------------------------
+# Main external interface function -- it is a wrapper to others
+# ----------------------------------------------------------------------
 def modelica2hsal(filename, pfilename = None, options = []):
+    # if --slicewrt is in options, apply the slicer
     if '--slicewrt' in options:
       index = options.index('--slicewrt')
       varlist = options[index+1]
       if type(varlist) != list:
         varlist = varlist.split(',')
-      (filename,mdom) = modelica_slicer.modelica_slice_file(filename, varlist)
+      (filename, mdom, track_map) = modelica_slicer.modelica_slice_file(filename, varlist)
+      del mdom
+    else:
+      track_map = {}
+    # slicer can change filename by replacing '-' by '_'
+
+    # convert (sliced) modelica to daexml
     (dom2, dom1, daexmlfilename) = modelica2daexml.modelica2daexml(filename,options)
     basename,ext = os.path.splitext(filename)
+
+    # Parse library string and then simplify the daexml in stages
     print >> sys.stderr, 'Trying to simplify the Modelica model...'
     try:
-        # print 'Trying to parse the libraryString...'
-        (libdom,libdaexml) = ddae.daestring2daexml(libraryStr,'library')
-        # print 'Successfully parsed the libraryString...'
-        # print libdaexml.toxml()
+      (libdom,libdaexml) = ddae.daestring2daexml(libraryStr,'library')
     except:
-        print 'Library in wrong syntax. Unable to handle.'
-        sys.exit(-1)
+      print 'Library in wrong syntax. Unable to handle.'
+      sys.exit(-1)
+
+    # Simplify the daexml in stages
     dom1 = daeXML.simplifydaexml(dom1,daexmlfilename,library=libdaexml)
-    #os.remove(daexmlfilename)	# this is .daexml file
     print >> sys.stderr, 'Finished simplification steps.'
-    # with open('tmp','w') as fp:
-        # daexmlPP.source_textPP(dom1, filepointer=fp)
     dom3 = None		# No property file given by default
     if pfilename != None and pfilename.rstrip().endswith('.xml'):
-        print >> sys.stderr, 'Reading XML file containing context and property'
-        try:
-            dom3 = xml.dom.minidom.parse(pfilename)
-        except xml.parsers.expat.ExpatError, e:
-            print 'Syntax Error: Input XML ', e 
-            print 'Error: Property XML file is not well-formed...Quitting.'
-            return -1
-        except:
-            print 'Error: Property XML file is not well-formed'
-            print 'Quitting', sys.exc_info()[0]
-            return -1
-        print >> sys.stderr, 'Finished reading context and property'
+      print >> sys.stderr, 'Reading XML file containing context and property'
+      try:
+        dom3 = xml.dom.minidom.parse(pfilename)
+      except xml.parsers.expat.ExpatError, e:
+        print 'Syntax Error: Input XML ', e 
+        print 'Error: Property XML file is not well-formed...Quitting.'
+        sys.exit(-1)
+      except:
+        print 'Error: Property XML file is not well-formed'
+        print 'Quitting', sys.exc_info()[0]
+        sys.exit(-1)
+      print >> sys.stderr, 'Finished reading context and property'
     elif pfilename != None and pfilename.rstrip().endswith('.json'):
-        print >> sys.stderr, 'Reading JSON file containing context and property'
-        try:
-            import json
-            with open(pfilename,'r') as fp:
-                jsondata = fp.read()
-                for i in ['\n','\r','\\']:
-                    jsondata = jsondata.replace(i,'')
-                dom3 = json.loads(jsondata)
-                assert isinstance(dom3,dict),'ERROR: Expected dict in JSON file'
-        except SyntaxError, e:
-            print 'Syntax Error: Input JSON ', e 
-            print 'Error: Property JSON file is not well-formed...Quitting.'
-            return -1
-        except:
-            print 'Error: Unable to read property JSON file...Quitting.'
-            return -1
+      print >> sys.stderr, 'Reading JSON file containing context and property'
+      try:
+        import json
+        with open(pfilename,'r') as fp:
+          jsondata = fp.read()
+          for i in ['\n','\r','\\']:
+            jsondata = jsondata.replace(i,'')
+          dom3 = json.loads(jsondata)
+          assert isinstance(dom3,dict),'ERROR: Expected dict in JSON file'
+      except SyntaxError, e:
+        print 'Syntax Error: Input JSON ', e 
+        print 'Error: Property JSON file is not well-formed...Quitting.'
+        sys.exit(-1)
+      except:
+        print 'Error: Unable to read property JSON file...Quitting.'
+        sys.exit(-1)
     elif pfilename == None:
         print >> sys.stderr, 'Assuming requirement contained in XML file.'
         try:
-            import json
-            jsondata = propStr
-            for i in ['\n','\r','\\']:
-                jsondata = jsondata.replace(i,'')
-            oVars = daexml2hsal.getElementsByTagTagName(dom2, 'orderedVariables', 'variablesList')
-            assert oVars != None and len(oVars) > 0
-            found = False
-            for v in oVars[0].getElementsByTagName('variable'):  # v = <variable ...>
-                v_typ = v.getAttribute('type')
-                if v_typ.startswith('enumeration') and v_typ.find('violated') != -1:
-                    varname = v.getAttribute('name')
-                    print >> sys.stderr, 'Requirement Variable', varname
-                    jsondata = jsondata.replace('__RequirementVar__',varname)
-                    found = True
-                    break
-            if found:
-                dom3 = json.loads(jsondata)
-            else:
-                print 'WARNING: NO REQUIREMENT FOUND.'
+          import json
+          jsondata = propStr
+          for i in ['\n','\r','\\']:
+            jsondata = jsondata.replace(i,'')
+          oVars = daexml2hsal.getElementsByTagTagName(dom2, 'orderedVariables', 'variablesList')
+          assert oVars != None and len(oVars) > 0
+          found = False
+          vlist = oVars[0].getElementsByTagName('variable')
+          for v in vlist: 		# v = <variable ...>
+            v_typ = v.getAttribute('type')
+            if v_typ.startswith('enumeration') and v_typ.find('violated') != -1:
+              varname = v.getAttribute('name')
+              print >> sys.stderr, 'Requirement Variable', varname
+              jsondata = jsondata.replace('__RequirementVar__',varname)
+              found = True
+              break
+          if found:
+            dom3 = json.loads(jsondata)
+          else:
+            print >> sys.stderr, 'WARNING: NO REQUIREMENT FOUND in plant.'
         except SyntaxError, e:
-            print 'Syntax Error: Input JSON ', e 
-            print 'Error: Property JSONStr is not well-formed...Quitting.'
-            return -1
+          print 'Syntax Error: Input JSON ', e 
+          print 'Error: Property JSONStr is not well-formed...Quitting.'
+          sys.exit(-1)
         except:
-            print 'Error: Unable to read property JSONstr...Quitting.'
-            return -1
+          print 'Error: Unable to read property JSONstr...Quitting.'
+          sys.exit(-1)
     else:
-        print 'WARNING: NO REQUIREMENT FOUND.'
-        print '***Verification model generated, but no result reported.***'
+      print >> sys.stderr, 'WARNING: NO REQUIREMENT FOUND in plant model.'
     print >> sys.stderr, 'Creating HybridSal model....'
     outfile = daexml2hsal.daexml2hsal(dom1, dom2, daexmlfilename, dom3)
     print >> sys.stderr, 'Created HybridSal model.'
-    return outfile
+    return (outfile, track_map)
+# ----------------------------------------------------------------------
 
+# ----------------------------------------------------------------------
 if __name__ == "__main__":
     main()
+# ----------------------------------------------------------------------
 
-'''
-	python ModelicaXML.py RCEngine.xml  > RCEngine.dae
-	python ddae.py RCEngine.dae
-	python daeXML.py RCEngine.daexml
-	mv RCEngine.dae_flat_xml RCEngine1.daexml
-	python daexmlPP.py RCEngine1.daexml > RCEngine1.dae
-	python daexml2hsal.py RCEngine1.daexml RCEngine.xml
-'''

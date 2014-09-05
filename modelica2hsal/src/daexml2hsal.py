@@ -851,7 +851,7 @@ def findState(Eqn, cstate, dstate, var_details):
  
 # -----------------------------------------------------------------
 def expr2sal(node, flag=True):
-    opmap = {'==':'=', 'and':'AND', 'or':'OR', 'not':'NOT', 'gt':'>', 'lt':'<', 'leq':'<=', 'geq':'>='}
+    opmap = {'==':'=', 'and':'AND', 'or':'OR', 'not':'NOT', 'gt':' > ', 'lt':' < ', 'leq':' <= ', 'geq':' >= ', 'neq':' /= '}
     def op2sal(node):
         op = valueOf(node).strip()
         ans = opmap[op] if opmap.has_key(op) else op
@@ -989,7 +989,7 @@ def createControl(state, deqns, guard, iEqns = {}):
     for i in bools:
         ans += "\n  OUTPUT {0}: BOOLEAN".format(i)
     for i in ints:
-        ans += "\n  OUTPUT {0}: NATURAL".format(i)
+        ans += "\n  OUTPUT {0}: INTEGER".format(i)
     for i in reals:
         ans += "\n  INPUT  {0}: REAL".format(i)
     for (k,v) in enums.items():
@@ -1137,7 +1137,7 @@ def others2salmonitorNew(oeqns, bools, ints, reals):
             print 'WARNING: VARIABLE {0} not in reals/bools/ints'.format(v)
             tval = 'REAL'
         else:
-            tval = 'REAL' if v in reals else ('BOOLEAN' if v in bools else 'NATURAL')
+            tval = 'REAL' if v in reals else ('BOOLEAN' if v in bools else 'INTEGER')
         ans += '\n  INPUT {0}: {1}'.format(v, tval)
     ans += '\n  TRANSITION\n  ['
     ans += '\n  {0} --> '.format(guard)
@@ -1194,7 +1194,7 @@ def others2salmonitor(varvall, bools, ints, reals):
     # now we have guard and the variables
     for v in variables:
         assert v in reals or v in bools or v in ints
-        tval = 'REAL' if v in reals else ('BOOLEAN' if v in bools else 'NATURAL')
+        tval = 'REAL' if v in reals else ('BOOLEAN' if v in bools else 'INTEGER')
         ans += '\n  INPUT {0}: {1}'.format(v, tval)
     ans += '\n  TRANSITION\n  ['
     ans += '\n  {0} --> '.format(guard)
@@ -1460,7 +1460,7 @@ def createPlant(state, ceqns, oeqns, iEqns = {}):
     for i in bools:
         ans += "\n  INPUT {0}: BOOLEAN".format(i)
     for i in ints:
-        ans += "\n  INPUT {0}: NATURAL".format(i)
+        ans += "\n  INPUT {0}: INTEGER".format(i)
     for (k,v) in enums.items():
         # ans += "\n  INPUT {0}: {1}".format(k, k+'Type')
         if type(v) != list:
@@ -1574,18 +1574,24 @@ def createEventsFromPreds(preds, reals, inputs):
     return ans
 # -----------------------------------------------------------------
             
+# -----------------------------------------------------------------
+# External interface function: rename variables
+# -----------------------------------------------------------------
+rep = {'.':'_', '$':'S', '[':'_', ']':'_', ',':'_'}
+rep = dict((re.escape(k),v) for k,v in rep.iteritems())
+pattern = re.compile('|'.join(rep.keys()))
+def modelica2hsal_rename(varname):
+    newvarname = pattern.sub(lambda m: rep[re.escape(m.group(0))], varname)
+    return newvarname
+# -----------------------------------------------------------------
 
 # -----------------------------------------------------------------
 def convert2hsal(dom1, dom2, dom3 = None):
     '''dom1: DAE XML; dom2: original modelica XML; dom3: property XML
      return (HSal,PropHSal) as strings'''
-    global pattern
-    rep = {'.':'_', '$':'S', '[':'_', ']':'_', ',':'_'}
-    rep = dict((re.escape(k),v) for k,v in rep.iteritems())
-    pattern = re.compile('|'.join(rep.keys()))
     def alpha_rename_aux(ans, ans2, bools):
         for i in bools:
-            j = pattern.sub(lambda m: rep[re.escape(m.group(0))], i)
+            j = modelica2hsal_rename(i)
             #j = i.replace('.','_')
             #j = j.replace('$','S')
             if i != j:

@@ -395,6 +395,19 @@ def HSalPPMod(nodeL, op = None):
             modName = getNameTag(node, "MODULENAME")
             # ignoring MODULEACTUALS
             print >> fp, modName,
+        elif node.localName == 'RENAMING':
+            renames = getArg(node, 1)
+            renamings = renames.getElementsByTagName("RENAME")
+            print >> fp, "(RENAME ",
+            comma = ''
+            for i in renamings:
+              lhs = valueOf(getArg(i, 1))	# Assuming nameexpr
+              rhs = valueOf(getArg(i, 2))
+              print >> fp, "{0} {1} TO {2}".format(comma, lhs, rhs),
+              comma = ','
+            print >> fp, " IN ",
+            HSalPPMod([getArg(node, 2)], op='')
+            print >> fp, " )",
         else:
             print "Unrecognized module type. Fill in code later"
     if op == None:

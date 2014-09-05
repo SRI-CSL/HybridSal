@@ -25,6 +25,7 @@ import HSalRelAbsCons
 import cybercomposition2hsal
 import modelica2hsal
 import modelica_slicer
+from daexml2hsal import modelica2hsal_rename
 
 #copying from install.py... will find sal here.
 def findFile(basedir, filename, blacklist):
@@ -114,17 +115,35 @@ def get_prop_str( sal_file, prop_name ):
 # ---------------------------------------------------------------------
 # Operations on HybridSAL file -- operates on strings
 # ---------------------------------------------------------------------
+# from hsal filename to hsal-str
 def hsal_file_to_str( hsalfilename ):
   f = open( hsalfilename, 'r' )
   hsal_model = f.read()
   f.close()
   return hsal_model
 
+# get name of first module -- to be used as default controller
+def get_first_module_name( hsal_model ):
+  '''find first instance of MODULE and return its name'''
+  index = hsal_model.find('MODULE')
+  if index != -1:
+    endindex = hsal_model.rfind( ':', 0, index )
+    startindex1 = hsal_model.rfind( ';', 0, endindex ) + 1
+    startindex2 = hsal_model.rfind( ' ', 0, endindex ) + 1
+    startindex3 = hsal_model.rfind( 'BEGIN', 0, endindex ) + 5
+    startindex = max([startindex1, startindex2, startindex3])
+    modName = hsal_model[startindex:endindex].strip()
+    return modName
+  else:
+    print 'ERROR: No MODULE in controller HybridSAL file'
+    sys.exit(-1)
+ 
+# get all properties (THEOREM) in a hsal-str
 def get_props_from_hsal_file(hsal_model):
   '''get all (propertyName, moduleName) from the HybridSal file. Recall
      propertyName: THEOREM moduleName |- LTL_prop'''
   propList = []
-  offset, index = 0, hsal_model.find("THEOREM")
+  index = hsal_model.find("THEOREM")
   while index != -1:
     endindex = hsal_model.rfind( ':', 0, index )
     startindex = hsal_model.rfind( ';', 0, endindex )
@@ -132,17 +151,21 @@ def get_props_from_hsal_file(hsal_model):
     # Now get the moduleName
     vdashIndex = hsal_model.find( '|-', index )
     moduleName = hsal_model[index+7:vdashIndex].strip()
-    propList.append( (propName, moduleName) )
-    offset = vdashIndex + 1
-    index = hsal_model.find("THEOREM", offset)
+    # Now get the property string
+    pEndIndex = hsal_model.find( ';', vdashIndex )
+    propStr = hsal_model[ vdashIndex+2: pEndIndex]
+    propList.append( (propName, moduleName, propStr) )
+    index = hsal_model.find("THEOREM", pEndIndex)
   return propList
 
+# given hsal-file as str, return str of the named MODULE in it.
 def get_module_str_from_hsal_file(hsal_model, modulename):
   beginIndex = hsal_model.find( modulename + ': MODULE')
   endIndex = hsal_model.find( 'END;', beginIndex)
   module_str = hsal_model[ beginIndex:endIndex ]
   return module_str
 
+# used to get INPUT and OUTPUT from the module-string
 def get_module_X_from_module_str(module_str, keyword):
   '''keyword = INPUT or OUTPUT,
      RECALL HSAL syntax -- keyword varname: typename
@@ -158,6 +181,7 @@ def get_module_X_from_module_str(module_str, keyword):
     index = module_str.find( keyword, endIndex )
   return ans
 
+# given a module name, return all inputs & outputs in that module
 def get_module_io_from_hsal_str(hsal_str, modulename):
   module_str = get_module_str_from_hsal_file(hsal_str, modulename)
   inputs = get_module_X_from_module_str( module_str, 'INPUT')
@@ -165,6 +189,8 @@ def get_module_io_from_hsal_str(hsal_str, modulename):
   return (inputs, outputs)
 # ---------------------------------------------------------------------
 
+# ---------------------------------------------------------------------
+# usage for command-line invocation
 # ---------------------------------------------------------------------
 def printUsage():
     print '''
@@ -176,7 +202,11 @@ Usage: python cc_modelica_hra_verifier.py <CC.xml> <Modelica.xml>  OR
 
 Description: This will analyze all LTL properties in the CC.xml model, and
  create a file called CCResults.txt containing the analysis results.'''
+# ---------------------------------------------------------------------
 
+# ---------------------------------------------------------------------
+# argument checker for command line invocation
+# ---------------------------------------------------------------------
 def argCheck(args, printUsage):
     "args = sys.argv list"
     if not len(args) >= 3:
@@ -197,109 +227,235 @@ def argCheck(args, printUsage):
         printUsage()
         sys.exit(-1)
     return (args[1], args[2])
+# ---------------------------------------------------------------------
 
+# ---------------------------------------------------------------------
+# Merge two HSal files; Return value: hsalfilename, propNameList
+# ---------------------------------------------------------------------
+def merge_files(hsalp_str,hsalc_str,track_map,primaryModule,pNameModLTLL,f):
+  '''merge the two strings, create a new HSal file, write to f'''
+  def get_content(hsal_str):
+    index1 = hsal_str.find('BEGIN')
+    index2 = hsal_str.rfind('END')
+    return hsal_str[index1+5:index2]
+
+  # add plant model
+  hsalp_ctxt = get_content(hsalp_str)
+  print >> f, hsalp_ctxt
+  # Now we have plant modeled as: system = control || plant
+
+  # add controller model
+  hsalc_ctxt = get_content(hsalc_str)
+  print >> f, hsalc_ctxt
+  # Now we have controller+properties 
+  
+  # in primaryModule, rename variables as per track_map
+  # finalsys: MODULE = system || (RENAME i TO track_map[i], ... IN primaryM);
+  final = 'finalsys'
+  system = ' '
+  pre, post = '(RENAME ', 'system'
+  for (k,v) in track_map.items():
+    newv = modelica2hsal_rename(v)
+    system += '{2}{0} TO {1}'.format(newv, k, pre)
+    pre = ', '
+    post = ' IN system)'
+  system += post
+  print >> f, '{2}: MODULE = {0} || {1};\n\n'.format(primaryModule, system, final)
+
+  # Now add the properties for finalsys
+  ans = []
+  for (pName, pMod, pLTL) in pNameModLTLL:
+    print >> f, ' {0}f: THEOREM\n  finalsys |- {1};\n\n'.format(pName, pLTL)
+    ans.append( (pName+'f', final, pLTL) )
+
+  return ans
+# ---------------------------------------------------------------------
+
+# ---------------------------------------------------------------------
+# Main function called on command-line invocation
+# ---------------------------------------------------------------------
 def main():
     def getexe():
-        folder = os.path.split(inspect.getfile( inspect.currentframe() ))[0]
-        relabsfolder = os.path.join(folder, '..', '..', 'bin')
-        relabsfolder = os.path.realpath(os.path.abspath(relabsfolder))
-        return relabsfolder
+      folder = os.path.split(inspect.getfile( inspect.currentframe() ))[0]
+      relabsfolder = os.path.join(folder, '..', '..', 'bin')
+      relabsfolder = os.path.realpath(os.path.abspath(relabsfolder))
+      return relabsfolder
     global dom
+
+    # get controller-filename and modelica-filename from argv
     (ccfilename, modfilename) = argCheck(sys.argv, printUsage)
-    try:
-        (basefilename, propNameList) = cybercomposition2hsal.cybercomposition2hsal(ccfilename, options = sys.argv[3:])
-    except Exception, e:
-        print e
-        print 'ERROR: Unable to translate CyberComposition XML to HybridSal'
-        return -1
-    assert type(basefilename) == str, 'ERROR: cc2hsal return value type: string expected'
-    hsalfile = basefilename + '.hsal'
-    if not(os.path.isfile(hsalfile) and os.path.getsize(hsalfile) > 100):
-        print 'ERROR: Unable to translate CyberComposition XML to HybridSal. Quitting.'
-        return -1
 
-    # Now run the modelica_slicer...
-
-    # now I need to run hsal2hasal
+    # convert controller to SAL
     try:
-        xmlfilename = HSalRelAbsCons.hsal2hxml(hsalfile)
+      (basefilename, propNameList) = cybercomposition2hsal.cybercomposition2hsal(ccfilename, options = sys.argv[3:])
     except Exception, e:
-        print e
-        print 'ERROR: Failed to parse generated HybridSal file. Syntax error in generated HybridSal file. Quitting.'
-        return -1
+      print e
+      print 'ERROR: Unable to translate CyberComposition XML to HybridSal'
+      return -1
+    if type(basefilename) != str:
+      'ERROR: cc2hsal return value type: string expected'
+      return -1
+
+    # check if cc2hsal worked properly
+    hsalCfile = basefilename + '.hsal'
+    if not(os.path.isfile(hsalCfile) and os.path.getsize(hsalCfile) > 100):
+      print 'ERROR: Unable to translate CyberComposition XML to HybridSal. Quitting.'
+      return -1
+
+    # hsalCfile = name of controller file, propNameList = property Names
+    # extract property name, modName, str from the hsal file
+    hsalc_str = hsal_file_to_str( hsalCfile )
+    pNameModLTLL = get_props_from_hsal_file(hsalc_str)
+
+    # get the main controller module of interest
+    if len(pNameModLTLL) > 0:
+      primaryModule = pNameModLTLL[0][1]
+    else:
+      primaryModule = get_first_module_name( hsalc_str )
+
+    # find input and output variables in that module
+    (ins, outs) = get_module_io_from_hsal_str(hsalc_str, primaryModule)
+
+    # throw away other properties
+    pNameModLTLL[:] = [i for i in pNameModLTLL if i[1]==primaryModule]
+    print 'Updated property list: ', pNameModLTLL
+
+    # Now get input variable names used in the controller to be verified
+    variableList = [i[0] for i in ins]	# ins = (var,type)-list
+    print 'Input variables list: ', variableList
+
+    # Now run the modelica2hsal that includes the modelica_slicer...
+    aa = sys.argv[3:]
+    aa.extend(['--slicewrt', variableList])
+    try:
+      (hsalPfile, track_map) = modelica2hsal.modelica2hsal(modfilename, pfilename=None, options=aa)
+    except Exception, e:
+      print e
+      print 'Error: Unable to create HybridSal file from Modelica XML'
+      return -1
+    if not(type(hsalPfile) == str and os.path.isfile(hsalPfile) and os.path.getsize(hsalPfile) > 100):
+      print 'Error: Translation from Modelica to HybridSal failed. Quitting.'
+      return -1
+    # this will create outfile == 'filenameModel.hsal'
+
+    # Variables:
+    # hsalPfile = plant model generated from modelica+slicer
+    # hsalCfile = controller model generated from CyberCompositionXML
+    # hsalc_str = hsalCfile read in as a string
+    # primaryModule = name of main MODULE in controller
+    # pNameModLTLL = (name, mod_name, ltl-str) for all properties
+    # track_map = dict var_name_str -> var_name_str
+
+    # merge the controller and plant models
+    hsalfile = basefilename + os.path.basename(hsalPfile)
+    hsalp_str = hsal_file_to_str( hsalPfile )
+    try:
+      f = open(hsalfile, 'w')
+    except Exception, e:
+      print 'Failed to open {0} for writing merged file'.format(hsalfile)
+      return -1
+    print >> f, "{0}: CONTEXT =\nBEGIN\n".format(os.path.basename(hsalfile)[:-5])
+    pNameModLTLL = merge_files(hsalp_str, hsalc_str, track_map, primaryModule, pNameModLTLL, f)
+    print >> f, "END"
+    f.close()
+
+    # now I need to run hsal2hasal; first parse the HSal file
+    try:
+      xmlfilename = HSalRelAbsCons.hsal2hxml(hsalfile)
+    except Exception, e:
+      print e
+      print 'ERROR: Failed to parse generated HybridSal file. Syntax error in generated HybridSal file. Quitting.'
+      return -1
     if not(type(xmlfilename) == str and os.path.isfile(xmlfilename) and os.path.getsize(xmlfilename) > 100):
-        print 'ERROR: Failed to parse HybridSal file. Quitting.'
-        return -1
+      print 'ERROR: Failed to parse HybridSal file. Quitting.'
+      return -1
+
+    # Now relationally abstract hsal to sal
     try:
-        ans_prop_exists = HSalRelAbsCons.hxml2sal(xmlfilename, optarg=0, timearg=None, ptf=False)
+      ans_prop_exists = HSalRelAbsCons.hxml2sal(xmlfilename, optarg=0, timearg=None, ptf=False)
     except Exception, e:
-        print e
-        print 'ERROR: Relational abstracter can not abstract this model. Quitting.'
-        return -1
+      print e
+      print 'ERROR: Relational abstracter can not abstract this model. Quitting.'
+      return -1
     if not isinstance(ans_prop_exists, tuple):
-        print 'ERROR: Relational abstracter failed to abstract this model. Quitting.'
-        return -1
+      print 'ERROR: Relational abstracter failed to abstract this model. Quitting.'
+      return -1
     (ans, prop_exists) = ans_prop_exists
     if not(type(ans) == str and os.path.isfile(ans) and os.path.getsize(ans) > 100):
-        print 'ERROR: Failed to abstract HybridSal model into a SAL model. Quitting.'
-        return -1
-    # iswin = sys.platform.startswith('win')
-    # if pfilename != None:
+      print 'ERROR: Failed to abstract HybridSal model into a SAL model. Quitting.'
+      return -1
+
+    # Now ready to run sal-inf-bmc 
     if prop_exists:
-        salinfbmcexe = find_sal_exe()
-        if salinfbmcexe == None:
-            print 'ERROR: Failed to find sal-inf-bmc. Ensure SAL is installed.'
-            return -1
-        # change directory to where the sal file was created...
-        #if os.environ.has_key('SALCONTEXTPATH'):
-            #oldpath = os.environ['SALCONTEXTPATH']
-        #else:
-            #oldpath = '.'
-        hsal_file_path = os.path.abspath(ans) 
-        (basename,ext) = os.path.splitext(hsal_file_path)
-        result_filename = basename + 'Result.txt'
-        hsal_file_path = hsal_file_path.replace('\\', '/')
-        hsal_file_path = hsal_file_path.replace('C:', '/cygdrive/c')
-        try:
-          f = open(result_filename, 'w')
-        except Exception, e:
-          print 'Failed to open file {0} for writing results'.format(result_filename)
-          return -1
-          #print 'Results will be displaced on stdout'
-          #f = sys.stdout
-        #hsal_file_path = hsal_file_path.replace('C:', '/c/')
-        #os.environ['SALCONTEXTPATH'] = hsal_file_path + ':' + oldpath 
-        #print 'SALCONTEXTPATH = ', os.environ['SALCONTEXTPATH']
-        hsal_str = ''
-        with open(hsalfile, 'r') as hsal_fp:
+      salinfbmcexe = find_sal_exe()
+      if salinfbmcexe == None:
+        print 'ERROR: Failed to find sal-inf-bmc. Ensure SAL is installed.'
+        return -1
+      hsal_file_path = os.path.abspath(ans) 
+      (basename,ext) = os.path.splitext(hsal_file_path)
+      result_filename = basename + 'Result.txt'
+      hsal_file_path = hsal_file_path.replace('\\', '/')
+      hsal_file_path = hsal_file_path.replace('C:', '/cygdrive/c')
+      try:
+        f = open(result_filename, 'w')
+      except Exception, e:
+        print 'Failed to open file {0} for writing results'.format(result_filename)
+        return -1
+      #os.environ['SALCONTEXTPATH'] = hsal_file_path + ':' + oldpath 
+      #print 'SALCONTEXTPATH = ', os.environ['SALCONTEXTPATH']
+
+      # just get to the place in file where there are properties
+      '''hsal_str = ''
+      with open(hsalfile, 'r') as hsal_fp:
+        old_pos = hsal_fp.tell()
+        line_str = hsal_fp.readline()
+        while line_str != '' and line_str.find('THEOREM') == -1:
           old_pos = hsal_fp.tell()
           line_str = hsal_fp.readline()
-          while line_str != '' and line_str.find('THEOREM') == -1:
-            old_pos = hsal_fp.tell()
-            line_str = hsal_fp.readline()
-          if line_str != '':  # if there are properties
-            hsal_fp.seek( old_pos )
-            hsal_str = hsal_fp.read()
-        for p1 in propNameList:
-          print >> f, 'PropertyName: {0}'.format(p1)
-          print >> f, 'PropertyStr: {0}'.format(get_prop_str(hsal_str,p1))
-          f.flush()
-          cmd = list(salinfbmcexe)
-          cmd.extend(["-d", "10", hsal_file_path, p1])
-          retCode = subprocess.call( cmd, env=os.environ, stdout=f)
-          f.flush()
-          if retCode != 0:
-              print "sal-inf-bmc failed."
-              return -1
-          print >> f, '~~~~~~~~~~'
-          f.flush()
-        f.close()
-        #print 'NOTE: Download and install SAL from sal.csl.sri.com'
-    else:
-        print 'No LTL properties were provided'
-        print 'For verifying the model, add a property either in the Matlab model or in the translated SAL file directly'
-        print 'Then, Use the command: sal-inf-bmc -d 4 <GeneratedSALFile> <propertyName added in generated SAL file>'
-        return -1
+        # and get the file contents from that point on--optimization
+        if line_str != '':  # if there are properties
+          hsal_fp.seek( old_pos )
+          hsal_str = hsal_fp.read()
+      # hsal_str = contains all the properties...
+
+      # for each property, run sal-inf-bmc and collect result in file f
+      for p1 in propNameList:
+        print >> f, 'PropertyName: {0}'.format(p1)
+        print >> f, 'PropertyStr: {0}'.format(get_prop_str(hsal_str,p1))
+        f.flush()
+        cmd = list(salinfbmcexe)
+        cmd.extend(["-d", "10", hsal_file_path, pName])
+        retCode = subprocess.call( cmd, env=os.environ, stdout=f)
+        f.flush()
+        if retCode != 0:
+          print "sal-inf-bmc failed."
+          return -1
+        print >> f, '~~~~~~~~~~'
+        f.flush()
+      f.close()
+      #print 'NOTE: Download and install SAL from sal.csl.sri.com'
+      '''
+
+      # Now we have the properties and its LTL text 
+      for (pName, pMod, LTL) in pNameModLTLL:
+        print >> f, 'PropertyName: {0}'.format(pName)
+        print >> f, 'PropertyStr: {0}'.format(LTL)
+        f.flush()
+        cmd = list(salinfbmcexe)
+        cmd.extend(["-d", "10", hsal_file_path, pName])
+        retCode = subprocess.call( cmd, env=os.environ, stdout=f)
+        f.flush()
+        if retCode != 0:
+          print "sal-inf-bmc failed."
+          return -1
+        print >> f, '~~~~~~~~~~'
+        f.flush()
+
+    else: 	# if prop_exists is false
+      print 'No LTL properties were provided'
+      print 'For verifying the model, add a property either in the Matlab model or in the translated SAL file directly'
+      print 'Then, Use the command: sal-inf-bmc -d 4 <GeneratedSALFile> <propertyName added in generated SAL file>'
+      return -1
     return 0
 
 if __name__ == "__main__":

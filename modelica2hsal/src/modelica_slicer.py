@@ -8,6 +8,8 @@ import xml.dom.minidom
 # Inside python call:
 #  modelica_slicer.modelica_slice_file(filename, varlist)
 #    where varlist = list of variable names (str)
+#  returns: (slice_filename, modelicadom, track_map)
+#
 # Command line:
 #  python src/modelica_slicer.py examples/no_controls_dae.xml --slicewrt "driveLine.pTM_with_TC.torque_Converter_Lockup.clutch_lockup.phi_rel" > tmp.txt
 #
@@ -809,9 +811,9 @@ def modelicadom_slicer(modelicadom, varlist, meta={}):
     if len(rest2) != 0:
       print 'WARNING: Rest2 has {0} elements: {1}'.format(len(rest2), rest2)
 
-    return ( slice_e, sliced_v, sliced_kv, slice_ie )
+    return ( slice_e, sliced_v, sliced_kv, slice_ie, track_map )
 
-def output_sliced_dom(slice_filename, sliced_e, slice_ie, sliced_v, other_v, dom):
+def output_sliced_dom(slice_filename, sliced_e, slice_ie, sliced_v, other_v, dom, trk):
   '''output XML in the given filename'''
   with open(slice_filename, 'w') as fp:
     print >> fp, '''<?xml version="1.0" encoding="UTF-8"?>
@@ -821,7 +823,8 @@ def output_sliced_dom(slice_filename, sliced_e, slice_ie, sliced_v, other_v, dom
     xsi:noNamespaceSchemaLocation="http://home.dei.polimi.it/donida/Projects/AutoEdit/Images/DAE.xsd">
     '''
     total_vars = len(sliced_v) + len(other_v)
-    print >> fp, '<variables dimension="{0}">'.format(total_vars)
+    trks = str(trk).replace("'", "&quot;")
+    print >> fp, '<variables dimension="{0}" trackmap="{1}">'.format(total_vars,trks)
     print >> fp, '<orderedVariables dimension="{0}">'.format(len(sliced_v))
     print >> fp, '<variablesList>'
     for i in sliced_v:
@@ -848,6 +851,36 @@ def output_sliced_dom(slice_filename, sliced_e, slice_ie, sliced_v, other_v, dom
 # ----------------------------------------------------------------------
  
 # ----------------------------------------------------------------------
+# Don't invoke slicer if sliced file exists, is new, and was created recently
+# ----------------------------------------------------------------------
+def existsAndNew(filename1, filename2):
+  if os.path.isfile(filename1) and os.path.getctime(filename1) >= os.path.getctime(filename2):
+    import time
+    if abs(time.time() - os.path.getctime(filename1)) < 86400:
+      print "File {0} is newer, and was created in last 1 day".format(filename1)
+    return True
+  return False
+# ----------------------------------------------------------------------
+
+# ----------------------------------------------------------------------
+# Extract track_map from the XML of the sliced_file
+# ----------------------------------------------------------------------
+def extract_map_from_xml(slice_filename):
+    try:
+      modelicadom = xml.dom.minidom.parse(slice_filename)
+    except:
+      print 'Error: Input XML file is not well-formed'
+      print 'Quitting', sys.exc_info()[0]
+      sys.exit(-1)
+    variables = modelicadom.getElementsByTagName('variables')[0]
+    track_map_str = variables.getAttribute('trackmap')
+    print 'track_map_str is ', track_map_str
+    track_map = eval(track_map_str)
+    print 'trakc_map is ', track_map
+    return track_map
+# ----------------------------------------------------------------------
+
+# ----------------------------------------------------------------------
 # if calling slicer through python, this is the function to call.
 # ----------------------------------------------------------------------
 def modelica_slice_file(filename, varlist):
@@ -855,7 +888,18 @@ def modelica_slice_file(filename, varlist):
        Wrapper over modelicadom_slicer and output_sliced_dom
     '''
     assert os.path.isfile(filename), 'ERROR: File does not exist'
+
+    # construct filename for the sliced file
     basename,ext = os.path.splitext(filename)
+    if basename.find('-') != -1:
+      basename = basename.replace('-','_')
+    slice_filename = basename + '_slice.xml'
+    if existsAndNew(slice_filename, filename):
+      print "Using existing slice file {0}".format(slice_filename)
+      track_map = extract_map_from_xml(slice_filename)
+      return (slice_filename, None, track_map)
+
+    # Parse the modelica file and slice it 
     try:
       modelicadom = xml.dom.minidom.parse(filename)
     except xml.parsers.expat.ExpatError, e:
@@ -869,13 +913,10 @@ def modelica_slice_file(filename, varlist):
     dirname = os.path.dirname(filename)
     jsonfile = os.path.join(dirname, 'modelicaURI2CyPhyMap.json')
     d = jsonfile2dict( jsonfile )
-    (sliced_e, sliced_v, other_v, slice_ie) = modelicadom_slicer(modelicadom, varlist, meta=d)
-    if basename.find('-') != -1:
-      basename = basename.replace('-','_')
-    slice_filename = basename + '_slice.xml'
+    (sliced_e, sliced_v, other_v, slice_ie, track_map) = modelicadom_slicer(modelicadom, varlist, meta=d)
     print >> sys.stderr, 'Creating file {0}...'.format(slice_filename)
-    output_sliced_dom(slice_filename, sliced_e, slice_ie, sliced_v, other_v, modelicadom)
-    return (slice_filename, modelicadom)
+    output_sliced_dom(slice_filename, sliced_e, slice_ie, sliced_v, other_v, modelicadom, track_map)
+    return (slice_filename, modelicadom, track_map)
 # ----------------------------------------------------------------------
 
 # ----------------------------------------------------------------------
