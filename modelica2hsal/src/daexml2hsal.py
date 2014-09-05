@@ -10,8 +10,18 @@ import sys
 import os.path
 import daexmlPP
 import ddae
-import HSalXMLPP
 import re
+
+# adds the current folder (where this file resides) into the path
+folder = os.path.split(inspect.getfile( inspect.currentframe() ))[0]
+relabsfolder = os.path.join(folder, '..', '..', 'src')
+relabsfolder = os.path.realpath(os.path.abspath(relabsfolder))
+folder = os.path.realpath(os.path.abspath(folder))
+for i in [folder, relabsfolder]:
+    if i not in sys.path:
+        sys.path.insert(0, i)
+
+from HSalXMLPP import HSalPPExpr
 
 def valueOf(node):
     """return text value of node"""
@@ -1785,7 +1795,7 @@ def createPropertyXML(dom3):
             propExpr = None
         # at this point, propExpr is None OR is our desired property   
         if propExpr != None:
-            propStr = HSalXMLPP.HSalPPExpr(propExpr)
+            propStr = HSalPPExpr(propExpr)
         else:
             propStr = ''
     # propStr is the desired property; 
