@@ -10,6 +10,7 @@ import sys
 import os.path
 import daexmlPP
 import ddae
+import inspect
 import re
 
 # adds the current folder (where this file resides) into the path
