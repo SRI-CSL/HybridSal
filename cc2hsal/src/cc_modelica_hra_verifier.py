@@ -286,6 +286,7 @@ def main():
     (ccfilename, modfilename) = argCheck(sys.argv, printUsage)
 
     # convert controller to SAL
+    print 'Generating controller in HybridSAL...'
     try:
       (basefilename, propNameList) = cybercomposition2hsal.cybercomposition2hsal(ccfilename, options = sys.argv[3:])
     except Exception, e:
@@ -301,6 +302,7 @@ def main():
     if not(os.path.isfile(hsalCfile) and os.path.getsize(hsalCfile) > 100):
       print 'ERROR: Unable to translate CyberComposition XML to HybridSal. Quitting.'
       return -1
+    print 'Created file {0}'.format(hsalCfile)
 
     # hsalCfile = name of controller file, propNameList = property Names
     # extract property name, modName, str from the hsal file
@@ -324,6 +326,8 @@ def main():
     variableList = [i[0] for i in ins]	# ins = (var,type)-list
     print 'Input variables list: ', variableList
 
+    print 'Slicing the plant and creating plant in HybridSAL...'
+
     # Now run the modelica2hsal that includes the modelica_slicer...
     aa = sys.argv[3:]
     aa.extend(['--slicewrt', variableList])
@@ -338,6 +342,8 @@ def main():
       return -1
     # this will create outfile == 'filenameModel.hsal'
 
+    print 'Generated file {0} containing the sliced plant model'.format(hsalPfile)
+
     # Variables:
     # hsalPfile = plant model generated from modelica+slicer
     # hsalCfile = controller model generated from CyberCompositionXML
@@ -345,6 +351,8 @@ def main():
     # primaryModule = name of main MODULE in controller
     # pNameModLTLL = (name, mod_name, ltl-str) for all properties
     # track_map = dict var_name_str -> var_name_str
+
+    print 'Merging plant and controller models into single model...'
 
     # merge the controller and plant models
     hsalfile = basefilename + os.path.basename(hsalPfile)
@@ -358,6 +366,10 @@ def main():
     pNameModLTLL = merge_files(hsalp_str, hsalc_str, track_map, primaryModule, pNameModLTLL, f)
     print >> f, "END"
     f.close()
+
+    print 'Generated file {0} containing the merged model.'.format(hsalfile)
+
+    print 'Abstracting the merged model...'
 
     # now I need to run hsal2hasal; first parse the HSal file
     try:
@@ -385,8 +397,11 @@ def main():
       print 'ERROR: Failed to abstract HybridSal model into a SAL model. Quitting.'
       return -1
 
+    print 'Relational abstraction successfully created {0}'.format(ans)
+
     # Now ready to run sal-inf-bmc 
     if prop_exists:
+      print 'Model checking the properties...'
       salinfbmcexe = find_sal_exe()
       if salinfbmcexe == None:
         print 'ERROR: Failed to find sal-inf-bmc. Ensure SAL is installed.'
@@ -450,6 +465,9 @@ def main():
           return -1
         print >> f, '~~~~~~~~~~'
         f.flush()
+
+      f.close()
+      print 'Generated file {0} containing the verification results'.format(result_filename)
 
     else: 	# if prop_exists is false
       print 'No LTL properties were provided'
