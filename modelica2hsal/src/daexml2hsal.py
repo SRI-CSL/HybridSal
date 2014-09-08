@@ -850,6 +850,7 @@ def findState(Eqn, cstate, dstate, var_details):
         else:
             assert False, "Cannot handle type {0} (variable {1})".format(vtype,name)
             #print >> sys.stderr, "IGNORING variable of Type {0}".format(vtype)
+    '''
     print >> sys.stderr, 'bools', bools
     print >> sys.stderr, 'reals', reals
     print >> sys.stderr, 'integers', integers
@@ -858,6 +859,7 @@ def findState(Eqn, cstate, dstate, var_details):
     print >> sys.stderr, 'cstate', cstate
     print >> sys.stderr, 'dstate', dstate
     print >> sys.stderr, 'enums', myenums
+    '''
     return (bools, reals, integers, inputs, nonstates, varmap, myenums)
  
 # -----------------------------------------------------------------
