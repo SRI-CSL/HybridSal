@@ -745,7 +745,7 @@ def simplify0uapp(node):
             val = float(arg1)
             val = 1 if val >= 0 else -1
         elif func == 'noEvent':
-            print 'Dont know what to do with noEvent'
+            #print 'Dont know what to do with noEvent'
             val = float(arg1)
             #sys.exit()
         elif func == 'der':
@@ -908,9 +908,13 @@ def simplify0bapp(node):
             arg1 = valueOf(arg1).strip()
             arg2 = valueOf(arg2).strip()
             func = valueOf(getArg(parentnode, 1)).strip()
-            if func == '/' and abs(float(arg2)) < 1e-3:
-                print 'WARNING: Division by ZERO; returning zero'
-                val = float(arg1)
+            if func == '/' and abs(float(arg2)) < 1e-9:
+                #print 'WARNING: Division by very small constant'
+                print '~0',
+                if abs(float(arg1)) < 1e-9:
+                  val = 1
+                else:
+                  val = 1e10
             elif func == '/':
                 val = float(arg1) / float(arg2)
             elif func == '*':
@@ -920,7 +924,7 @@ def simplify0bapp(node):
             elif func == '-':
                 val = float(arg1) - float(arg2)  # todo: atan2/ cross
             elif func == '^' or func == 'power':
-                if abs(float(arg1)) < 1e-5:	# ASHISH: 1e-5 check
+                if abs(float(arg1)) < 1e-8:	# ASHISH: 1e-5 check
                     val = 0.0
                 else:
                     val = float(arg1) ** float(arg2)  # todo: atan2/ cross

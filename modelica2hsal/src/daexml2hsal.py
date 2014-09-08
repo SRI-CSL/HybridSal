@@ -1380,11 +1380,11 @@ def createPlant(state, ceqns, oeqns, iEqns = {}):
         n_cases = len(ans)
         # print 'Unoptimized # case = {0}'.format( n_cases )
         if n_cases >= 100:
-          print 'WARNING: Too many cases, ignoring those more than 200'
+          #print 'WARNING: Too many cases, ignoring those more than 200'
           ans = collapse_cases(ans[0:99]) 
         else:
           ans = collapse_cases(ans) 
-        print 'Optimized # case = {0}'.format(len(ans))
+        #print 'Optimized # case = {0}'.format(len(ans))
         return ans
     def expr2cexpr2( val ):
         if val.tagName == 'BAPP':
@@ -1452,7 +1452,7 @@ def createPlant(state, ceqns, oeqns, iEqns = {}):
             return pnvvll
         pnvvll2 = pnvvlll[0]
         if len(pnvvll2) == 0:
-          print 'WARNING: ZERO cases for some variable!!'
+          #print 'WARNING: ZERO cases for some variable!!'
           return myproductAux( pnvvlll[1:], pnvvll )
         ans = []
         for (p,n,vvl) in pnvvll2:
@@ -1499,10 +1499,10 @@ def createPlant(state, ceqns, oeqns, iEqns = {}):
         (var,val) = (rhs,lhs) if rhs.tagName == 'der' else (lhs,rhs)
         assert var.tagName == 'der', 'ERROR: Unable to covert DAE to dx/dt = Ax+b'
         name = valueOf(getArg(var,1)).strip()
-        print >> sys.stderr, 'Working on {0}... '.format(name)
+        #print >> sys.stderr, 'Working on {0}... '.format(name)
         rhs =  expr2cexpr(val)
         ode.append( (name, rhs) )
-        print >> sys.stderr, 'ODE for {0} has {1} cases'.format(name,len(rhs))
+        #print >> sys.stderr, 'ODE for {0} has {1} cases'.format(name,len(rhs))
         # print [expr2sal(j[2]) for j in rhs]
     others = []
     for i in range(len(oeqns)-1,-1,-1):
@@ -1511,7 +1511,7 @@ def createPlant(state, ceqns, oeqns, iEqns = {}):
         rhs = getArg(e,2) 
         e1 =  expr2cexpr(lhs)
         e2 =  expr2cexpr(rhs)
-        print >> sys.stderr, 'Other equation has {0} and {1} cases'.format(len(e1),len(e2))
+        #print >> sys.stderr, 'Other equation has {0} and {1} cases'.format(len(e1),len(e2))
         # print 'lhs = {0}'.format(daexmlPP.ppExpr(lhs))
         # print 'rhs = {0}'.format(daexmlPP.ppExpr(rhs))
         # print 'e1 = {0}'.format(e1)
@@ -1663,19 +1663,21 @@ def convert2hsal(dom1, dom2, dom3 = None):
         return -1
     Eqn = dom1.getElementsByTagName('equations')[0]
     eqns = getElementsByTagTagName(dom1, 'equations', 'equation')
-    print >> sys.stderr, 'Found {0} equations. Processing...'.format(len(eqns))
+    #print >> sys.stderr, 'Found {0} equations. Processing...'.format(len(eqns))
     var_details = getElementsByTagTagName(dom2, 'orderedVariables', 'variable')
     var_details2 = getElementsByTagTagName(dom2, 'knownVariables', 'variable')
     var_details.extend(var_details2)
     # find and classify all variables that occur in Eqn -- do this before classifyEqns becos it messes up eqns
-    print 'var_details has {0} elmnts'.format(len(var_details))
+    #print 'var_details has {0} elmnts'.format(len(var_details))
     state = findState(Eqn,cstate,dstate,var_details)
     (bools,reals,ints,inputs,nonstates,vmap,enums) = state
+    '''
     print '------------final size of state---------------'
     print >> sys.stderr, 'Total {0} vars'.format(len(vmap),len(enums))
     print >> sys.stderr, 'Of which {0} bools, {1} reals, {2} ints, {3} enums'.format(len(bools),len(reals),len(ints),len(enums))
     print >> sys.stderr, 'Of which {0} inputs, {1} non-states'.format(len(inputs),len(nonstates))
     print '-----------------------------------------------'
+    '''
     #print >> sys.stderr, 'State: {0}'.format(state)
     # find and classify all equations in Eqn -- this messes up contEqns (essentially deletes them from Eqn)
     (discEqns,contEqns,oEqns,iEqns) = classifyEqnsNEW(eqns,cstate,dstate)
@@ -1694,15 +1696,15 @@ def convert2hsal(dom1, dom2, dom3 = None):
     eqns.extend(contEqns)
     eqns.extend(oEqns)
     preds = getPredsInConds(eqns)
-    print >> sys.stderr, 'Found {0} preds'.format(len(preds))
-    print >> sys.stderr, 'Preds: {0}'.format(preds)
-    print >> sys.stderr, 'Enums: {0}'.format(enums)
+    # print >> sys.stderr, 'Found {0} preds'.format(len(preds))
+    # print >> sys.stderr, 'Preds: {0}'.format(preds)
+    # print >> sys.stderr, 'Enums: {0}'.format(enums)
     ans = createEnumDecl(enums) # enums is destructively updated now
-    print >> sys.stderr, 'NEWEnums: {0}'.format(enums)
+    # print >> sys.stderr, 'NEWEnums: {0}'.format(enums)
     ans0 = createEventsFromPreds(preds, reals, inputs)	# Should events on inputs be included?
-    print >> sys.stderr, 'created events from preds'
+    # print >> sys.stderr, 'created events from preds'
     ans1 = createControl(state, discEqns, ans0, iEqns)
-    print >> sys.stderr, 'created control'
+    # print >> sys.stderr, 'created control'
     ans2 = createPlant(state, contEqns, oEqns, iEqns)
     print >> sys.stderr, 'created plant'
     # replace varname.var -> varname_var

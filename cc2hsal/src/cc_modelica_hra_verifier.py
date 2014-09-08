@@ -15,6 +15,13 @@ relabsfolder = os.path.realpath(os.path.abspath(relabsfolder))
 ccfolder = os.path.realpath(os.path.abspath(folder))
 modelicafolder = os.path.join(relabsrootfolder, 'modelica2hsal', 'src')
 #print folder, relabsfolder
+
+hsalxmlpp = os.path.join(modelicafolder,'HSalXMLPP.pyc')
+if os.path.isfile( hsalxmlpp ):
+  os.remove( hsalxmlpp )
+hsalxmlpp = os.path.join(modelicafolder,'HSalXMLPP.py')
+if os.path.isfile( hsalxmlpp ):
+  os.remove( hsalxmlpp )
 for i in [ccfolder, relabsfolder, modelicafolder]:
     if i not in sys.path:
         sys.path.insert(0, i)
@@ -197,11 +204,17 @@ def printUsage():
 cc_modelica_hra_verifier: A Verifier for CyberComposition + 
    Modelica models; Uses HybridSal Relational Abstracter
 
-Usage: python cc_modelica_hra_verifier.py <CC.xml> <Modelica.xml>  OR
-       cc_modelica_hra_verifier.exe <CC.xml> <Modelica.xml>
+Usage: python cc_modelica_hra_verifier.py <CC.xml> [<Modelica.xml>]  OR
+       cc_modelica_hra_verifier.exe <CC.xml> [<Modelica.xml>]
 
-Description: This will analyze all LTL properties in the CC.xml model, and
- create a file called CCResults.txt containing the analysis results.'''
+Description: This tool analyzes all LTL properties in the CC.xml model, 
+ after composing the controller CC.xml with the plan Modelica.xml. 
+ Specifying the plant model, Modelica.xml, is optional.
+ If both controller and plant are specified, and LTL properties are
+ included in the controller model, then the output is a file called 
+ CCModelica_sliceModelResults.txt containing the analysis results.
+ If only the controller model is given, and it includes LTL properties,
+ then the output is a file called CCResults.txt.'''
 # ---------------------------------------------------------------------
 
 # ---------------------------------------------------------------------
@@ -209,13 +222,13 @@ Description: This will analyze all LTL properties in the CC.xml model, and
 # ---------------------------------------------------------------------
 def argCheck(args, printUsage):
     "args = sys.argv list"
-    if not len(args) >= 3:
+    if not len(args) >= 2:
         printUsage()
         sys.exit(-1)
-    if args[1].startswith('-') or args[2].startswith('-'):
+    if args[1].startswith('-'):
         printUsage()
         sys.exit(-1)
-    for i in range(1,3):
+    for i in range(1,min(3, len(args))):
       filename = args[i]
       basename,ext = os.path.splitext(filename)
       if not(ext == '.xml'):
@@ -226,7 +239,7 @@ def argCheck(args, printUsage):
         print 'ERROR: File {0} does not exist'.format(filename)
         printUsage()
         sys.exit(-1)
-    return (args[1], args[2])
+    return (args[1], args[2] if len(args)>=3 else None)
 # ---------------------------------------------------------------------
 
 # ---------------------------------------------------------------------
@@ -260,7 +273,7 @@ def merge_files(hsalp_str,hsalc_str,track_map,primaryModule,pNameModLTLL,f):
     pre = ', '
     post = ' IN system)'
   system += post
-  print >> f, '{2}: MODULE = {0} || {1};\n\n'.format(primaryModule, system, final)
+  print >> f, '{2}: MODULE = {0} [] {1};\n\n'.format(primaryModule, system, final)
 
   # Now add the properties for finalsys
   ans = []
@@ -280,7 +293,6 @@ def main():
       relabsfolder = os.path.join(folder, '..', '..', 'bin')
       relabsfolder = os.path.realpath(os.path.abspath(relabsfolder))
       return relabsfolder
-    global dom
 
     # get controller-filename and modelica-filename from argv
     (ccfilename, modfilename) = argCheck(sys.argv, printUsage)
@@ -288,7 +300,7 @@ def main():
     # convert controller to SAL
     print 'Generating controller in HybridSAL...'
     try:
-      (basefilename, propNameList) = cybercomposition2hsal.cybercomposition2hsal(ccfilename, options = sys.argv[3:])
+      (basefilename, propNameList) = cybercomposition2hsal.cybercomposition2hsal(ccfilename, options = sys.argv[2:])
     except Exception, e:
       print e
       print 'ERROR: Unable to translate CyberComposition XML to HybridSal'
@@ -326,50 +338,54 @@ def main():
     variableList = [i[0] for i in ins]	# ins = (var,type)-list
     print 'Input variables list: ', variableList
 
-    print 'Slicing the plant and creating plant in HybridSAL...'
-
     # Now run the modelica2hsal that includes the modelica_slicer...
-    aa = sys.argv[3:]
-    aa.extend(['--slicewrt', variableList])
-    try:
-      (hsalPfile, track_map) = modelica2hsal.modelica2hsal(modfilename, pfilename=None, options=aa)
-    except Exception, e:
-      print e
-      print 'Error: Unable to create HybridSal file from Modelica XML'
-      return -1
-    if not(type(hsalPfile) == str and os.path.isfile(hsalPfile) and os.path.getsize(hsalPfile) > 100):
-      print 'Error: Translation from Modelica to HybridSal failed. Quitting.'
-      return -1
-    # this will create outfile == 'filenameModel.hsal'
+    if modfilename != None:
+      print 'Slicing the plant and creating plant in HybridSAL...'
+      aa = sys.argv[3:]
+      aa.extend(['--slicewrt', variableList])
+      try:
+        (hsalPfile, track_map) = modelica2hsal.modelica2hsal(modfilename, pfilename=None, options=aa)
+      except Exception, e:
+        print e
+        print 'Error: Unable to create HybridSal file from Modelica XML'
+        return -1
+      if not(type(hsalPfile) == str and os.path.isfile(hsalPfile) and os.path.getsize(hsalPfile) > 100):
+        print 'Error: Translation from Modelica to HybridSal failed. Quitting.'
+        return -1
+      # this will create outfile == 'filenameModel.hsal'
 
-    print 'Generated file {0} containing the sliced plant model'.format(hsalPfile)
+      print 'Generated file {0} containing the sliced plant model'.format(hsalPfile)
 
-    # Variables:
-    # hsalPfile = plant model generated from modelica+slicer
-    # hsalCfile = controller model generated from CyberCompositionXML
-    # hsalc_str = hsalCfile read in as a string
-    # primaryModule = name of main MODULE in controller
-    # pNameModLTLL = (name, mod_name, ltl-str) for all properties
-    # track_map = dict var_name_str -> var_name_str
+      # Variables:
+      # hsalPfile = plant model generated from modelica+slicer
+      # hsalCfile = controller model generated from CyberCompositionXML
+      # hsalc_str = hsalCfile read in as a string
+      # primaryModule = name of main MODULE in controller
+      # pNameModLTLL = (name, mod_name, ltl-str) for all properties
+      # track_map = dict var_name_str -> var_name_str
 
-    print 'Merging plant and controller models into single model...'
+      print 'Merging plant and controller models into single model...'
 
-    # merge the controller and plant models
-    hsalfile = basefilename + os.path.basename(hsalPfile)
-    hsalp_str = hsal_file_to_str( hsalPfile )
-    try:
-      f = open(hsalfile, 'w')
-    except Exception, e:
-      print 'Failed to open {0} for writing merged file'.format(hsalfile)
-      return -1
-    print >> f, "{0}: CONTEXT =\nBEGIN\n".format(os.path.basename(hsalfile)[:-5])
-    pNameModLTLL = merge_files(hsalp_str, hsalc_str, track_map, primaryModule, pNameModLTLL, f)
-    print >> f, "END"
-    f.close()
+      # merge the controller and plant models
+      hsalfile = basefilename + os.path.basename(hsalPfile)
+      hsalp_str = hsal_file_to_str( hsalPfile )
+      try:
+        f = open(hsalfile, 'w')
+      except Exception, e:
+        print 'Failed to open {0} for writing merged file'.format(hsalfile)
+        return -1
+      print >> f, "{0}: CONTEXT =\nBEGIN\n".format(os.path.basename(hsalfile)[:-5])
+      pNameModLTLL = merge_files(hsalp_str, hsalc_str, track_map, primaryModule, pNameModLTLL, f)
+      print >> f, "END"
+      f.close()
 
-    print 'Generated file {0} containing the merged model.'.format(hsalfile)
+      print 'Generated file {0} containing the merged model.'.format(hsalfile)
 
-    print 'Abstracting the merged model...'
+      print 'Abstracting the merged model...'
+    else: # modfilename == None
+      print 'No plant model found. Assuming nondeterministic plant...'
+      hsalfile = hsalCfile
+      # pNameModLTLL remains unchanged
 
     # now I need to run hsal2hasal; first parse the HSal file
     try:

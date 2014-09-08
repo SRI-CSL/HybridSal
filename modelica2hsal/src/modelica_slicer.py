@@ -258,7 +258,7 @@ class EInfo:
 class VariableType:
   def __init__(self, varlistlist, meta):
     self.d = {}
-    print meta
+    # print meta
     for i in varlistlist:
       self.update(i, meta)
   def update(self, xml_vars, meta):
@@ -303,11 +303,12 @@ class TreeNode:
     return self.vname
   def add_child_label( self, chosen_e ):
     self.label = chosen_e
-    if chosen_e.e.tagName in ['equation','whenEquation']:
+    '''if chosen_e.e.tagName in ['equation','whenEquation']:
       print 'Var {0}: {1}'.format(self.vname, valueOf(chosen_e.e))
     else:
       bindE = chosen_e.e.getElementsByTagName('bindExpression')[0]
       print 'Var {0}: {1}'.format(self.vname, bindE.getAttribute('string'))
+    '''
   def add_child( self, new_node ):
     self.children.append( new_node )
   def track_mark_preserve(self):
@@ -400,7 +401,7 @@ def pick_defining_equation( var_name, nxtL, currL, preL ):
       #print >> sys.stderr, 'found x = sth equation, checking...'
       del new_currL
       if black_list( e_info ):
-        print 'equation for {0} blacklisted'.format(var_name)
+        # print 'equation for {0} blacklisted'.format(var_name)
         print >> sys.stderr, 'b',
         return None
       print >> sys.stderr, '=',
@@ -452,7 +453,7 @@ def varbackwardsDS( varlist, eInfo, vInfo):
     nodes.append( TreeNode( v, vInfo ) )
   todo_nodes, processed_nodes = list( nodes ), {}
   varbackwardsREC( todo_nodes, eInfo, vInfo, processed_nodes)
-  print >> sys.stderr, 'varbackwardsDS terminated!!!!!'
+  print >> sys.stderr, 'Slice computation terminated!!!!!'
   return nodes
 # ----------------------------------------------------------------------
 
@@ -533,7 +534,7 @@ def find_matching_vars( varlist, ovarl ):
   track_map = {}
   for i in varlist:
     istrip = i.strip()
-    print 'searching for {0}...'.format(istrip)
+    # print 'searching for {0}...'.format(istrip)
     for j in ovarl:
       if j.endswith(istrip):
         track_map[istrip] = j
@@ -770,8 +771,8 @@ def modelicadom_slicer(modelicadom, varlist, meta={}):
     other_v = sliced_kv
     slice_e = sliced_e
 
-    print >> sys.stderr, 'len(sliced_v) = {0}'.format(len(sliced_v))
-    print >> sys.stderr, 'len(other_v) = {0}'.format(len(other_v))
+    print >> sys.stderr, 'Slice: #OVariables = {0}'.format(len(sliced_v))
+    #print >> sys.stderr, 'Slice: #KVariables = {0}'.format(len(other_v))
 
     # get all relevant initial Equations the same way...
     init_equations = getChildByTagName(ctxt, 'initialEquations')
@@ -781,7 +782,7 @@ def modelicadom_slicer(modelicadom, varlist, meta={}):
       other_v = set_union(other_v, other_v1)
     else:
       slice_ie = []
-    print >> sys.stderr, '{0} other_v after processing inits'.format(len(other_v))
+    print >> sys.stderr, 'Slice: #KVariables = {0}'.format(len(other_v))
 
     # sliced_v -> name -> XML map using ovars
     (sliced_v, rest) = map_name_to_xml( sliced_v, ovars)
@@ -809,7 +810,7 @@ def modelicadom_slicer(modelicadom, varlist, meta={}):
     assert len(rest) == 0, 'Err: Rest has {0} elements: {1}'.format(len(rest), rest)
     assert len(rest3) == 0, 'Err:Rest3 has {0} elements: {1}'.format(len(rest3), rest3)
     if len(rest2) != 0:
-      print 'WARNING: Rest2 has {0} elements: {1}'.format(len(rest2), rest2)
+      print 'WARNING: {0} Undeclared variables found: {1}'.format(len(rest2), rest2)
 
     return ( slice_e, sliced_v, sliced_kv, slice_ie, track_map )
 
@@ -874,9 +875,9 @@ def extract_map_from_xml(slice_filename):
       sys.exit(-1)
     variables = modelicadom.getElementsByTagName('variables')[0]
     track_map_str = variables.getAttribute('trackmap')
-    print 'track_map_str is ', track_map_str
+    #print 'track_map_str is ', track_map_str
     track_map = eval(track_map_str)
-    print 'trakc_map is ', track_map
+    print 'Interface mapping between modelica<->CC is ', track_map
     return track_map
 # ----------------------------------------------------------------------
 
