@@ -160,6 +160,7 @@ def modelica2hsal(filename, pfilename = None, options = []):
 
     # Simplify the daexml in stages
     dom1 = daeXML.simplifydaexml(dom1,daexmlfilename,library=libdaexml)
+    os.remove( daexmlfilename )
     print >> sys.stderr, 'Finished simplification steps.'
     dom3 = None		# No property file given by default
     if pfilename != None and pfilename.rstrip().endswith('.xml'):
