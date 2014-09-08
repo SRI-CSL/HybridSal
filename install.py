@@ -897,7 +897,9 @@ def createReleaseExe(srcdir):
     # make examples/ directory
     allFiles1 = ['MassSpringDamperTest.MassSpringDamperTest.xml','MassSpringDamperTest.property.json']
     allFiles2 = ['Linear1.hsal','SimpleThermo4.hsal']
-    os.mkdir( os.path.join(distdir,'examples'), 0755 )
+    examples_dir = os.path.join(distdir,'examples')
+    if not isdir(examples_dir):
+        os.mkdir( os.path.join(distdir,'examples'), 0755 )
     for i in allFiles1:
         src = os.path.join( currdir, 'modelica2hsal', 'examples', i)
         dst = os.path.join( distdir, 'examples', i)
