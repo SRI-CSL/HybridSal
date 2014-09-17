@@ -220,12 +220,12 @@ class EInfo:
   def update(self, e, ovarl, vInfo):
     if e.tagName == 'equation':
       mml = getChildByTagName(e, 'MathML')
-      assert mml != None, 'No MathML'
+      assert mml != None, 'DAEdump expected to contain MathML'
       lhs, rhs = mml_eqn_get_lhs_rhs(mml)
       e_info = EDetails( e, lhs, rhs, ovarl)
     elif e.tagName == 'whenEquation':
       mml = getChildByTagName(e, 'MathML')
-      assert mml != None, 'No MathML'
+      assert mml != None, 'DAEDump expected to contain MathML'
       lhs, rhs = mml_eqn_get_lhs_rhs(mml)
       wcond = getChildByTagName(e, 'whenEquationCondition')
       e_info = EDetails( e, lhs, rhs, ovarl, cond=wcond)
@@ -239,7 +239,7 @@ class EInfo:
       if bindexpr == None:
         return
       mml = getChildByTagName(bindexpr, 'MathML')
-      assert mml != None, 'No MathML'
+      assert mml != None, 'DAEDump expected to contain MathML'
       e_info = EDetails( e, vname, mml, ovarl)
     else:
       assert False, 'Err: Unknown tagName {0}'.format(e.tagName)
@@ -677,7 +677,10 @@ def jsonfile2dict(filename):
   def remove_bad_chars(c):
     return c if c not in bad_chars else ''
   if not os.path.isfile(filename):
-    return {}
+    # return {}		# This creates empty slice...err...
+    print 'ERROR: Need file modelicaURI2CyPhyMap.json alongside plant.xml'
+    print 'ERROR: To classify variables as context, plant, or controller'
+    sys.exit(-1)
   try:
     import json
     with open(filename, 'r') as fp:
@@ -811,6 +814,11 @@ def modelicadom_slicer(modelicadom, varlist, meta={}):
     assert len(rest3) == 0, 'Err:Rest3 has {0} elements: {1}'.format(len(rest3), rest3)
     if len(rest2) != 0:
       print 'WARNING: {0} Undeclared variables found: {1}'.format(len(rest2), rest2)
+
+    if len(slice_e) == 0 or len(sliced_v) == 0:
+      print 'ERROR: Slice is empty. Check if file modelicaURI2CyPhyMap.json is correct'
+      print 'ERROR: Slice is empty. Check if plant model XML is correct'
+      sys.exit(1)
 
     return ( slice_e, sliced_v, sliced_kv, slice_ie, track_map )
 

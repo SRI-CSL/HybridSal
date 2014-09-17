@@ -5,6 +5,10 @@ import os.path
 import inspect
 import subprocess
 
+# When merging controller and plant, we now use || rather than []
+# Because: we need to prove some F properties; 
+# Ideally, add a scheduler that gives turn to controller and plant.
+
 # adds the current folder (where this file resides) into the path
 thisfile = os.path.abspath(inspect.getfile( inspect.currentframe() ))
 folder = os.path.split( thisfile )[0]
@@ -273,7 +277,7 @@ def merge_files(hsalp_str,hsalc_str,track_map,primaryModule,pNameModLTLL,f):
     pre = ', '
     post = ' IN system)'
   system += post
-  print >> f, '{2}: MODULE = {0} [] {1};\n\n'.format(primaryModule, system, final)
+  print >> f, '{2}: MODULE = {0} || {1};\n\n'.format(primaryModule, system, final)
 
   # Now add the properties for finalsys
   ans = []

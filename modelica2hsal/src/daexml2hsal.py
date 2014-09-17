@@ -122,7 +122,7 @@ class PolyRep:
           self.p.pop(x)
     elif op=='*':
       if not(self.isc() or q.isc()):
-        print 'ERROR: Nonlinear expression found {0}*{1}'.format(polyrepPrint(p),polyrepPrint(q))
+        print 'ERROR: Nonlinear expression found {0}*{1}'.format(self.polyrepPrint(),q.polyrepPrint())
         print 'ERROR: Nonlinear expression found. UNSOUND'
 
       d = self.cval() if self.isc() else q.cval()
@@ -134,8 +134,8 @@ class PolyRep:
         self.p[x] = c*d
     elif op=='/':
       if not q.isc():
-        print 'ERROR: Dividing by non-constant; cannot handle {0}/{1}'.format(p,q)
-        return p
+        print 'ERROR: Dividing by non-constant; cannot handle {0}/{1}'.format(self.p,q)
+        # return self
       d = q.cval()
       for (x,c) in self.get_monos():
         self.p[x] = c/d
@@ -149,7 +149,7 @@ class PolyRep:
     elif op in ['==', '<', '>', '<=', '>=']:	# ASHISH: New addition 04/08/14
       self.p = None
     else:
-      assert False, 'Error: Unknown binary operator {0} applied on {1},{2}; cannot handle'.format(op, p, q)
+      assert False, 'Error: Unknown binary operator {0} applied on {1},{2}; cannot handle'.format(op, self.p, q)
 
   def uOp(self, op):
     if op == '-':
@@ -488,7 +488,8 @@ def evalCond(c):
         return None
 
 def preprocessEqnNEW(eL,cstate,dstate):
-    'convert e into der(x) = rhs form, if possible'
+    '''convert e into der(x) = rhs form, if possible; else return in others
+       return (odeList, othersList, substitutionsList)'''
     def mkBOp(op,v1,v2):
         op = helper_create_tag_val('BINARY_OPERATOR',op)
         return helper_create_app('BAPP',[op,v1.cloneNode(True),v2.cloneNode(True)])
@@ -650,11 +651,31 @@ def preprocessEqnNEW(eL,cstate,dstate):
           print type(var)
           ans += '{2}{0}*{1}'.format(coeff, daexmlPP.ppExpr(var),sep)
       return ans
+    def occur_check(p, v):
+        num_occ = 0
+        for e in p.keys():
+          if isinstance(e, (str,unicode)):
+            if e == v:
+              num_occ += 1
+          elif isinstance(e, tuple):
+            if e[0] == v:
+              num_occ += 1
+          else:
+            varXMLs = e.getElementsByTagName('identifier')
+            for vv in varXMLs:
+              if valueOf(vv).strip() == v:
+                num_occ += 1
+              if num_occ > 1:
+                return True
+          if num_occ > 1:
+            return True
+        return False
     def freevar(p, dstate, cstate):
         varList = p.keys()
         for v in varList:
             if isinstance(v,(str,unicode)) and v not in cstate and v not in dstate:
-                return v
+                if not occur_check(p, v):
+                    return v
         return None
     def dervar(varList, dstate, cstate):
         for v in varList:
@@ -718,11 +739,13 @@ def preprocessEqnNEW(eL,cstate,dstate):
             odeL.append(ode)
         if others != None:
             othersL.append(others)
-    # now I have subL, odeL, othersL
+    # now I have subL, odeL, othersL = list of (p,q) where p,q = polyrep
     # I dont have to apply later found subs to initially found odes becos that is impossible
     odeL = polyrep2xmlL(odeL)
     othersL = polyrep2xmlL(othersL)
-    return (odeL, othersL)
+    # We should keep the subL, and not throw them away...
+    subL = polyrep2xmlL(subL)
+    return (odeL, othersL, subL)	# all list of XML equations
 
 def classifyEqns(eqns, cstate, dstate):
     "partition eqns into 2 sets: dx/dt=f(x) and x'=f(x)"
@@ -741,7 +764,8 @@ def classifyEqns(eqns, cstate, dstate):
     return (d,c,others)
 
 def classifyEqnsNEW(eqns, cstate, dstate):
-    "partition eqns into 2 sets: dx/dt=f(x) and x'=f(x)"
+    '''partition eqns into 5 sets: dx/dt=f(x) and x'=f(x) and others and initials!
+       return (discEqns, cEqns, otherCEqns, CEqns_as_subs, initEqns)'''
     def introducePres(e, dstate):
         ids = e.getElementsByTagName('identifier')
         for i in ids:
@@ -776,8 +800,8 @@ def classifyEqnsNEW(eqns, cstate, dstate):
             init[valueOf(getArg(e,1)).strip()] = getArg(e,2)
         else:
             c.append(e)
-    (c, others) = preprocessEqnNEW(c, cstate, dstate)
-    return (d,c,others,init)
+    (c, others, subs) = preprocessEqnNEW(c, cstate, dstate)
+    return (d,c,others,subs,init)
 
 def isEnumValue(name, enums):
     for k,vlist in enums.items():
@@ -788,7 +812,9 @@ def isEnumValue(name, enums):
     return None
 
 def findState(Eqn, cstate, dstate, var_details):
-    "return (bools, reals, integers) from the give equations"
+    '''Eqn = XML of all equations in .daexml4; cstate = all cont state vars;
+       dstate = all disc. state variables; var_details = orig. modelica variables XML
+    return (bools, reals, integers) from the give equations'''
     def myappend(lst, v):
         if v not in lst:
             lst.append(v)
@@ -810,26 +836,31 @@ def findState(Eqn, cstate, dstate, var_details):
                 evals = [x.strip() for x in evals.split(',')]
                 enums[i.getAttribute('name')] = evals
         return enums
+
+    # get all variables in the equations; we will classify them
     ids = Eqn.getElementsByTagName('identifier')
-    #print 'Number of equations in Eqn is {0}'.len(Eqn.getElementsByTagName('equation'))
-    #sys.stdout.flush()
     bools, reals, integers = [], [], []
     nonstates, inputs = [], []
     varmap = {}
     enums = getEnums(var_details)
     myenums = {}
     print 'There are {0} enums'.format(len(enums))
+
+    # for each variable in Eqn, classify it.
     for identifier in ids:
         name = valueOf(identifier).strip()
-        # print name,
-        # sys.stdout.flush()
         val = isEnumValue(name, enums)
+
+        # identifier may not be a variable, but just an enumeration value!!
+        # if enumeration value, then mark it in the Eqn XML via attribute enumValue=True
         if val:   # is an enumeration VALUE, not an enum variable
             newid = helper_create_tag_val('identifier', val)
             newid.setAttribute('enumValue','True')
             parentnode = identifier.parentNode
             parentnode.replaceChild(newChild=newid,oldChild=identifier)
             continue
+
+        # identifier is a variable; get its original modelica XML
         ovar = find(name, var_details)
         vtype = ovar.getAttribute('type')
         variability = ovar.getAttribute('variability')
@@ -978,7 +1009,7 @@ def getInitialValue(vmap, var, iEqns, enums):
     return ans
 
 # need to handle INITIAL properly
-def createControl(state, deqns, guard, iEqns = {}):
+def createControl(state, deqns, guard, iEqns = {}, def_dict = {}):
     "print the control HSAL module"
     def extractInitE(eqn):
         var = getArg(eqn,1)
@@ -1027,16 +1058,44 @@ def createControl(state, deqns, guard, iEqns = {}):
     ans  += "\n  TRANSITION\n  ["
     guard = guard if guard != "" else "TRUE"
     ans  += "\n  {0} -->".format(guard)
-    first = True
+    sep, done_vars = "", []
     for (var, val, init) in varValInitL:
         lhs = expr2sal(var)
         rhs = expr2sal(val)
-        sep = ";" if not(first) else ""
-        first = False if first else first
         ans += "{2}\n\t {0} = {1}".format(lhs,rhs,sep)
+        sep = ";" 
+        done_vars.append( lhs[:-1] )
+    # Now all unassigned OUTPUT variables not in DEFs should be non-det 
+    ans += create_nondet_assgn_str(def_dict, bools, done_vars, 'BOOLEAN', sep)
+    ans += create_nondet_assgn_str(def_dict, ints, done_vars, 'INTEGER', sep)
     ans += "\n  ]"
+    all_output_vars = list(bools)
+    all_output_vars.extend(ints)
+    ans += create_def_str(def_dict, all_output_vars, done_vars)
     ans += "\n END;\n"
     return ans
+
+def create_nondet_assgn_str(def_dict, varnamelist, done_list, typstr, sep):
+    ans = ""
+    for i in varnamelist:	# list of output variables
+      if i in done_list or def_dict.has_key(i):
+        continue
+      ans += "{2}\n\t {0}' IN {{ zzz: {1} | TRUE }}".format(i, typstr, sep)
+      sep = ";"
+    return ans
+
+def create_def_str(def_dict, varnamelist, done_list):
+    ans = ""
+    sep = "\n  DEFINITION"
+    for i in varnamelist:	# list of output variables
+      if i in done_list:
+        continue
+      if def_dict.has_key(i):
+        rhs = expr2sal( def_dict[i], flag=False )
+        ans += "{2}\n\t {0} = {1}".format(i,rhs,sep)
+        sep = ";"
+    return ans
+
 
 def helper_create_app(tag, childs):
     global dom
@@ -1262,7 +1321,7 @@ def toSal(pn, flag, primeflag = False):
             ans += 'NOT(' + expr2sal(i, flag = primeflag) + ')'
     return ans
 
-def createPlant(state, ceqns, oeqns, iEqns = {}):
+def createPlant(state, ceqns, oeqns, iEqns = {}, def_dict = {}):
     "print the PLANT HSAL module"
     def occurs(var, node):
         ids = node.getElementsByTagName('identifier')
@@ -1536,6 +1595,10 @@ def createPlant(state, ceqns, oeqns, iEqns = {}):
     finalode = myproduct(newode)
     # print '#finalode = {0}'.format(len(finalode))
     # print '#####-----****************finalode', finalode
+
+    # Now create definitions ....
+    ans += create_def_str(def_dict, reals, [])
+
     ans  += "\n  TRANSITION\n  ["
     first = True
     for (p,n,vvl) in finalode:
@@ -1596,6 +1659,23 @@ pattern = re.compile('|'.join(rep.keys()))
 def modelica2hsal_rename(varname):
     newvarname = pattern.sub(lambda m: rep[re.escape(m.group(0))], varname)
     return newvarname
+# -----------------------------------------------------------------
+
+# -----------------------------------------------------------------
+# XML equation of the form x = expr to python dict
+# -----------------------------------------------------------------
+def xmleqnlist2dict( eqnl ):
+  '''eqnl = equations of the form x = expr in XML'''
+  def handle_eqn(e):
+    lhsxml = getArg(e, 1)
+    rhsxml = getArg(e, 2)
+    lhsvarname = valueOf(lhsxml).strip()
+    return (lhsvarname, rhsxml)
+  ans = {}
+  for e in eqnl:
+    (lhsvarname, rhsxml) = handle_eqn(e)
+    ans[lhsvarname] = rhsxml
+  return ans
 # -----------------------------------------------------------------
 
 # -----------------------------------------------------------------
@@ -1673,6 +1753,10 @@ def convert2hsal(dom1, dom2, dom3 = None):
     #print 'var_details has {0} elmnts'.format(len(var_details))
     state = findState(Eqn,cstate,dstate,var_details)
     (bools,reals,ints,inputs,nonstates,vmap,enums) = state
+    
+    # bools,reals,ints,inputs,nonstates = list of variable names (strs)
+    # vmap = dict from name to Modelica variable XML
+    # enums = dict from name to enumeration type string
     '''
     print '------------final size of state---------------'
     print >> sys.stderr, 'Total {0} vars'.format(len(vmap),len(enums))
@@ -1682,16 +1766,21 @@ def convert2hsal(dom1, dom2, dom3 = None):
     '''
     #print >> sys.stderr, 'State: {0}'.format(state)
     # find and classify all equations in Eqn -- this messes up contEqns (essentially deletes them from Eqn)
-    (discEqns,contEqns,oEqns,iEqns) = classifyEqnsNEW(eqns,cstate,dstate)
+    (discEqns,contEqns,oEqns,contSubEqns,iEqns) = classifyEqnsNEW(eqns,cstate,dstate)
+ 
+    # oEqns = other continuous eqns that can't be wriiten as dx/dt=f(x) or x = f(y)
+    # contSubEqns = eqns x = f(y) to be turned into DEFINITIONS
     iEqns = handle_initializations( dom1, iEqns )
     print >> sys.stderr, 'Classified eqns into {0} discrete, {1} cont, {2} others'.format(len(discEqns),len(contEqns),len(oEqns))
     #print >> sys.stderr, 'discrete eqns: ', printE(discEqns)
     #print >> sys.stderr, 'cont eqns: ', printE(contEqns)
     #print >> sys.stderr, 'other eqns: ', printE(oEqns)
     #print >> sys.stderr, 'init eqns: ',
+    '''
     for (i,j) in iEqns.items():
         print >> sys.stderr, '{0} = {1}'.format(i,daexmlPP.ppExpr(j)),
     print >> sys.stderr, ''
+    '''
     # preds = getPredsInConds(contEqns)
     # Note: dom1 is MESSED UP; contEqns have been DELETED; so we can't get eqns from dom1.
     eqns = list(discEqns)
@@ -1705,9 +1794,10 @@ def convert2hsal(dom1, dom2, dom3 = None):
     # print >> sys.stderr, 'NEWEnums: {0}'.format(enums)
     ans0 = createEventsFromPreds(preds, reals, inputs)	# Should events on inputs be included?
     # print >> sys.stderr, 'created events from preds'
-    ans1 = createControl(state, discEqns, ans0, iEqns)
+    def_dict = xmleqnlist2dict( contSubEqns )
+    ans1 = createControl(state, discEqns, ans0, iEqns, def_dict)
     # print >> sys.stderr, 'created control'
-    ans2 = createPlant(state, contEqns, oEqns, iEqns)
+    ans2 = createPlant(state, contEqns, oEqns, iEqns, def_dict)
     print >> sys.stderr, 'created plant'
     # replace varname.var -> varname_var
     ans += ans1 + ans2

@@ -140,6 +140,9 @@ def modelica2hsal(filename, pfilename = None, options = []):
       varlist = options[index+1]
       if type(varlist) != list:
         varlist = varlist.split(',')
+      if len(varlist) == 0:
+        print 'ERROR: Cannot slice with respect to empty list of variables!'
+        sys.exit(1)
       (filename, mdom, track_map) = modelica_slicer.modelica_slice_file(filename, varlist)
       del mdom
     else:
