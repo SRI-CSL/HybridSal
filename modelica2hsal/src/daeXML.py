@@ -2168,7 +2168,7 @@ def get_cd_state(dom):
 # -------------------------------------------------------------------
 def simplifydaexml(dom1, filename, library = None, ctxt = None):
     def existsAndNew(filename1, filename2):
-        if os.path.isfile(filename1) and os.path.getctime(filename1) >= os.path.getctime(filename2):
+        if os.path.isfile(filename1) and os.path.getmtime(filename1) >= os.path.getmtime(filename2):
             print "File {0} exists and is new".format(filename1)
             return True
         return False
@@ -2215,7 +2215,7 @@ def simplifydaexml(dom1, filename, library = None, ctxt = None):
         (cstate, dstate) = ctxt if ctxt != None else get_cd_state(dom)
         dom = SimplifyEqnsPPDaeXML(dom, cstate, dstate, options)
         create_output_file(filename, dom, '.daexml2') 
-        # os.remove(basename+'.daexml1')
+        os.remove(basename+'.daexml1')
         print '----------Simplification: Variable Propagation over......'
         return simplifydaexml(dom, filename, library, (cstate,dstate))
     else:
