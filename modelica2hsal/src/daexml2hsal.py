@@ -135,7 +135,7 @@ class PolyRep:
     elif op=='/':
       if not q.isc():
         print 'ERROR: Dividing by non-constant; cannot handle {0}/{1}'.format(self.p,q)
-        # return self
+        return self
       d = q.cval()
       for (x,c) in self.get_monos():
         self.p[x] = c/d
@@ -183,7 +183,7 @@ class PolyRep:
       elif pre:
         return None
       else: # xmlnode
-        print type(var)
+        # print type(var) == 'instance'
         ans += '{2}{0}*{1}'.format(coeff, daexmlPP.ppExpr(var),sep)
     return ans
 # ----------------------------------------------------------------------
@@ -1545,11 +1545,13 @@ def createPlant(state, ceqns, oeqns, iEqns = {}, def_dict = {}):
     ans  += "\n  INITIALIZATION"
     first = True
     for i in reals:
+      if not def_dict.has_key(i) or def_dict[i].tagName=='identifier':
         initval = getInitialValue(vmap,i,iEqns,enums)
         if initval != None:
             sep = ";" if not(first) else ""
             first = False if first else first
-            ans += "{2}\n\t {0} = {1}".format(i,initval,sep)
+            var=i if not def_dict.has_key(i) else valueOf(def_dict[i])
+            ans += "{2}\n\t {0} = {1}".format(var,initval,sep)
     # ASHISH: get init values from dom2 ????
     # first get conditional diff eqns ; then print
     # ans  += "\n  TRUE -->"
@@ -1772,9 +1774,10 @@ def convert2hsal(dom1, dom2, dom3 = None):
     # contSubEqns = eqns x = f(y) to be turned into DEFINITIONS
     iEqns = handle_initializations( dom1, iEqns )
     print >> sys.stderr, 'Classified eqns into {0} discrete, {1} cont, {2} others'.format(len(discEqns),len(contEqns),len(oEqns))
-    #print >> sys.stderr, 'discrete eqns: ', printE(discEqns)
-    #print >> sys.stderr, 'cont eqns: ', printE(contEqns)
-    #print >> sys.stderr, 'other eqns: ', printE(oEqns)
+    print >> sys.stderr, 'discrete eqns: ', printE(discEqns)
+    print >> sys.stderr, 'cont eqns: ', printE(contEqns)
+    print >> sys.stderr, 'other eqns: ', printE(oEqns)
+    print >> sys.stderr, 'sub eqns: ', printE(contSubEqns)
     #print >> sys.stderr, 'init eqns: ',
     '''
     for (i,j) in iEqns.items():
@@ -2073,7 +2076,7 @@ def main():
         return -1
     basename,ext1 = os.path.splitext(sys.argv[1])
     basename,ext2 = os.path.splitext(sys.argv[2])
-    if not(ext1 in ['.xml','.daexml','.dae_flat_xml'] and ext2 == '.xml'):
+    if not(ext1.startswith('.daexml') and ext2 == '.xml'):
         print 'ERROR: Unknown files; expecting XML files'
         printUsage()
         return -1

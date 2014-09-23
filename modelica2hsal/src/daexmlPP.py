@@ -121,6 +121,20 @@ def ppExpr(node):
             ans += ppExpr(argi)
         ans += "}"
         return ans
+    elif node.tagName == 'arrayselect':
+        set1 = getArg(node, 1)
+        index = getArg(node, 2)
+        assert set1.tagName=='set', 'daexmlPP.ppExpr MISSING Code: {0}'.format(node.toprettyxml())
+        setCard = int(set1.getAttribute('cardinality'))
+        if setCard==1:
+          return ppExpr(getArg(set1,1))
+        if setCard==2:
+          indexStr = ppExpr(index)
+          val1 = ppExpr(getArg(set1,1))
+          val2 = ppExpr(getArg(set1,2))
+          return 'IF ' + indexStr + ' = 1 THEN ' + val1 + ' ELSE ' + val2 + ' ENDIF '
+        print >> sys.stderr, 'daexmlPP.Warning: MISSING Code: {0}'.format(node.toprettyxml())
+        return ppExpr(getArg(set1,1))
     else:
         print >> sys.stderr, 'MISSING CODE: Found {0} expression.'.format(node.tagName)
         print >> sys.stderr, 'MISSING CODE: {0}'.format(node.toprettyxml())

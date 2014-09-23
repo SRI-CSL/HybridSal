@@ -54,6 +54,52 @@ def helper_create_app(tag, childs):
         node.appendChild( i )
     return node 
 
+def getTopElementsByTagTagName(node, tagname1, tagname2):
+    '''get all top elements under tagname1, not their childrent
+       E.g. IF x THEN (IF ) ELSE IF --> return only the first IF
+       E.g call fn(dom, 'equations', 'IF') '''
+    tmprootL = node.getElementsByTagName(tagname1)
+    tmproot = tmprootL[0] if tmprootL != [] else node
+    ans = []
+    getTopElementsByTagName(tmproot, tagname2, ans)
+    return ans
+
+def getTopElementsByTagName(node, tagname, ans):
+  for i in node.childNodes:
+    if i.nodeType != i.ELEMENT_NODE:
+      continue
+    if i.tagName == tagname:
+      ans.append(i)   # not recursing down from here...
+    else:
+      getTopElementsByTagName(i, tagname, ans)
+  return
+# -------------------------------------------------------------------
+
+# -------------------------------------------------------------------
+# Under tagname1, find all TOP tagname2 whose child is tagname3
+# -------------------------------------------------------------------
+def getTopElementsByTagTagTagName(node, tag1, tag2, tag3):
+    tmprootL = node.getElementsByTagName(tag1)
+    tmproot = tmprootL[0] if tmprootL != [] else node
+    ans = []
+    getTopElementsByTagChildTagName(tmproot, tag2, tag3, ans)
+    return ans
+
+def getTopElementsByTagChildTagName(node, tag, childtag, ans):
+  for i in node.childNodes:
+    if i.nodeType != i.ELEMENT_NODE:
+      continue
+    if i.tagName == tag:
+      for j in i.childNodes:
+        if j.nodeType != i.ELEMENT_NODE:
+          continue
+        elif j.tagName == childtag:
+          ans.append(i)   # not recursing down from here...
+          return
+    getTopElementsByTagChildTagName(i, tag, childtag, ans)
+  return
+# -------------------------------------------------------------------
+
 # -------------------------------------------------------------------
 # Simplification routines for expressions.
 # -------------------------------------------------------------------
@@ -76,7 +122,7 @@ def simplifyPredicate(node):
             if valueOf(getArg(arg1,1)).strip() != '-':
                 continue
             num = float(valueOf(arg2))
-            nnum = helper_create_tag_val('number',str(-num))
+            nnum = helper_create_tag_val('number',"{:12.7f}".format(-num))
             narg1 = getArg(arg1, 2).cloneNode(True)
             negop = helper_create_tag_val('BINARY_OPERATOR',negate_op[opstr])
             newnode = helper_create_app('BAPP',[negop, narg1, nnum])
@@ -86,7 +132,7 @@ def simplifyPredicate(node):
             if valueOf(getArg(arg2,1)).strip() != '-':
                 continue
             num = float(valueOf(arg1))
-            nnum = helper_create_tag_val('number',str(-num))
+            nnum = helper_create_tag_val('number',"{:12.7f}".format(-num))
             narg1 = getArg(arg2, 2).cloneNode(True)
             negop = helper_create_tag_val('BINARY_OPERATOR',opstr)
             newnode = helper_create_app('BAPP',[negop, narg1, nnum])
@@ -268,6 +314,18 @@ def simplify1(node):
                         node = replace(i, arg1, node)
                         done = False
                         print '/1',
+                    # ASHISH: New CODE replace ?/c by ?*c
+                    else:
+                        a1 = helper_create_tag_val('BINARY_OPERATOR', '*')
+                        if c < 1e-5 and c >= 0:
+                          c = 1e5
+                        elif c > -1e-5 and c <= 0:
+                          c = -1e5
+                        a2 = helper_create_tag_val('number', "{:12.7f}".format(1.0/c))
+                        ans = helper_create_app('BAPP',[a1,a2,arg1])
+                        node = replace(i, ans, node)
+                        done = False
+                        print '/c',
             elif opstr == '==':
                 arg1 = getArg(i, 2)
                 arg2 = getArg(i, 3)
@@ -591,45 +649,426 @@ def simplify0(node):
     done &= simplifyITE(node)	# ASHISH: Uncomment here to revert back!
     return done
 
+# -------------------------------------------------------------------
+# Special aggressive  simpl routines, compromising soundness, to get linearity
+# -------------------------------------------------------------------
+def xml_equal(xml, xml2):
+  '''check if the term represented by xml is equal to every term in xmlList''' 
+  if xml == None:
+    return xml2 == None
+  tagname = xml.tagName
+  if xml2 == None or xml2.tagName != tagname:
+      return False
+  index = 1
+  arg = getArg(xml, index)
+  while arg != None:
+    argi = getArg(xml2, index)
+    if not xml_equal(arg, argi):
+      return False
+    index += 1
+    arg = getArg(xml, index)
+  return True
+
+def xml_equal_neg(xml, xml2):
+  '''xml2 == -(xml), approximate check'''
+  if xml2.tagName == 'UAPP':
+    return xml_equal(xml, getArg(xml2, 2))
+  var_count1 = len(xml.getElementsByTagName('identifier'))
+  var_count2 = len(xml2.getElementsByTagName('identifier'))
+  if var_count1 != var_count2:
+    return False
+  var_count1 = len(xml.getElementsByTagName('number'))
+  var_count2 = len(xml2.getElementsByTagName('number'))
+  if var_count1 != var_count2:
+    return False
+  return True
+
+def xml_prefix_equal(xml, xml2):
+  '''check if (term(xml) BOP sth) = term(xml2) '''
+  if xml2==None or xml2.tagName != 'BAPP':
+    return False
+  return xml_equal(xml, getArg(xml2, 2)) or xml_prefix_equal(xml, getArg(xml2,3))
+
+def simplify_reverse_abs(ite_xml):
+    '''if e0>0 then e0 else ... --> e0'''
+    cond_xml = getArg(ite_xml, 1)
+    # IF x >= 0 THEN x ELSE -x ---> replace by x; annotate x is NATURAL!
+    done = True
+    if cond_xml.tagName == 'BAPP':
+      op_xml = getArg(cond_xml, 1)
+      op_str = valueOf(op_xml).strip()
+      if op_str != 'geq' and op_str != '>' and op_str != '>=':
+        return done
+      arg2 = getArg(cond_xml, 3)
+      if arg2.tagName != 'number':
+        return done
+      arg2_value = float(valueOf(arg2))
+      if arg2_value < 0 or arg2_value > 0.001:
+        return done
+      # now it is: IF arg1 >= 0 THEN
+      # check if then_xml == arg1
+      then_xml = getArg(ite_xml, 2) 
+      arg1 = getArg(cond_xml, 2)
+      else_xml = getArg(ite_xml, 3)
+      # ignoring this check to handle IF x>0 then x**0.5 ELIF x<0 ELSE...
+      # perhaps move to aggressive????
+      # if not xml_equal_neg(then_xml,else_xml):
+        # return done
+      node = ite_xml.parentNode
+      if xml_equal(then_xml, arg1):
+        node = replace(ite_xml, then_xml, node)
+        done = False
+        print 'ABS ',
+        if then_xml.tagName=='identifier':
+          then_xml.setAttribute('type','NATURAL')
+      # Can move the prefix_equal to aggressive subroutine
+      elif xml_prefix_equal(arg1, then_xml):
+        node = replace(ite_xml, then_xml, node)
+        done = False
+        print 'ABS ',
+    return done
+
+def remove_der_from_conds(if_xml):
+  cond = getArg(if_xml,1)
+  ders = cond.getElementsByTagName('der')
+  done = True
+  if ders != None and len(ders) > 0:
+    node = if_xml.parentNode
+    then_xml = getArg(if_xml,2)
+    node = replace(if_xml, then_xml, node)
+    done = False
+    print 'derC',
+  return done
+
+
+def simplify0ITE_aggressive(node):
+    '''IF(x,c,d) */ ( ) -> avg(c,d) and its symmetric version'''
+    done = True
+    sas = getTopElementsByTagTagName(node, 'equations', 'IF')
+    # sas = node.getElementsByTagName('IF')
+    while sas != []:
+      if_xml = sas.pop()
+      done1 = simplify_reverse_abs( if_xml )
+      if not done1:
+        done = False
+        continue
+      done1 = remove_der_from_conds( if_xml )
+      if not done1:
+        done = False
+        continue
+      parent_of_if = if_xml.parentNode
+      if parent_of_if.tagName != 'BAPP':
+        getTopElementsByTagName(if_xml, 'IF', sas)
+        continue
+      parent_op = getArg(parent_of_if, 1)
+      parent_op_str = valueOf(parent_op).strip()
+      if parent_op_str not in ['*', '/']:
+        getTopElementsByTagName(if_xml, 'IF', sas)
+        continue
+      arg1 = getArg(parent_of_if, 2)
+      arg2 = getArg(parent_of_if, 3)
+      if arg2.tagName == 'number':
+        getTopElementsByTagName(if_xml, 'IF', sas)
+        continue
+      if arg1.tagName == 'number' and parent_op_str == '*':
+        getTopElementsByTagName(if_xml, 'IF', sas)
+        continue
+      done1 = simplifyITEaggressive( if_xml, parent_of_if)
+      if not done1:
+        done = False
+      else:
+        getTopElementsByTagName(if_xml, 'IF', sas)
+    return done
+
+def simplifyITEaggressive( if_xml, node):
+    done = True
+    cond_xml = getArg(if_xml, 1)
+    # UNSOUND code: begin
+    then_xml = getArg(if_xml, 2)
+    else_xml = getArg(if_xml, 3)
+    if then_xml.tagName == 'number' and else_xml.tagName == 'number':
+      ans = (float(valueOf(then_xml)) + float(valueOf(else_xml)))/2.0
+      ans_xml = helper_create_tag_val('number', str(ans))
+      node = replace(if_xml, ans_xml, node)
+      done = False
+      print 'ITEx ',
+    elif then_xml.tagName in ['number']:
+      node = replace(if_xml, then_xml, node)
+      done = False
+      print 'ITExx ',
+    elif else_xml.tagName in ['number']:
+      node = replace(if_xml, else_xml, node)
+      done = False
+      print 'ITExx ',
+    elif then_xml.tagName in ['identifier']:
+      node = replace(if_xml, then_xml, node)
+      done = False
+      print 'ITExx ',
+    elif else_xml.tagName in ['identifier']:
+      node = replace(if_xml, else_xml, node)
+      done = False
+      print 'ITExx ',
+    # UNSOUND code: end
+    return done
+
+def simplify_aggressive_arith(node):
+  done = True
+  powers = node.getElementsByTagName('op')
+  for i in powers:
+    opstr = valueOf(i).strip()
+    if opstr != 'power':
+      continue
+    bapp = i.parentNode
+    newnode = helper_create_tag_val('BINARY_OPERATOR','*')
+    bapp = replace(i, newnode, bapp)
+    print 'pow_x',
+    done = False
+  return done
+
+def sexpr2xml( sexpr ):
+  '''sexpr = [- 1 [* 0.01 xml]]'''
+  if isinstance(sexpr, xml.dom.minidom.Node):
+    return sexpr
+  elif isinstance(sexpr, (float,int)):
+    return helper_create_tag_val('number', "{:12.7f}".format(sexpr))
+  else:
+    assert isinstance(sexpr, list), 'Err: Unexpected {0}'.format(type(sexpr))
+    assert len(sexpr) == 3, 'Err: Missing code for sexpr2xml'
+    op_xml = helper_create_tag_val('BINARY_OPERATOR', sexpr[0])
+    arg1 = sexpr2xml( sexpr[1] )
+    arg2 = sexpr2xml( sexpr[2] )
+    return helper_create_app('BAPP',[op_xml, arg1, arg2])
+
+def make_linear( node ):
+  '''if node represents a nonlinear expression, approx by linear'''
+  if node.tagName == 'BAPP':
+    opstr = valueOf(getArg(node,1)).strip()
+    arg1 = getArg(node,2)
+    arg2 = getArg(node,3)
+    if arg1 == None or arg2 == None: # NODE may have been deleted before
+      assert False, 'err: none child {0}'.format(node.toxml())
+      #return (True, node)
+    if opstr == '*' or opstr == '/':
+      if arg2.tagName == 'number':
+        (done, newnode) = make_linear( arg1 )
+        if not done:
+          node = replace(arg1, newnode, node)
+          print 'L',
+          done = False
+        return (done, node)
+      elif arg1.tagName == 'number':
+        if opstr == '*':
+          (done, newnode) = make_linear( arg2 )
+          if not done:
+            node = replace(arg2, newnode, node)
+            print 'L',
+            done = False
+          return (done, node)
+        else:   # node = c/expr
+          c = float(valueOf(arg1))
+          (done, n) = make_linear( arg2 )
+          # (newarg2 > 100 or  n < -100) -> 0 ; -0.01 < n < 0.01 -> 100; 1-0.01x
+          cond1 = sexpr2xml(['or',['>',n,100],['<',n.cloneNode(True),-100]])
+          then1xml = sexpr2xml(0)
+          # if -.01 < n < 0.01 then 100
+          cond2 = sexpr2xml(['and',['>',n.cloneNode(True),-0.01],['<',n.cloneNode(True),0.01]])
+          then2xml = sexpr2xml(c*10000)
+          else2xml = sexpr2xml(['-', 1, ['*', c*0.01, n.cloneNode(True)]])
+          else1xml = helper_create_app('IF',[cond2,then2xml,else2xml])
+          ans = helper_create_app('IF',[cond1, then1xml, else1xml])
+          return (False, ans)
+      else:   # neither argument is a constant
+        (done1, newarg1) = make_linear(arg1)
+        (done2, newarg2) = make_constant(arg2,division=(opstr=='/'))
+        if not done1:
+          node = replace(arg1, newarg1, node)
+          print 'L',
+        if not done2:
+          node = replace(arg2, newarg2, node)
+          print 'L',
+        return (done1 and done2, node)
+    else:   # opstr is not * or / 
+      (done1, newarg1) = make_linear(arg1)
+      (done2, newarg2) = make_linear(arg2)
+      if not done1:
+        node = replace(arg1, newarg1, node)
+        print 'L',
+      if not done2:
+        node = replace(arg2, newarg2, node)
+        print 'L',
+      return (done1 & done2, node)
+  elif node.tagName == 'UAPP':
+    arg1 = getArg(node,2)
+    (done1, newarg1) = make_linear( arg1 )
+    if not done1:
+      node = replace(arg1, newarg1, node)
+      print 'L',
+    return (done1, node)
+  elif node.tagName == 'IF':
+    arg1, arg2, arg3 = getArg(node, 1), getArg(node, 2), getArg(node, 3)
+    (done1, newarg1) = make_linear( arg1 )
+    (done2, newarg2) = make_linear( arg2 )
+    (done3, newarg3) = make_linear( arg3 )
+    if not done1:
+      node = replace(arg1, newarg1, node)
+      print 'L',
+    if not done2:
+      node = replace(arg2, newarg2, node)
+      print 'L',
+    if not done3:
+      node = replace(arg3, newarg3, node)
+      print 'L',
+    done = done1 and done2 and done3
+    return (done, node)
+  elif node.tagName in ['number','identifier', 'pre', 'der', 'string','initidentifier']:
+    return (True, node)
+  elif node.tagName in ['arrayselect','INITIAL']:
+    return (True, node)   # MISSING CODE HERE....
+  else:   # node.tagName is not 'BAPP' 'UAPP' 'IF' number or identifier
+    assert False, 'Error: tagname {0}'.format(node.tagName)
+
+def make_constant( node, division ):
+  '''if node represents a nonlinear expression, approx by piecewise cst'''
+  if node.tagName == 'BAPP':
+    opstr = valueOf(getArg(node,1)).strip()
+    arg1 = getArg(node,2)
+    arg2 = getArg(node,3)
+    if arg1 == None or arg2 == None: # NODE may have been deleted before
+      assert False, 'err: none child {0}'.format(node.toxml())
+      # return (True, node)
+    if opstr == '*' or opstr == '/':
+      if arg2.tagName == 'number':
+        (done, newnode) = make_constant( arg1, division )
+        if not done:
+          node = replace(arg1, newnode, node)
+          print 'L',
+          done = False
+        return (done, node)
+      elif arg1.tagName == 'number':
+        if opstr == '*':
+          (done, newnode) = make_constant( arg2, division )
+          if not done:
+            node = replace(arg2, newnode, node)
+            print 'L',
+            done = False
+          return (done, node)
+        else:   # node = c/expr
+          c = float(valueOf(arg1))
+          if c > -1e-9 and c < 1e-9:
+            cval = 0 if not division else 0.000001
+            ans = sexpr2xml(cval)
+            return (False, ans)
+          if division:  # NEED A NUMBER OR EXPAND IFs...
+            return (False, arg1)
+          (done, n) = make_linear( arg2 )
+          # (newarg2 > 100 or  n < -100) -> 0 ; -0.01 < n < 0.01 -> 100; 1-0.01x
+          cond1 = sexpr2xml(['or',['>',n,100],['<',n.cloneNode(True),-100]])
+          then1xml = sexpr2xml(c*0.000001)
+          # if -.01 < n < 0.01 then 100
+          cond2 = sexpr2xml(['and',['>',n.cloneNode(True),-0.01],['<',n.cloneNode(True),0.01]])
+          then2xml = sexpr2xml(c*10000)
+          else2xml = sexpr2xml(c)
+          else1xml = helper_create_app('IF',[cond2,then2xml,else2xml])
+          ans = helper_create_app('IF',[cond1, then1xml, else1xml])
+          return (False, ans)
+      else:   # neither argument is a constant
+        (done1, newarg1) = make_constant(arg1, division)
+        (done2, newarg2) = make_constant(arg2, division)
+        if not done1:
+          node = replace(arg1, newarg1, node)
+          print 'C',
+        if not done2:
+          node = replace(arg2, newarg2, node)
+          print 'C',
+        return (done1 and done2, node)
+    else:   # opstr is not * or / 
+      (done1, newarg1) = make_constant(arg1, division)
+      (done2, newarg2) = make_constant(arg2, division)
+      if not done1:
+        node = replace(arg1, newarg1, node)
+        print 'C',
+      if not done2:
+        node = replace(arg2, newarg2, node)
+        print 'C',
+      return (done1 & done2, node)
+  elif node.tagName == 'UAPP':
+    arg1 = getArg(node,2)
+    (done1, newarg1) = make_constant( arg1, division )
+    if not done1:
+      node = replace(arg1, newarg1, node)
+      print 'C',
+    return (done1, node)
+  elif node.tagName == 'IF':
+    arg1, arg2, arg3 = getArg(node, 1), getArg(node, 2), getArg(node, 3)
+    (done2, newarg2) = make_constant( arg2, division )
+    if division:    # NEED A NUMBER....or else need explode ITE 
+      return (False, newarg2)
+    (done1, newarg1) = make_linear( arg1 )
+    (done3, newarg3) = make_constant( arg3, division )
+    if not done1:
+      node = replace(arg1, newarg1, node)
+      print 'C',
+    if not done2:
+      node = replace(arg2, newarg2, node)
+      print 'C',
+    if not done3:
+      node = replace(arg3, newarg3, node)
+      print 'C',
+    done = done1 and done2 and done3
+    return (done, node)
+  elif node.tagName in ['number','string']:
+    return (True, node)
+  elif node.tagName in ['identifier', 'pre', 'der']:
+    varnode = node if node.tagName=='identifier' else getArg(node, 1)
+    c = get_value_of_identifier( valueOf(varnode).strip() )
+    ans = helper_create_tag_val('number', str(c))
+    return (False, ans)
+  elif node.tagName in ['arrayselect','INITIAL','initidentifier']:
+    return (True, node)   # MISSING CODE HERE....
+  else:   # node.tagName is not 'BAPP' 'UAPP' 'IF' number or identifier
+    assert False, 'Error: tagname {0}'.format(node.tagName)
+
+def get_value_of_identifier( varname ):
+  # ASHISH: here HERE Here
+  return 1
+
+def linearize_aggressive( dom ):
+  def linearize_equation(e, dom):
+    lhs = getArg(e, 1)
+    rhs = getArg(e, 2)
+    (done1, newlhs) = make_linear(lhs)
+    if not done1:
+      dom = replace(lhs, newlhs, dom)
+    (done2, newrhs) = make_linear(rhs)
+    if not done2:
+      dom = replace(rhs, newrhs, dom)
+    return done1 and done2
+  eqns = dom.getElementsByTagName('equation')
+  done = True
+  for e in eqns:
+    done &= linearize_equation(e, dom)
+  return done
+# -------------------------------------------------------------------
+
+# -------------------------------------------------------------------
 def simplify0ITE(node):
     "ITE simplification" 
     done = True
     sas = node.getElementsByTagName('IF')
     for parentnode in sas:
-        changedchild = getArg(parentnode, 1)
-        # if changedchild.tagName == 'identifier':
-        if changedchild.tagName == 'string':
-            if valueOf(changedchild).strip() in TRUE: 
+        cond_xml = getArg(parentnode, 1)
+        # if cond_xml.tagName == 'identifier':
+        if cond_xml.tagName == 'string':
+            if valueOf(cond_xml).strip() in TRUE: 
                 ans = getArg(parentnode, 2)
                 node = replace(parentnode, ans, node)
                 done = False
                 print 'ITE ',
-            elif valueOf(changedchild).strip() in FALSE:
+            elif valueOf(cond_xml).strip() in FALSE:
                 ans = getArg(parentnode, 3)
                 node = replace(parentnode, ans, node)
                 done = False
                 print 'ITE ',
-        # UNSOUND code: begin
-        '''
-        else:
-            then_xml = getArg(parentnode, 2)
-            else_xml = getArg(parentnode, 3)
-            if then_xml.tagName == 'number' and else_xml.tagName == 'number':
-              ans = (float(valueOf(then_xml)) + float(valueOf(else_xml)))/2.0
-              ans_xml = helper_create_tag_val('number', str(ans))
-              node = replace(parentnode, ans_xml, node)
-              done = False
-              print 'ITEx ',
-            elif then_xml.tagName in ['number', 'identifier']:
-              node = replace(parentnode, then_xml, node)
-              done = False
-              print 'ITExx ',
-            elif else_xml.tagName in ['number', 'identifier']:
-              node = replace(parentnode, else_xml, node)
-              done = False
-              print 'ITExx ',
-        '''
-        # UNSOUND code: end
     return done
 
 def simplify0set(node):
@@ -689,9 +1128,10 @@ def simplify0bool(node):
         arg1 = getArg(parentnode, 2)
         arg2 = getArg(parentnode, 3)
         if arg1 == None or arg2 == None:
-            print 'Critical Overlap Case', parentnode.toxml()
-            assert False, 'critical overlap case'
-            sys.exit(1)
+            continue
+            #print 'Critical Overlap Case', parentnode.toxml()
+            #assert False, 'critical overlap case'
+            #sys.exit(1)
         func = valueOf(getArg(parentnode, 1)).strip()
         v1 = valueOf(arg1).strip() if arg1.tagName == 'string' else ''
         v2 = valueOf(arg2).strip() if arg2.tagName == 'string' else ''
@@ -788,11 +1228,14 @@ def simplifyITE(node):
         arg0 = getArg(parentnode, 1)
         arg1 = getArg(parentnode, 2)
         arg2 = getArg(parentnode, 3)
-        assert arg1 != None and arg2 != None
+        #assert arg1 != None and arg2 != None
+        # NODE may have been deleted in previous simplifications...
+        if arg1 == None or arg2 == None:
+          continue
         if not(arg1.tagName == 'number' and arg2.tagName == 'IF'):
             continue
         func = valueOf(arg0).strip()
-        if func not in ['/','*','+','-']:
+        if func not in ['/','*','+','-','<','<=','>','>=']:
             continue
         iteThen = getArg(arg2,2)
         iteElse = getArg(arg2,3)
@@ -808,7 +1251,9 @@ def simplifyITE(node):
         arg0 = getArg(parentnode, 1)
         arg1 = getArg(parentnode, 2)
         arg2 = getArg(parentnode, 3)
-        assert arg1 != None and arg2 != None
+        #assert arg1 != None and arg2 != None -- node may have been deleted 
+        if arg1 == None or arg2 == None:
+          continue
         if not(arg1.tagName == 'IF' and arg2.tagName == 'IF'):
             continue
         func = valueOf(arg0).strip()
@@ -836,28 +1281,41 @@ def simplifyITE(node):
 # -------------------------------------------------------------------
 def distributeOverIf(dom, cstate, dstate):
     done = True
-    sas = dom.getElementsByTagName('BAPP')
+    num_id = ['number', 'identifier']
+    # sas = dom.getElementsByTagName('BAPP')
+    sas = getTopElementsByTagTagTagName(dom, 'equations', 'BAPP', 'IF')
     for parentnode in sas:
         arg0 = getArg(parentnode, 1)
         arg1 = getArg(parentnode, 2)
         arg2 = getArg(parentnode, 3)
         assert arg1 != None and arg2 != None
-        if not(arg1.tagName == 'IF'):
-            continue
-        if arg2.tagName not in ['number','identifier']:
-            continue
+        if arg1.tagName=='IF' and arg2.tagName in num_id:
+          ifOpId = True
+        elif arg2.tagName=='IF' and arg1.tagName in num_id:
+          ifOpId = False
+        else:
+          continue
         func = valueOf(arg0).strip()
-        if func not in ['/','*','+','-','>','<']:
-            continue
-        iteThen = getArg(arg1,2)
-        iteElse = getArg(arg1,3)
-        newThen = helper_create_app('BAPP',[arg0.cloneNode(True),iteThen.cloneNode(True),arg2.cloneNode(True)])
-        newElse = helper_create_app('BAPP',[arg0.cloneNode(True),iteElse.cloneNode(True),arg2.cloneNode(True)])
-        arg1 = replace(iteThen, newThen, arg1)
-        arg1 = replace(iteElse, newElse, arg1)
-        dom = replace(parentnode, arg1, dom)
+        if func not in ['/','*','+','-','>','<','>=','<=']:
+          continue
+        if ifOpId:
+          iteThen = getArg(arg1,2)
+          iteElse = getArg(arg1,3)
+          newThen = helper_create_app('BAPP',[arg0.cloneNode(True),iteThen.cloneNode(True),arg2.cloneNode(True)])
+          newElse = helper_create_app('BAPP',[arg0.cloneNode(True),iteElse.cloneNode(True),arg2.cloneNode(True)])
+          arg1 = replace(iteThen, newThen, arg1)
+          arg1 = replace(iteElse, newElse, arg1)
+          dom = replace(parentnode, arg1, dom)
+        else:
+          iteThen = getArg(arg2,2)
+          iteElse = getArg(arg2,3)
+          newThen = helper_create_app('BAPP',[arg0.cloneNode(True),arg1.cloneNode(True), iteThen.cloneNode(True)])
+          newElse = helper_create_app('BAPP',[arg0.cloneNode(True),arg1.cloneNode(True), iteElse.cloneNode(True)])
+          arg2 = replace(iteThen, newThen, arg2)
+          arg2 = replace(iteElse, newElse, arg2)
+          dom = replace(parentnode, arg2, dom)
         done = False
-        break
+        # break
     return (done, dom)
     # now simplify IF( ) + IF() expression
 
@@ -903,7 +1361,10 @@ def simplify0bapp(node):
     for parentnode in sas:
         arg1 = getArg(parentnode, 2)
         arg2 = getArg(parentnode, 3)
-        assert arg1 != None and arg2 != None
+        # assert arg1 != None and arg2 != None
+        # this node may have been deleted
+        if arg1 == None or arg2 == None:
+          continue
         if arg1.tagName == 'number' and arg2.tagName == 'number':
             arg1 = valueOf(arg1).strip()
             arg2 = valueOf(arg2).strip()
@@ -1469,6 +1930,21 @@ def SimplifyEqnsPhase5(dom, cstate, dstate):
     "IF ( ) - c --> IF ( );  IF ( ) < c --> IF"
     done = False
     while not done:
+        done = simplify0ITE_aggressive(dom)
+        done &= simplify_aggressive_arith(dom)
+        done &= simplify3(dom)  # ASHISH: Adding next 4 lines
+        done &= simplify1(dom)
+        done &= simplify2(dom)
+        done &= simplify0(dom)
+    done = False
+    while not done:
+        done = linearize_aggressive(dom)
+        done &= simplify3(dom)  # ASHISH: Adding next 4 lines
+        done &= simplify1(dom)
+        done &= simplify2(dom)
+        done &= simplify0(dom)
+    done = False
+    while not done:
         (done,dom) = distributeOverIf(dom, cstate, dstate)
         done &= simplify3(dom)  # ASHISH: Adding next 4 lines
         done &= simplify1(dom)
@@ -1624,7 +2100,7 @@ def SubstituteLibraryFunctions(dom, library):
                 return None	# match failed
         return mapping
     def remove_small_constants(dom):
-      '''map constants <= e-9 to 0'''
+      '''map constants <= e-9 to 0 and numbers close to 1 to 1'''
       numbers = dom.getElementsByTagName('number')
       for i in numbers:
         valstr = valueOf(i).strip()
@@ -1635,6 +2111,10 @@ def SubstituteLibraryFunctions(dom, library):
         if abs(val) < 1e-8 and val != 0:
           newnode = helper_create_tag_val('number', '0')
           print 'e-10',
+          dom = replace(i, newnode, dom)
+        elif abs(val-1) < 1e-6 and val != 1:  # close to 1 --> make it 1
+          newnode = helper_create_tag_val('number', '1')
+          print '1',
           dom = replace(i, newnode, dom)
       return dom
     dom = remove_small_constants(dom)
@@ -1686,7 +2166,7 @@ def simplifydaexml(dom1, filename, library = None, ctxt = None):
         print '----------Simplification: Library Substitution over.......'
         print '-------------Simplification: IF-lifting starting......'
         (cstate, dstate) = get_cd_state(dom)
-        # dom = arrayselect2if(dom)
+        # dom = arrayselect2if(dom) # handled in daexml2hsal.py
         dom = SimplifyEqnsPhase5(dom, cstate, dstate)
         create_output_file(filename, dom, '.daexml4') 
         os.remove(basename+'.daexml3')
@@ -1716,7 +2196,7 @@ def simplifydaexml(dom1, filename, library = None, ctxt = None):
         (cstate, dstate) = ctxt if ctxt != None else get_cd_state(dom)
         dom = SimplifyEqnsPPDaeXML(dom, cstate, dstate, options)
         create_output_file(filename, dom, '.daexml2') 
-        os.remove(basename+'.daexml1')
+        # os.remove(basename+'.daexml1')
         print '----------Simplification: Variable Propagation over......'
         return simplifydaexml(dom, filename, library, (cstate,dstate))
     else:
