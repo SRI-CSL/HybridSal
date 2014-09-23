@@ -776,7 +776,8 @@ def Ab2eigen(varlist,A,b,inputs):
                     # multirateL.append([pnew,pold,const])
                     mlist.append( ( vec, x, const ) )
                 else:
-                    print "lamb==0, but no corr. invariant found"
+                    # print "lamb==0, but no corr. invariant found"
+                    print 'l0',
                     continue
             else:
                 for j in range(len(wec)):

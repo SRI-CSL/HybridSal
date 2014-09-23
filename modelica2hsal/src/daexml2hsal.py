@@ -1463,13 +1463,13 @@ def createPlant(state, ceqns, oeqns, iEqns = {}, def_dict = {}):
             print 'Found unhandled operator {0} combining ITEs'.format(valueOf(op).strip())
             assert False, 'No other operator supported'
         n_cases = len(ans)
-        print 'Unoptimized # case = {0}'.format( n_cases )
+        # print 'Unoptimized # case = {0}'.format( n_cases )
         if n_cases >= 100:
           #print 'WARNING: Too many cases, ignoring those more than 200'
           ans = collapse_cases(ans[0:99]) 
         else:
           ans = collapse_cases(ans) 
-        print 'Optimized # case = {0}'.format(len(ans))
+        # print 'Optimized # case = {0}'.format(len(ans))
         return ans
     def expr2cexpr2( val ):
         if val.tagName == 'BAPP':
@@ -1590,10 +1590,10 @@ def createPlant(state, ceqns, oeqns, iEqns = {}, def_dict = {}):
         rhs =  expr2cexpr(val)
         ode.append( (name, rhs) )
         print >> sys.stderr, 'ODE for {0} has {1} cases'.format(name,len(rhs))
-        for j in rhs:
-          print >> sys.stderr, 'CaseP ', [expr2sal(i) for i in j[0]]
-          print >> sys.stderr, 'CaseN ', [expr2sal(i) for i in j[1]]
-          print >> sys.stderr, 'Value ', expr2sal(j[2])
+        # for j in rhs:
+          # print >> sys.stderr, 'CaseP ', [expr2sal(i) for i in j[0]]
+          # print >> sys.stderr, 'CaseN ', [expr2sal(i) for i in j[1]]
+          # print >> sys.stderr, 'Value ', expr2sal(j[2])
     others = []
     for i in range(len(oeqns)-1,-1,-1):
         e = oeqns[i]
@@ -1670,7 +1670,8 @@ def createEventsFromPreds(preds, reals, inputs):
             assert isinstance(e, PolyRep), 'Err: Unexpected type'
             estr = e.polyrepPrint(ans = '', pre = True) 
             if estr == None:
-              print >> sys.stderr, 'Warning: Ignoring event {0}'.format(e.polyrepPrint())
+              print >> sys.stderr, 'E',
+              # print >> sys.stderr, 'Warning: Ignoring event {0}'.format(e.polyrepPrint())
               continue
         for v in vl:
             sep = " OR" if not first else ""
