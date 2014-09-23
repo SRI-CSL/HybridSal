@@ -1403,23 +1403,47 @@ def createPlant(state, ceqns, oeqns, iEqns = {}, def_dict = {}):
       "check if case1 is FALSE or already in all_cases"
       for i in p_case1:
         if i in n_case1:
-          return True
+          return -1
       for (p_case2, n_case2) in all_cases:
         if is_subset(p_case1, p_case2) and is_subset(n_case1, n_case2):
-          return True
+          return all_cases.index( (p_case2, n_case2) )
         if is_subset(p_case2, p_case1) and is_subset(n_case2, n_case1):
-          return True
-      return False
+          return -1
+      return -2
+    def collapse_a_list(p, symbol_table):
+      collected_hashes, bad = [], []
+      for i in range(len(p)):
+        ihash = hash_it_one(p[i], symbol_table)
+        if ihash not in collected_hashes:
+          collected_hashes.append(ihash)
+        else:
+          bad.append(i)
+      for i in range(len(bad)-1,-1,-1):
+        del p[bad[i]]
+      return
+    def collapse_a_case(case, symbol_table):
+      '''([x,x],[y,y],v) --> ([x],[y],v)'''
+      (p, n, v) = case
+      collapse_a_list(p, symbol_table)
+      collapse_a_list(n, symbol_table)
+      return 
     def collapse_cases(p_n_v_list):
       '''input: list of (plist,nlist,value);
        output: same but with redundant things removed'''
       ans_symbols, ans = [], []
       symbol_table = {}
       for case1 in p_n_v_list:
+        collapse_a_case(case1, symbol_table)
         (psymbols, nsymbols) = hash_it(case1, symbol_table)
-        if not case_subsumed(ans_symbols, psymbols, nsymbols):
+        which_one = case_subsumed(ans_symbols, psymbols, nsymbols)
+        if which_one == -2:
           ans.append(case1)
           ans_symbols.append( (psymbols, nsymbols) )
+        elif which_one == -1:
+          pass
+        else:
+          ans[ which_one ] = case1	# delete old, replace by new
+          ans_symbols[ which_one ] = (psymbols, nsymbols)
       del symbol_table, ans_symbols
       return ans
     # -------------- END: code for optimizing modes ------------
@@ -1439,13 +1463,13 @@ def createPlant(state, ceqns, oeqns, iEqns = {}, def_dict = {}):
             print 'Found unhandled operator {0} combining ITEs'.format(valueOf(op).strip())
             assert False, 'No other operator supported'
         n_cases = len(ans)
-        # print 'Unoptimized # case = {0}'.format( n_cases )
+        print 'Unoptimized # case = {0}'.format( n_cases )
         if n_cases >= 100:
           #print 'WARNING: Too many cases, ignoring those more than 200'
           ans = collapse_cases(ans[0:99]) 
         else:
           ans = collapse_cases(ans) 
-        #print 'Optimized # case = {0}'.format(len(ans))
+        print 'Optimized # case = {0}'.format(len(ans))
         return ans
     def expr2cexpr2( val ):
         if val.tagName == 'BAPP':
@@ -1562,11 +1586,14 @@ def createPlant(state, ceqns, oeqns, iEqns = {}, def_dict = {}):
         (var,val) = (rhs,lhs) if rhs.tagName == 'der' else (lhs,rhs)
         assert var.tagName == 'der', 'ERROR: Unable to covert DAE to dx/dt = Ax+b'
         name = valueOf(getArg(var,1)).strip()
-        #print >> sys.stderr, 'Working on {0}... '.format(name)
+        print >> sys.stderr, 'converting expr to cexpr:', expr2sal(val)
         rhs =  expr2cexpr(val)
         ode.append( (name, rhs) )
-        #print >> sys.stderr, 'ODE for {0} has {1} cases'.format(name,len(rhs))
-        # print [expr2sal(j[2]) for j in rhs]
+        print >> sys.stderr, 'ODE for {0} has {1} cases'.format(name,len(rhs))
+        for j in rhs:
+          print >> sys.stderr, 'CaseP ', [expr2sal(i) for i in j[0]]
+          print >> sys.stderr, 'CaseN ', [expr2sal(i) for i in j[1]]
+          print >> sys.stderr, 'Value ', expr2sal(j[2])
     others = []
     for i in range(len(oeqns)-1,-1,-1):
         e = oeqns[i]
@@ -1595,7 +1622,7 @@ def createPlant(state, ceqns, oeqns, iEqns = {}, def_dict = {}):
     #print [(var,len(val)) for (var,val) in newode]
     # print '#ODEs = {0}, #newODEs = {1}'.format(len(ode),len(newode))
     finalode = myproduct(newode)
-    # print '#finalode = {0}'.format(len(finalode))
+    print '#finalode = {0}'.format(len(finalode))
     # print '#####-----****************finalode', finalode
 
     # Now create definitions ....
@@ -1774,10 +1801,10 @@ def convert2hsal(dom1, dom2, dom3 = None):
     # contSubEqns = eqns x = f(y) to be turned into DEFINITIONS
     iEqns = handle_initializations( dom1, iEqns )
     print >> sys.stderr, 'Classified eqns into {0} discrete, {1} cont, {2} others'.format(len(discEqns),len(contEqns),len(oEqns))
-    print >> sys.stderr, 'discrete eqns: ', printE(discEqns)
-    print >> sys.stderr, 'cont eqns: ', printE(contEqns)
-    print >> sys.stderr, 'other eqns: ', printE(oEqns)
-    print >> sys.stderr, 'sub eqns: ', printE(contSubEqns)
+    #print >> sys.stderr, 'discrete eqns: ', printE(discEqns)
+    #print >> sys.stderr, 'cont eqns: ', printE(contEqns)
+    #print >> sys.stderr, 'other eqns: ', printE(oEqns)
+    #print >> sys.stderr, 'sub eqns: ', printE(contSubEqns)
     #print >> sys.stderr, 'init eqns: ',
     '''
     for (i,j) in iEqns.items():

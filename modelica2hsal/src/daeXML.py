@@ -689,6 +689,21 @@ def xml_prefix_equal(xml, xml2):
     return False
   return xml_equal(xml, getArg(xml2, 2)) or xml_prefix_equal(xml, getArg(xml2,3))
 
+def simplify_saturation_ites(ite_xml):
+    '''IF c1 then e1 else if c2 then e2 else e3 --> if e1,e2 small and e3 big, then remove inner ite'''
+    e1_xml = getArg(ite_xml, 2)
+    else_xml = getArg(ite_xml, 3)
+    if not else_xml.tagName == 'IF':
+      return True
+    e2_xml = getArg(else_xml, 2)
+    e3_xml = getArg(else_xml, 3)
+    smalls = ['der','pre','identifier','number','string']
+    if e1_xml.tagName in smalls and e2_xml.tagName in smalls:
+      if e3_xml.tagName in ['BAPP']:
+        ite_xml = replace(else_xml, e2_xml, ite_xml)
+        return False
+    return True
+
 def simplify_reverse_abs(ite_xml):
     '''if e0>0 then e0 else ... --> e0'''
     cond_xml = getArg(ite_xml, 1)
@@ -749,6 +764,10 @@ def simplify0ITE_aggressive(node):
     while sas != []:
       if_xml = sas.pop()
       done1 = simplify_reverse_abs( if_xml )
+      if not done1:
+        done = False
+        continue
+      done1 = simplify_saturation_ites( if_xml )
       if not done1:
         done = False
         continue
