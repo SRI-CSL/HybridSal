@@ -727,8 +727,9 @@ def preprocessEqnNEW(eL,cstate,dstate):
         #print p, '=', q
         #print 'debuggin printing ......................................'
         if p == None or q == None:
-            print 'WARNING: Ignoring equation'
-            print '{0} = {1}'.format(daexmlPP.ppExpr(lhs),daexmlPP.ppExpr(rhs))
+            print 'IgEq',
+            #print 'WARNING: Ignoring equation'
+            #print '{0} = {1}'.format(daexmlPP.ppExpr(lhs),daexmlPP.ppExpr(rhs))
             continue
         p = polyrepapplySub(p, subL)
         q = polyrepapplySub(q, subL)
@@ -844,7 +845,7 @@ def findState(Eqn, cstate, dstate, var_details):
     varmap = {}
     enums = getEnums(var_details)
     myenums = {}
-    print 'There are {0} enums'.format(len(enums))
+    #print 'There are {0} enums'.format(len(enums))
 
     # for each variable in Eqn, classify it.
     for identifier in ids:
@@ -1586,10 +1587,10 @@ def createPlant(state, ceqns, oeqns, iEqns = {}, def_dict = {}):
         (var,val) = (rhs,lhs) if rhs.tagName == 'der' else (lhs,rhs)
         assert var.tagName == 'der', 'ERROR: Unable to covert DAE to dx/dt = Ax+b'
         name = valueOf(getArg(var,1)).strip()
-        print >> sys.stderr, 'converting expr to cexpr:', expr2sal(val)
+        # print >> sys.stderr, 'converting expr to cexpr:', expr2sal(val)
         rhs =  expr2cexpr(val)
         ode.append( (name, rhs) )
-        print >> sys.stderr, 'ODE for {0} has {1} cases'.format(name,len(rhs))
+        # print >> sys.stderr, 'ODE for {0} has {1} cases'.format(name,len(rhs))
         # for j in rhs:
           # print >> sys.stderr, 'CaseP ', [expr2sal(i) for i in j[0]]
           # print >> sys.stderr, 'CaseN ', [expr2sal(i) for i in j[1]]
@@ -1670,7 +1671,7 @@ def createEventsFromPreds(preds, reals, inputs):
             assert isinstance(e, PolyRep), 'Err: Unexpected type'
             estr = e.polyrepPrint(ans = '', pre = True) 
             if estr == None:
-              print >> sys.stderr, 'E',
+              print >> sys.stderr, 'IgEv',
               # print >> sys.stderr, 'Warning: Ignoring event {0}'.format(e.polyrepPrint())
               continue
         for v in vl:

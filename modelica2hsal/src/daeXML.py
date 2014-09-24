@@ -2188,7 +2188,7 @@ def simplifydaexml(dom1, filename, library = None, ctxt = None):
         # dom = arrayselect2if(dom) # handled in daexml2hsal.py
         dom = SimplifyEqnsPhase5(dom, cstate, dstate)
         create_output_file(filename, dom, '.daexml4') 
-        os.remove(basename+'.daexml3')
+        # os.remove(basename+'.daexml3')
         print '-------------Simplification: IF-lifting over..........'
         return dom
     elif existsAndNew(basename+'.daexml2', filename):
@@ -2201,7 +2201,7 @@ def simplifydaexml(dom1, filename, library = None, ctxt = None):
         (cstate, dstate) = ctxt if ctxt != None else get_cd_state(dom)
         dom = SimplifyEqnsPhase4(dom, cstate, dstate)
         create_output_file(filename, dom, '.daexml3') 
-        os.remove(basename+'.daexml2')
+        # os.remove(basename+'.daexml2')
         print '----------Simplification: Expression propagation over......'
         return simplifydaexml(dom, filename, library, (cstate,dstate))
     elif existsAndNew(basename+'.daexml1', filename):
@@ -2215,7 +2215,7 @@ def simplifydaexml(dom1, filename, library = None, ctxt = None):
         (cstate, dstate) = ctxt if ctxt != None else get_cd_state(dom)
         dom = SimplifyEqnsPPDaeXML(dom, cstate, dstate, options)
         create_output_file(filename, dom, '.daexml2') 
-        os.remove(basename+'.daexml1')
+        # os.remove(basename+'.daexml1')
         print '----------Simplification: Variable Propagation over......'
         return simplifydaexml(dom, filename, library, (cstate,dstate))
     else:

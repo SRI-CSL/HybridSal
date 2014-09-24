@@ -863,9 +863,9 @@ def output_sliced_dom(slice_filename, sliced_e, slice_ie, sliced_v, other_v, dom
 # Don't invoke slicer if sliced file exists, is new, and was created recently
 # ----------------------------------------------------------------------
 def existsAndNew(filename1, filename2):
-  if os.path.isfile(filename1) and os.path.getctime(filename1) >= os.path.getctime(filename2):
+  if os.path.isfile(filename1) and os.path.getmtime(filename1) >= os.path.getmtime(filename2):
     import time
-    if abs(time.time() - os.path.getctime(filename1)) < 86400:
+    if abs(time.time() - os.path.getmtime(filename1)) < 86400:
       print "File {0} is newer, and was created in last 1 day".format(filename1)
     return True
   return False

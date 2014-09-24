@@ -1451,7 +1451,7 @@ def component_partition(xmlnode):
 
 def cybercomposition2hsal(filename, options = []):
     def existsAndNew(filename1, filename2):
-        if os.path.isfile(filename1) and os.path.getctime(filename1) >= os.path.getctime(filename2):
+        if os.path.isfile(filename1) and os.path.getmtime(filename1) >= os.path.getmtime(filename2):
             print "File {0} exists and is new".format(filename1)
             return True
         return False
