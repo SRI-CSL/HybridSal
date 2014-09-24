@@ -1378,15 +1378,20 @@ def createPlant(state, ceqns, oeqns, iEqns = {}, def_dict = {}):
         return sym_tab[xmlnode]
       expr = xmlnode
       ids = expr.getElementsByTagName('identifier')
+      if len(ids)==0 and expr.tagName=='identifier':
+        ids.append(expr)
       var_names = [valueOf(i).strip() for i in ids]
       var_names.sort()
       ops = expr.getElementsByTagName('BINARY_OPERATOR')
       op_names = [valueOf(i).strip() for i in ops]
       op_names.sort()
       values = expr.getElementsByTagName('number')
-      val_names = [valueOf(i).strip() for i in values]
+      if len(values)==0 and expr.tagName=='number':
+        values.append(expr)
+      val_names = [str(int(float(valueOf(i)))) for i in values]
       val_names.sort()
-      str_val = ''.join(var_names[:10]).join(op_names[:10]).join(val_names[:10])
+      str_val = ''.join(var_names[:10])+''.join(op_names[:10])+''.join(val_names[:10])
+      assert str_val != '','Err: hash for {0} is empty'.format(xmlnode.toxml())
       sym_tab[xmlnode] = str_val
       return str_val
     def hash_it(case, symbol_table):
@@ -1409,8 +1414,9 @@ def createPlant(state, ceqns, oeqns, iEqns = {}, def_dict = {}):
         if is_subset(p_case1, p_case2) and is_subset(n_case1, n_case2):
           return all_cases.index( (p_case2, n_case2) )
         if is_subset(p_case2, p_case1) and is_subset(n_case2, n_case1):
-          return -1
-      return -2
+          return -2-all_cases.index( (p_case2, n_case2) )
+          #return -1
+      return None
     def collapse_a_list(p, symbol_table):
       collected_hashes, bad = [], []
       for i in range(len(p)):
@@ -1418,37 +1424,81 @@ def createPlant(state, ceqns, oeqns, iEqns = {}, def_dict = {}):
         if ihash not in collected_hashes:
           collected_hashes.append(ihash)
         else:
+          # print 'SAME {0} and\n{1}'.format(expr2sal(p[i]),[expr2sal(p[collected_hashes.index(ihash)+j]) for j in range(len(bad)+1)])
           bad.append(i)
       for i in range(len(bad)-1,-1,-1):
         del p[bad[i]]
       return
+    def print_case(case):
+      print 'CaseP', [expr2sal(i) for i in case[0]]
+      print 'CaseN', [expr2sal(i) for i in case[1]]
+      return 0
     def collapse_a_case(case, symbol_table):
       '''([x,x],[y,y],v) --> ([x],[y],v)'''
+      # print 'in case', print_case(case)
       (p, n, v) = case
       collapse_a_list(p, symbol_table)
       collapse_a_list(n, symbol_table)
+      # print 'out case', print_case(case)
       return 
-    def collapse_cases(p_n_v_list):
+    def my_and(p0, p, symtab):
+      phashes = [hash_it_one(i,symtab) for i in p]
+      bad = []
+      for i in range(len(p0)):
+        ihash = hash_it_one(p0[i], symtab)
+        if ihash not in phashes:
+          bad.append(i)
+      for i in range(len(bad)-1,-1,-1):
+        del p0[ bad[i] ]
+      return
+    def my_case_or(p_n_v, p, n, symtab):
+      (p0, n0, v0) = p_n_v
+      my_and(p0, p, symtab)
+      my_and(n0, n, symtab)
+      return
+    def collapse_cases_on_values(p_n_v_list, symtab):
+      bad, olds = [], {}
+      for i in range(len(p_n_v_list)):
+        (p,n,v) = p_n_v_list[i]
+        ihash = hash_it_one(v, symtab)
+        if olds.has_key(ihash):
+          index = olds[ihash]
+          my_case_or(p_n_v_list[index], p, n, symtab)
+          bad.append(i)
+        else:
+          olds[ihash] = i
+      for i in range(len(bad)-1,-1,-1):
+        del p_n_v_list[ bad[i] ]
+      return
+    def collapse_cases(p_n_v_list, symtab):
       '''input: list of (plist,nlist,value);
        output: same but with redundant things removed'''
       ans_symbols, ans = [], []
-      symbol_table = {}
+      symbol_table = symtab
       for case1 in p_n_v_list:
         collapse_a_case(case1, symbol_table)
+      for case1 in p_n_v_list:
         (psymbols, nsymbols) = hash_it(case1, symbol_table)
         which_one = case_subsumed(ans_symbols, psymbols, nsymbols)
-        if which_one == -2:
+        if which_one == None:
           ans.append(case1)
           ans_symbols.append( (psymbols, nsymbols) )
         elif which_one == -1:
+          #print 'redundant becoz inconsistent case\n', [expr2sal(i) for i in case1[0]], [expr2sal(i) for i in case1[1]] 
+          pass
+        elif which_one <= -2:
+          #print 'redundant case\n', [expr2sal(i) for i in case1[0]], [expr2sal(i) for i in case1[1]] 
+          #print 'becoz of case\n', [expr2sal(i) for i in ans[-2-which_one][0]], [expr2sal(i) for i in ans[-2-which_one][1]] 
           pass
         else:
+          #print 'redundant case', [expr2sal(i) for i in ans[which_one][0]], [expr2sal(i) for i in ans[which_one][1]] 
+          #print 'made redundant by', [expr2sal(i) for i in case1[0]], [expr2sal(i) for i in case1[1]] 
           ans[ which_one ] = case1	# delete old, replace by new
           ans_symbols[ which_one ] = (psymbols, nsymbols)
-      del symbol_table, ans_symbols
+      del ans_symbols
       return ans
     # -------------- END: code for optimizing modes ------------
-    def applyOp(op, e1, e2):
+    def applyOp(op, e1, e2, symtab):
         "multiply two conditional exprs"
         ans = []
         if valueOf(op).strip() in ['*', '+', '-', '/']:
@@ -1463,26 +1513,8 @@ def createPlant(state, ceqns, oeqns, iEqns = {}, def_dict = {}):
         else:
             print 'Found unhandled operator {0} combining ITEs'.format(valueOf(op).strip())
             assert False, 'No other operator supported'
-        n_cases = len(ans)
-        # print 'Unoptimized # case = {0}'.format( n_cases )
-        if n_cases >= 100:
-          #print 'WARNING: Too many cases, ignoring those more than 200'
-          ans = collapse_cases(ans[0:99]) 
-        else:
-          ans = collapse_cases(ans) 
-        # print 'Optimized # case = {0}'.format(len(ans))
         return ans
-    def expr2cexpr2( val ):
-        if val.tagName == 'BAPP':
-            op = getArg(val, 1)
-            a1 = getArg(val, 2)
-            a2 = getArg(val, 3)
-            e1 = expr2cexpr2( a1 )
-            e2 = expr2cexpr2( a2 )
-            return applyOp( op, e1, e2 )
-        else:
-            return expr2cexpr(val)
-    def expr2cexpr( val ):
+    def expr2cexpr( val, symtab ):
         "expr 2 conditional expr"
         if val.tagName != 'IF' and len(val.getElementsByTagName('IF')) == 0:
             return [([], [], val)]
@@ -1490,14 +1522,14 @@ def createPlant(state, ceqns, oeqns, iEqns = {}, def_dict = {}):
             iteCond = getArg(val, 1)
             iteThen = getArg(val, 2)
             iteElse = getArg(val, 3)
-            thenv = expr2cexpr( iteThen )
-            elsev = expr2cexpr( iteElse )
+            thenv = expr2cexpr( iteThen, symtab )
+            elsev = expr2cexpr( iteElse, symtab )
             for (p,n,v) in thenv:
                 p.append( iteCond )
             for (p,n,v) in elsev:
                 n.append( iteCond )
             thenv.extend( elsev )
-            return thenv
+            ans = thenv
             '''ans = []
             while val.tagName == 'IF':
                 iteCond = getArg(val, 1)
@@ -1510,17 +1542,44 @@ def createPlant(state, ceqns, oeqns, iEqns = {}, def_dict = {}):
             op = getArg(val, 1)
             a1 = getArg(val, 2)
             a2 = getArg(val, 3)
-            e1 = expr2cexpr( a1 )
-            e2 = expr2cexpr( a2 )
-            return applyOp( op, e1, e2 )
+            e1 = expr2cexpr( a1, symtab )
+            e2 = expr2cexpr( a2, symtab )
+            ans = applyOp( op, e1, e2, symtab )
         elif val.tagName == 'UAPP':
             op = getArg(val, 1)
             a1 = getArg(val, 2)
-            v1 = expr2cexpr( a1 )
+            v1 = expr2cexpr( a1, symtab )
             return applyOpUnary( op, v1 )
         else:
              assert False, 'Can not convert nested IF-THEN-ELSE to HybridSal'
-    def myproduct( vvl ):
+        n_cases = len(ans)
+        #print 'Unoptimized # case = {0}'.format( n_cases )
+        ans = collapse_cases(ans, symtab) 
+        if len(ans) < n_cases:
+          print 'O1',
+          # print 'Case reduction opt worked# case = {0}'.format( len(ans)-n_cases )
+          n_cases = len(ans)
+        collapse_cases_on_values(ans, symtab)
+        if len(ans) < n_cases:
+          # print 'coll_values worked # case = {0}'.format( len(ans)-n_cases )
+          print 'O2',
+          n_cases = len(ans)
+        ans = collapse_cases(ans, symtab) 
+        if len(ans) < n_cases:
+          print 'O3',
+          #print 'collapse2 worked # case = {0}'.format( len(ans)-n_cases )
+        '''
+        if n_cases >= 100:
+          #print 'WARNING: Too many cases, ignoring those more than 200'
+          ans = collapse_cases_on_values(ans, symtab)
+          ans = collapse_cases(ans[0:99], symtab) 
+        else:
+          ans = collapse_cases(ans, symtab) 
+        print 'Optimized # case = {0}'.format(len(ans))
+        '''
+        return ans
+
+    def myproduct( vvl, symtab ):
         "vvl = list of (var, (p,n,v)-list). OUTPUT (p,n,(var,v)-list)"
         ans = []
         for (var,val) in vvl:
@@ -1532,14 +1591,14 @@ def createPlant(state, ceqns, oeqns, iEqns = {}, def_dict = {}):
         # if len(ans) <= 1:
             # return ans
         # else:
-        return myproductAux( ans[1:], ans[0] )
-    def myproductAux( pnvvlll, pnvvll ):
+        return myproductAux( ans[1:], ans[0], symtab )
+    def myproductAux( pnvvlll, pnvvll, symtab ):
         if len(pnvvlll) == 0:
             return pnvvll
         pnvvll2 = pnvvlll[0]
         if len(pnvvll2) == 0:
           #print 'WARNING: ZERO cases for some variable!!'
-          return myproductAux( pnvvlll[1:], pnvvll )
+          return myproductAux( pnvvlll[1:], pnvvll, symtab )
         ans = []
         for (p,n,vvl) in pnvvll2:
             for (p1,n1,vvl1) in pnvvll:
@@ -1550,8 +1609,8 @@ def createPlant(state, ceqns, oeqns, iEqns = {}, def_dict = {}):
                 z = list(vvl)
                 z.extend(vvl1)
                 ans.append( (x,y,z) )
-        ans = collapse_cases(ans)
-        return myproductAux( pnvvlll[1:], ans )
+        ans = collapse_cases(ans, symtab)
+        return myproductAux( pnvvlll[1:], ans, symtab )
     ans = "\n plant: MODULE = \n BEGIN"
     (bools,reals,ints,inputs,nonstates,vmap,enums) = state
     for i in bools:
@@ -1587,11 +1646,13 @@ def createPlant(state, ceqns, oeqns, iEqns = {}, def_dict = {}):
         (var,val) = (rhs,lhs) if rhs.tagName == 'der' else (lhs,rhs)
         assert var.tagName == 'der', 'ERROR: Unable to covert DAE to dx/dt = Ax+b'
         name = valueOf(getArg(var,1)).strip()
-        # print >> sys.stderr, 'converting expr to cexpr:', expr2sal(val)
-        rhs =  expr2cexpr(val)
+        # print 'converting expr to cexpr:', expr2sal(val)
+        symtab = {}
+        rhs =  expr2cexpr(val, symtab)
         ode.append( (name, rhs) )
-        # print >> sys.stderr, 'ODE for {0} has {1} cases'.format(name,len(rhs))
+        print >> sys.stderr, 'ODE for {0} has {1} cases'.format(name,len(rhs))
         # for j in rhs:
+          # print_case(j)
           # print >> sys.stderr, 'CaseP ', [expr2sal(i) for i in j[0]]
           # print >> sys.stderr, 'CaseN ', [expr2sal(i) for i in j[1]]
           # print >> sys.stderr, 'Value ', expr2sal(j[2])
@@ -1600,8 +1661,8 @@ def createPlant(state, ceqns, oeqns, iEqns = {}, def_dict = {}):
         e = oeqns[i]
         lhs = getArg(e,1) 
         rhs = getArg(e,2) 
-        e1 =  expr2cexpr(lhs)
-        e2 =  expr2cexpr(rhs)
+        e1 =  expr2cexpr(lhs, symtab)
+        e2 =  expr2cexpr(rhs, symtab)
         #print >> sys.stderr, 'Other equation has {0} and {1} cases'.format(len(e1),len(e2))
         # print 'lhs = {0}'.format(daexmlPP.ppExpr(lhs))
         # print 'rhs = {0}'.format(daexmlPP.ppExpr(rhs))
@@ -1622,8 +1683,8 @@ def createPlant(state, ceqns, oeqns, iEqns = {}, def_dict = {}):
     # print '#####-----****************newode', newode
     #print [(var,len(val)) for (var,val) in newode]
     # print '#ODEs = {0}, #newODEs = {1}'.format(len(ode),len(newode))
-    finalode = myproduct(newode)
-    print '#finalode = {0}'.format(len(finalode))
+    finalode = myproduct(newode, symtab)
+    print '#final modes = {0}'.format(len(finalode))
     # print '#####-----****************finalode', finalode
 
     # Now create definitions ....
@@ -1631,7 +1692,11 @@ def createPlant(state, ceqns, oeqns, iEqns = {}, def_dict = {}):
 
     ans  += "\n  TRANSITION\n  ["
     first = True
-    for (p,n,vvl) in finalode:
+    #for (p,n,vvl) in finalode:
+    k, jump = 0, 1
+    while k < len(finalode):
+        (p,n,vvl) = finalode[k]
+        k = k+jump
         sep = "\n  []" if not(first) else ""
         first = False
         ans += "{2}\n  {0} AND {1} -->".format(toSal(p,0),toSal(n,1),sep)
