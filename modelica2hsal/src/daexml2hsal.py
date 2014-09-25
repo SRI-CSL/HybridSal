@@ -2107,9 +2107,24 @@ daexml2hsal -- a converter from differential algebraic equations to HybridSal
 Usage: python daexml2hsal <daexml_file> <modelica_xmlfile> [--addTime|--removeTime]
     '''
 
+def existsAndNew(filename1, filename2):
+    if os.path.isfile(filename1) and os.path.getmtime(filename1) >= os.path.getmtime(filename2):
+      print "File {0} exists and is new".format(filename1)
+      return True
+    return False
+
 def daexml2hsal(dom1, dom2, filename, dom3):
     "dom3: context_property.xml; dom1: daexml, dom2: original modelica"
     global dom
+    basename,ext = os.path.splitext(filename)
+    dirname, filebasename = os.path.split(basename)
+    filebasename = filebasename.replace('.','_')
+    basename = os.path.join(dirname, filebasename)
+    basename += "Model"
+    outfile = basename + ".hsal"
+    if existsAndNew(outfile, filename):
+      print 'Reusing existing {0} file.'.format(outfile)
+      return outfile
     dom = dom1
     try:
         (hsalstr, propStr) = convert2hsal(dom1, dom2, dom3)

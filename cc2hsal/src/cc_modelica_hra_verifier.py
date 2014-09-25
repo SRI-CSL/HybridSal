@@ -165,7 +165,7 @@ def get_props_from_hsal_file(hsal_model):
     # Now get the property string
     pEndIndex = hsal_model.find( ';', vdashIndex )
     propStr = hsal_model[ vdashIndex+2: pEndIndex]
-    propList.append( (propName, moduleName, propStr) )
+    propList.append( [propName, moduleName, propStr] )
     index = hsal_model.find("THEOREM", pEndIndex)
   return propList
 
@@ -281,11 +281,22 @@ def merge_files(hsalp_str,hsalc_str,track_map,primaryModule,pNameModLTLL,f):
 
   # Now add the properties for finalsys
   ans = []
-  for (pName, pMod, pLTL) in pNameModLTLL:
+  for i in range(len(pNameModLTLL)):
+    pName = pNameModLTLL[i][0]
+    pMod = pNameModLTLL[i][1]
+    pLTL = pNameModLTLL[i][2]
     print >> f, ' {0}f: THEOREM\n  finalsys |- {1};\n\n'.format(pName, pLTL)
     ans.append( (pName+'f', final, pLTL) )
 
   return ans
+# ---------------------------------------------------------------------
+
+# ---------------------------------------------------------------------
+def existsAndNew(filename1, filename2):
+    if os.path.isfile(filename1) and os.path.getmtime(filename1) >= os.path.getmtime(filename2):
+      print "File {0} exists and is new".format(filename1)
+      return True
+    return False
 # ---------------------------------------------------------------------
 
 # ---------------------------------------------------------------------
@@ -372,18 +383,22 @@ def main():
 
       # merge the controller and plant models
       hsalfile = basefilename + os.path.basename(hsalPfile)
-      hsalp_str = hsal_file_to_str( hsalPfile )
-      try:
-        f = open(hsalfile, 'w')
-      except Exception, e:
-        print 'Failed to open {0} for writing merged file'.format(hsalfile)
-        return -1
-      print >> f, "{0}: CONTEXT =\nBEGIN\n".format(os.path.basename(hsalfile)[:-5])
-      pNameModLTLL = merge_files(hsalp_str, hsalc_str, track_map, primaryModule, pNameModLTLL, f)
-      print >> f, "END"
-      f.close()
-
-      print 'Generated file {0} containing the merged model.'.format(hsalfile)
+      if not(existsAndNew(hsalfile, hsalPfile) and existsAndNew(hsalfile, hsalCfile)):
+        hsalp_str = hsal_file_to_str( hsalPfile )
+        try:
+          f = open(hsalfile, 'w')
+        except Exception, e:
+          print 'Failed to open {0} for writing merged file'.format(hsalfile)
+          return -1
+        print >> f, "{0}: CONTEXT =\nBEGIN\n".format(os.path.basename(hsalfile)[:-5])
+        pNameModLTLL = merge_files(hsalp_str, hsalc_str, track_map, primaryModule, pNameModLTLL, f)
+        print >> f, "END"
+        f.close()
+        print 'Generated file {0} containing the merged model.'.format(hsalfile)
+      else:
+        print 'Reusing existing file {0} containing the merged model.'.format(hsalfile)
+        for i in range(len(pNameModLTLL)):
+          pNameModLTLL[i][0] += 'f'
 
       print 'Abstracting the merged model...'
     else: # modfilename == None
@@ -472,7 +487,10 @@ def main():
       '''
 
       # Now we have the properties and its LTL text 
-      for (pName, pMod, LTL) in pNameModLTLL:
+      for i in range(len(pNameModLTLL)):
+        pName = pNameModLTLL[i][0]
+        pMod = pNameModLTLL[i][1]
+        LTL = pNameModLTLL[i][2]
         print >> f, 'PropertyName: {0}'.format(pName)
         print >> f, 'PropertyStr: {0}'.format(LTL)
         f.flush()

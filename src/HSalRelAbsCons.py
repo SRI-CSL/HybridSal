@@ -1041,6 +1041,10 @@ def hxml2sal(xmlfilename, optarg = 0, timearg = None, ptf=False):
     opt = optarg
     time = timearg
     basename,ext = os.path.splitext(xmlfilename)
+    absSalFile = basename + ".sal"
+    if existsAndNew(absSalFile, xmlfilename):
+      print 'Reusing existing abstract SAL file.'
+      return absSalFile, True
     dom = xml.dom.minidom.parse(xmlfilename)
     setDom(dom)
     ctxt = HSalPreProcess.handleContext(dom)
@@ -1064,7 +1068,6 @@ def hxml2sal(xmlfilename, optarg = 0, timearg = None, ptf=False):
         HSalExtractRelAbs.extractRelAbs(newctxt, fp, ptf=True)
     else:
         HSalExtractRelAbs.extractRelAbs(newctxt)
-    absSalFile = basename + ".sal"
     moveIfExists(absSalFile)
     with open(absSalFile, "w") as fp:
         HSalXMLPP.HSalPPContext(newctxt, fp)
@@ -1072,6 +1075,12 @@ def hxml2sal(xmlfilename, optarg = 0, timearg = None, ptf=False):
     assertions = ctxt.getElementsByTagName("ASSERTIONDECLARATION")
     p1_exists = (assertions != None and len(assertions) > 0)
     return absSalFile, p1_exists
+
+def existsAndNew(filename1, filename2):
+    if os.path.isfile(filename1) and os.path.getmtime(filename1) >= os.path.getmtime(filename2):
+      print "File {0} exists and is new".format(filename1)
+      return True
+    return False
 
 def hsal2hxml(filename):
     def checkexe(filename):
@@ -1103,6 +1112,8 @@ def hsal2hxml(filename):
         xmlfilename = filename
     elif ext == '.hsal':
         xmlfilename = basename + ".hxml"
+        if existsAndNew(xmlfilename, filename):
+          return xmlfilename
         java = checkexe('java.exe' if sys.platform.startswith('win') else 'java')
         assert java != None, 'ERROR: java not found in PATH {0}'.format(os.environ['PATH'])
         hybridsal2xml_jar = checkexe('hybridsal2xml.jar')
