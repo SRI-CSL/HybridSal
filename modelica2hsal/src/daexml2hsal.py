@@ -1587,7 +1587,7 @@ def createPlant(state, ceqns, oeqns, iEqns = {}, def_dict = {}):
             for (p,n,v) in val:
                 tmp.append( (p,n,[(var,v)]) )
             ans.append(tmp)
-        assert len(ans) >= 1
+        assert len(ans) >= 1, 'Err: Empty continuous equations?'
         # if len(ans) <= 1:
             # return ans
         # else:
@@ -1640,6 +1640,7 @@ def createPlant(state, ceqns, oeqns, iEqns = {}, def_dict = {}):
     # first get conditional diff eqns ; then print
     # ans  += "\n  TRUE -->"
     ode = []
+    symtab = {}
     for e in ceqns:
         lhs = getArg(e,1) 
         rhs = getArg(e,2) 
@@ -1647,7 +1648,6 @@ def createPlant(state, ceqns, oeqns, iEqns = {}, def_dict = {}):
         assert var.tagName == 'der', 'ERROR: Unable to covert DAE to dx/dt = Ax+b'
         name = valueOf(getArg(var,1)).strip()
         # print 'converting expr to cexpr:', expr2sal(val)
-        symtab = {}
         rhs =  expr2cexpr(val, symtab)
         ode.append( (name, rhs) )
         print >> sys.stderr, 'ODE for {0} has {1} cases'.format(name,len(rhs))
@@ -1707,13 +1707,6 @@ def createPlant(state, ceqns, oeqns, iEqns = {}, def_dict = {}):
             ans += "{2}\n\t {0} = {1}".format(var+"dot'",expr2sal(val,flag=False),sep)
     ans += "\n  ]"
     ans += "\n END;\n"
-    #monitor = others2salmonitor(others, bools, ints, reals)
-    monitor = others2salmonitorNew(oeqns, bools, ints, reals)
-    if monitor != None:
-        ans += monitor
-        ans += "\n\n system: MODULE = control || plant || monitor ;"
-    else:
-        ans += "\n\n system: MODULE = control || plant ;"
     return ans
 # -----------------------------------------------------------------
 
@@ -1892,12 +1885,33 @@ def convert2hsal(dom1, dom2, dom3 = None):
     ans0 = createEventsFromPreds(preds, reals, inputs)	# Should events on inputs be included?
     # print >> sys.stderr, 'created events from preds'
     def_dict = xmleqnlist2dict( contSubEqns )
-    ans1 = createControl(state, discEqns, ans0, iEqns, def_dict)
+    if len(discEqns) > 0:
+      ans1 = createControl(state, discEqns, ans0, iEqns, def_dict)
+    else:
+      ans1 = ''
+      print >> sys.stderr, 'No discrete component in plant model'
     # print >> sys.stderr, 'created control'
-    ans2 = createPlant(state, contEqns, oEqns, iEqns, def_dict)
+    if len(contEqns) > 0:
+      ans2 = createPlant(state, contEqns, oEqns, iEqns, def_dict)
+    else:
+      ans2 = ''
+      print >> sys.stderr, 'No continuous component in plant model'
     print >> sys.stderr, 'created plant'
+    #monitor = others2salmonitor(others, bools, ints, reals)
+    monitor = others2salmonitorNew(oEqns, bools, ints, reals)
+    ans3 = monitor if monitor != None else ''
+    system_str = 'control ' if ans1 != '' else ''
+    if system_str == '':
+      system_str += 'plant ' if ans2 != '' else ''
+    else:
+      system_str += '|| plant ' if ans2 != '' else ''
+    if system_str == '':
+      system_str += 'monitor' if ans3 != '' else ''
+    else:
+      system_str += '|| monitor' if ans3 != '' else ''
+    ans4 = "\n\n system: MODULE = {0} ;".format(system_str)
     # replace varname.var -> varname_var
-    ans += ans1 + ans2
+    ans += ans1 + ans2 + ans3 + ans4
     propStr = createProperty(dom3)
     (ans, propStr) = alpha_rename(ans, propStr, state)
     return (ans, propStr)

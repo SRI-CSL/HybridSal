@@ -49,6 +49,7 @@ Modelica.Blocks.Sources.CombiTimeTable.getTableValue(x,y,z,u,v,w) = 12
 Modelica.Blocks.Sources.CombiTimeTable.getTableTimeTmin(x, y) = 0
 Modelica.Blocks.Sources.CombiTimeTable.getTableTimeTmax(x, y) = 1900
 max({{x, 1.0001}}) = 1.0001
+min(x,y) = if (x < y) then x else y
 transpose(x) = x
 vector(x) = x
 real(x) = x

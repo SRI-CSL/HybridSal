@@ -552,7 +552,10 @@ def extend_ovarl( ovarl, aliases ):
   xmls = []
   for i in aliases:
     bind = i.getElementsByTagName('bindExpression')[0]
-    ci = bind.getElementsByTagName('ci')[0]
+    ciList = bind.getElementsByTagName('ci')
+    if len(ciList)!=1:
+      continue
+    ci = ciList[0]
     varname = valueOf(ci).strip()
     if varname in ovarl:
       xmls.append(i)
