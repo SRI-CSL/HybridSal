@@ -782,9 +782,20 @@ def parse_product(ins, outs, params):
   assert inputs.startswith('Element-wise'), 'ERROR: Missing code, Product.Multiplication != Element-wise'
   symtab = {}
   args = [ get_var( symtab, i ) for i in ins ]
-  assert len(outs) == 1, 'ERROR: Sum block has more than one OUTPUTs'
+  args.sort( key=lambda x: x.xmlnode.getAttribute('Number') )
+  assert len(outs) == 1, 'ERROR: Product block has more than one OUTPUTs'
   out = get_var(symtab, outs[0])
-  return Component(symtab, [{out: Expr('*', len(ins), args)}] )
+  inputs = find_param_value( params, 'Inputs')
+  if inputs.endswith( '*'*len(ins) ) or inputs == str(len(ins)):
+    op = '*'
+  elif inputs == '*/':
+    op = '/'
+  elif inputs == '/*':
+    op = '/'
+    args.reverse()
+  else:
+    assert False, 'ERROR: Missing code, product.Inputs = {0}'.format(inputs)
+  return Component(symtab, [{out: Expr(op, len(ins), args)}])
 
 def parse_discreteTransferFcn(ins, outs, params, sampleTimeStr):
   assert len(ins) == 1, 'Error: DTF??'
