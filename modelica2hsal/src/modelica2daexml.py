@@ -419,6 +419,20 @@ def printFixedParametersZero(varList):
 # -------------------------------------------------------------------
 # Extract value from algorithm
 # -------------------------------------------------------------------
+def getVarValFromNominal( leftOutVars1 ):
+    done_vars = []
+    varvals = []
+    for dangling_var in leftOutVars1:
+      nominal = dangling_var.getElementsByTagName('nominal')
+      if len(nominal) > 0:
+        var_name = dangling_var.getAttribute('name').strip()
+        rhs = getMathMLclone( nominal[0], nominal[0].getAttribute('string') )
+        var = helper_create_tag_val('identifier', var_name)
+        varvals.append(helper_create_app('variablevalue', [var, rhs]))
+        done_vars.append( dangling_var )
+    leftOutVars = [ i for i in leftOutVars1 if i not in done_vars ]
+    return (varvals, leftOutVars)
+
 def getVarValFromAlgo( simpleEquations, leftOutVars1 ):
     if simpleEquations == None or len(simpleEquations) == 0:
         return ([], leftOutVars1 )
@@ -438,8 +452,12 @@ def getVarValFromAlgo( simpleEquations, leftOutVars1 ):
                 continue
             index2 = code.find( ';', index1 )
             index3 = code.find( ':=', index1 )
+            index2 = index2 if index2!=-1 else code.find(os.linesep, index1)
+            index3 = index3 if index3!=-1 else code.find('=', index1 )
             if index2 == -1 or index3 == -1:
-                print 'Huh?: expected var := expr ; unexpected syntax found'
+                # print 'Found variable {0} in initialEquation, but not in var := expr form'.format(var_name)
+                continue
+            if index3 > index1 + len(var_name) + 4:
                 continue
             rhs = ddae.parse_expr( code[index3+2:index2] )
             var = helper_create_tag_val('identifier', var_name)
@@ -497,10 +515,16 @@ def modelicadom2daexml(modelicadom):
         vv1.extend(vv2)
     if len(leftOutVars1) > 0:
         print >> sys.stderr, 'Note: {0} known vars have no bind expr and no initialValue; for e.g., {1}'.format(len(leftOutVars1),leftOutVars1[0].getAttribute('name'))
-        print >> sys.stderr, 'Trying to find bindExpression from initialEquations section'
+        print >> sys.stderr, 'Trying to find bindExpression from initialEquations section...',
         simpleEquations = ctxt.getElementsByTagName('initialEquations')
         (vv3,leftOutVars1) = getVarValFromAlgo( simpleEquations, leftOutVars1 )
+        print >> sys.stderr, '{0} found.'.format(len(vv3))
         vv1.extend(vv3)
+    if len(leftOutVars1) > 0:
+        print >> sys.stderr, 'Trying to find bindExpression from nominal section...',
+        (vv3_2,leftOutVars1) = getVarValFromNominal( leftOutVars1 )
+        print >> sys.stderr, '{0} found.'.format(len(vv3_2))
+        vv1.extend(vv3_2)
     if len(leftOutVars1) > 0:
         print >> sys.stderr, 'WARNING: {0} known vars have NO bindexpr/initialValue/initialEquation; for e.g., {1}'.format(len(leftOutVars1),leftOutVars1[0].getAttribute('name'))
     # vv1 = all variable-value pairs from knownVariables

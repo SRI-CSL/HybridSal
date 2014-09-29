@@ -57,6 +57,11 @@ How to run the demo?
 make RCEngineFull
  will run the full tool on an example Modelica XML file.
 
+python cc2hsal/src/cc_modelica_hra_verifier.py cc2hsal/examples/SimplifiedShiftControllerDecl.xml modelica2hsal/examples/SDT_OM_Cyber_dss.xml
+python cc2hsal/src/cc_modelica_hra_verifier.py cc2hsal/examples/SimplifiedShiftControllerDecl.xml modelica2hsal/examples/SDT_OM_Cyber_dss.xml --mapping modelicaURI2CyPhyMap.json
+python cc2hsal/src/cc_modelica_hra_verifier.py cc2hsal/examples/SimplifiedShiftControllerDeclold.xml modelica2hsal/examples/sdt_om_cyber_dss_old.xml --mapping sdt_om_cyber_dss_old.json
+python cc2hsal/src/cc_modelica_hra_verifier.py cc2hsal/examples/SimplifiedControllersCyber_before.xml modelica2hsal/examples/SystemDesignTest-r663.xml --mapping modelicaURI2CyPhyMap_r663.json
+
 Some Simple Examples
 --------------------
 The Linear*.hsal files contain some simple examples.

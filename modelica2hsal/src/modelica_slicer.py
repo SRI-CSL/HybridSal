@@ -274,10 +274,13 @@ class VariableType:
     elmt_names = [valueOf(i).strip() for i in elmts]
     for i in elmt_names:
       typ = json_get_type(meta, i)
-      if typ != None:
-        self.d[vname] = typ
-        return
-    print >> sys.stderr, 'Var {0} has no type'.format(vname) 
+      if typ != None and typ.endswith('Model'):
+        if typ != 'PlantModel':	# Context, Environment, Controller
+          self.d[vname] = 'ContextModel'
+          return
+        self.d[vname] = 'PlantModel'	
+    if not self.d.has_key(vname):
+      print >> sys.stderr, 'Var {0} has no type'.format(vname) 
     self.d[vname] = 'ContextModel'
   def iscontext(self, vname):
     return self.istypval(vname, 'ContextModel')
@@ -313,7 +316,7 @@ class TreeNode:
     self.children.append( new_node )
   def track_mark_preserve(self):
     if self.label != None:
-      assert self.label.e.tagName in ['equation','variable'], 'Err: Here666'
+      assert self.label.e.tagName in ['equation','variable', 'whenEquation'], 'Err: Here666 {0}\n {1}\n {2}'.format(self.label.e.tagName, self.label, self)
       self.label.e.setAttribute('trackPreserve', '1')
   def get_all_nodes_eqns(self, nodes, eqns, rest):
     if self.vname in nodes:
@@ -708,18 +711,18 @@ def project(d):
 def consolidate(jsond):
   '''get the three different dicts in jsond and merge them'''
   d1 = {}
-  if jsond.has_key('InstanceMapping'):
-    d1.update( project(jsond['InstanceMapping'] ))
+  #if jsond.has_key('InstanceMapping'):
+    #d1.update( project(jsond['InstanceMapping'] ))
   if jsond.has_key('ModelMapping'):
     d1.update( project(jsond['ModelMapping'] ))
-  if jsond.has_key('ExtendsMapping'):
-    d1.update( project(jsond['ExtendsMapping'] ))
+  #if jsond.has_key('ExtendsMapping'):
+    #d1.update( project(jsond['ExtendsMapping'] ))
   del jsond
   return d1
 
 def json_get_type(jsond, var_name):
   if jsond.has_key(var_name):
-    return jsond[var_name]
+    return jsond[var_name]		# Just first 5 characters
   return None
 # ----------------------------------------------------------------------
 
@@ -819,9 +822,8 @@ def modelicadom_slicer(modelicadom, varlist, meta={}):
       print 'WARNING: {0} Undeclared variables found: {1}'.format(len(rest2), rest2)
 
     if len(slice_e) == 0 or len(sliced_v) == 0:
-      print 'ERROR: Slice is empty. Check if file modelicaURI2CyPhyMap.json is correct'
-      print 'ERROR: Slice is empty. Check if plant model XML is correct'
-      sys.exit(1)
+      print 'WARNING: Slice is empty. Check if file modelicaURI2CyPhyMap.json is correct'
+      print 'WARNING: Slice is empty. Check if plant model XML is correct'
 
     return ( slice_e, sliced_v, sliced_kv, slice_ie, track_map )
 
@@ -895,7 +897,7 @@ def extract_map_from_xml(slice_filename):
 # ----------------------------------------------------------------------
 # if calling slicer through python, this is the function to call.
 # ----------------------------------------------------------------------
-def modelica_slice_file(filename, varlist):
+def modelica_slice_file(filename, varlist, options=[]):
     '''create a file base(filename)_slice.xml.
        Wrapper over modelicadom_slicer and output_sliced_dom
     '''
@@ -922,13 +924,22 @@ def modelica_slice_file(filename, varlist):
       print 'Error: Input XML file is not well-formed'
       print 'Quitting', sys.exc_info()[0]
       sys.exit(-1)
+
+    if '--mapping' in options:
+      index = options.index('--mapping')
+      modelicaURI2CyPhyMap = options[index+1].strip()
+    else:
+      modelicaURI2CyPhyMap = 'modelicaURI2CyPhyMap.json'
     dirname = os.path.dirname(filename)
-    jsonfile = os.path.join(dirname, 'modelicaURI2CyPhyMap.json')
+    jsonfile = os.path.join(dirname, modelicaURI2CyPhyMap)
     d = jsonfile2dict( jsonfile )
     (sliced_e, sliced_v, other_v, slice_ie, track_map) = modelicadom_slicer(modelicadom, varlist, meta=d)
-    print >> sys.stderr, 'Creating file {0}...'.format(slice_filename)
-    output_sliced_dom(slice_filename, sliced_e, slice_ie, sliced_v, other_v, modelicadom, track_map)
-    return (slice_filename, modelicadom, track_map)
+    if len(sliced_e) > 0:
+      print >> sys.stderr, 'Creating file {0}...'.format(slice_filename)
+      output_sliced_dom(slice_filename, sliced_e, slice_ie, sliced_v, other_v, modelicadom, track_map)
+      return (slice_filename, modelicadom, track_map)
+    else:
+      return (None, None, None)
 # ----------------------------------------------------------------------
 
 # ----------------------------------------------------------------------
@@ -961,7 +972,7 @@ def main():
     assert '--slicewrt' in options, 'Error: Specify slice variables. {0}'.format(printUsage())
     index = options.index('--slicewrt')
     varlist = options[index+1].split(',')
-    modelica_slice_file(filename, varlist)
+    modelica_slice_file(filename, varlist, options=options)
 # ----------------------------------------------------------------------
 
 # ----------------------------------------------------------------------

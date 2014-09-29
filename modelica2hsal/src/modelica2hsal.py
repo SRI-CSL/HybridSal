@@ -144,11 +144,15 @@ def modelica2hsal(filename, pfilename = None, options = []):
       if len(varlist) == 0:
         print 'ERROR: Cannot slice with respect to empty list of variables!'
         sys.exit(1)
-      (filename, mdom, track_map) = modelica_slicer.modelica_slice_file(filename, varlist)
+      (filename, mdom, track_map) = modelica_slicer.modelica_slice_file(filename, varlist, options=options)
       del mdom
     else:
       track_map = {}
     # slicer can change filename by replacing '-' by '_'
+
+    if filename == None:
+      print 'WARNING: Slice is empty. Using non-deterministic plant.'
+      return (None, None)
 
     # convert (sliced) modelica to daexml
     (dom2, dom1, daexmlfilename) = modelica2daexml.modelica2daexml(filename,options)

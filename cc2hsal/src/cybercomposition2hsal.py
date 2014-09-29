@@ -1,9 +1,21 @@
-# TODO list:
-# 1. transition -- need to be composed...
-# 2. Bug: Property is stored as a STRING; it is not UPDATED during COMPOSITION
+# Translating CyberComposition XML representation of Simulink/Stateflow models to HybridSal
+
+# Algorithm:
+# 1. Each primitive block is first translated into a local 'Component' object 
+# 2. Each subsystem is translated to a 'Component' object -- by 'composing' its subsystems
+# 3. Do this recursively all the way to the top.
+
+# Latest changes: 09/28/2014
+# 1. Component class has a method 'divide2mult' that rewrites division to multiplication
+# 2. Component class has a method 'move_to_params' that will make local vars->global params
+# 3. Parse properties' XML using minidom parser; if fails, then rewrite the XML string
+# 4. Global parameters are printed in a certain order. Eg. x=0 first; then y=x+3;
+# 5. Code for Compose and projection on transitions added
+# 6. Code for Compose on initializations added: ParameterRef init used if Simulink:Data not init-ed.
+# 7. Code for composing property added.
+
 # INTERFACE: (base_filename,propNameList) = cybercomposition2hsal(cc_xml_filename)
 
-# Print parameters in order -- first all constants then expressions
 import sys
 import os
 import copy
@@ -37,7 +49,11 @@ testStr3 = '''<?xml version=&quot;1.0&quot; encoding=&quot;UTF-8&quot; standalon
    <ltlProperty expr=&quot;[](y == 1)&quot; name=&quot;ResponseProperty&quot; type=&quot;Response&quot;/>
 </ltlProperties>
 '''
+# -------------------------------------------------------------------
 
+# -------------------------------------------------------------------
+# LTL-XML-string -> XMLminidom parse -> extract LTL string -> SAL string
+# -------------------------------------------------------------------
 def process_propStr(componentObj):
   '''Parse propstr - convert to SAL property'''
   def match_brac_index( propstr, i, leftbrac='(', rightbrac=')'):
@@ -166,89 +182,14 @@ def process_propStr(componentObj):
     propNameList.append( propName )
   print ans
   return (ans, propNameList)
-
-
 # -------------------------------------------------------------------
 
 # -------------------------------------------------------------------
 # Helper functions
 # -------------------------------------------------------------------
-# Helpers for reading DOM nodes
-def valueOf(node):
-    """return text value of node"""
-    for i in node.childNodes:
-        if i.nodeType == i.TEXT_NODE:
-            return(i.data)
-
-def getNameTag(node, tag):
-    nodes = node.getElementsByTagName(tag)
-    if (len(nodes) < 1):
-        print >> sys.stderr, node.toxml()
-    childnode = nodes[0]
-    return(valueOf(childnode))
-
-def getName(node):
-    return getNameTag(node, "IDENTIFIER")
-
-def getChildByTagName(node,tag):
-    for i in node.childNodes:
-        if i.nodeType == i.ELEMENT_NODE and i.tagName == tag:
-            return i
-    return None
-
-def getElementsByTagTagName(root, tag1, tag2):
-    node = root.getElementsByTagName(tag1)
-    if node == None or len(node) == 0:
-        return []
-    nodes = node[0].getElementsByTagName(tag2)
-    ans = nodes if nodes != None else []
-    return ans    
-
-# Helpers for creating DOM nodes
-def helper_create_app(tag, childs, position = None, arity = None):
-    global dom
-    node = dom.createElement(tag)
-    if arity != None:
-        node.setAttribute('arity', str(arity))
-    if position != None:
-        node.setAttribute('col', str(position.col))
-        node.setAttribute('line', str(position.line))
-    for i in childs:
-        if i == None:
-            print 'ERROR: Null node found, tag = %s', tag
-            for j in childs:
-                if j != None:
-                    print j.toprettyxml() 
-        else:
-            node.appendChild(i)
-    return node 
-
-def helper_create_tag_val(tag, val, position = None):
-    global dom
-    node = dom.createElement(tag)
-    if position != None:
-        node.setAttribute('col', str(position.col))
-        node.setAttribute('line', str(position.line))
-    node.appendChild( dom.createTextNode( val ) )
-    return node 
-
-def helper_collect_child(node, base=0):
-    ans = list()
-    for i in node:
-        ans.append(i[base])
-    return ans
-# -------------------------------------------------------------------
-
-# -------------------------------------------------------------------
-# mathml2localxml
 def replace(node, newnode):
     parentnode = node.parentNode
     parentnode.replaceChild(newChild=newnode,oldChild=node)
-
-def grand_children_count(node):
-    child = getArg(node,1)
-    childs = getArgs(child)
-    return len(childs)
 
 def getArgs(node):
     ans = []
@@ -265,7 +206,12 @@ def getArg(node,index):
             if j == index:
                 return(i)
     return None
+# -------------------------------------------------------------------
 
+# -------------------------------------------------------------------
+# key=Var object; dict: (Var,Expr)->Expr; Is Var assigned ?
+# Used for identifying which local variables are global parameters.
+# -------------------------------------------------------------------
 def is_key_in_dict(k, assgn):
   for lhs in assgn.keys():
     if lhs==k or (isinstance(lhs,(Expr,Var)) and lhs.contains_variable(k)):
@@ -288,24 +234,26 @@ def is_key_in_trans(i_var, trans):
 # -------------------------------------------------------------------
 
 # -------------------------------------------------------------------
-def ccdom2hsal(ccdom):
+# cybercomposition XML dom --> Internal Component-Object-List repr.
+# -------------------------------------------------------------------
+def ccdom2ComponentList(ccdom):
     "ccdom = cyber-composition dom; output HybridSal DOM..."
-    global dom
-    impl = xml.dom.minidom.getDOMImplementation()
-    dom = impl.createDocument(None, "daexml", None)
-
     components = ccdom.getElementsByTagName('Components')
     assert components != None and len(components) == 1, 'Error: Missing code 1'
     components = getArgs(components[0])
     top_systems = []
     for i in range(len(components)):
-      top_system = component2daexml(dom, components[i])
+      top_system = subsystemXML2ComponentObj(components[i])
       top_system.xmlnode = components[i]  # SHOULD have been in constructor
       top_system.project()
       top_systems.append(top_system)
       # print 'top_system {1} = {0}'.format(top_system, i)
     return top_systems
+# -------------------------------------------------------------------
  
+# -------------------------------------------------------------------
+# Class definitions for Internal representation
+# -------------------------------------------------------------------
 class Var:
   def __init__(self, name, xml = None):
     self.name = name
@@ -667,6 +615,7 @@ class Component:
       ans += '\n  ]'
     ans += '\n END;'
     return ans
+# -------------------------------------------------------------------
 
 # -------------------------------------------------------------------
 # Replace a/b by multiplication so that things become linear
@@ -682,12 +631,11 @@ def divide2multRec(expr):
   return newexpr.divide2mult()
 # -------------------------------------------------------------------
       
-def simulink_transition_xmlnode2str(tran):
-  '''<Transition Action= ConditionAction= Guard Trigger dstTransition_end_ srcTransition_end_>'''
-  return ''
-
+# -------------------------------------------------------------------
+# Pretty print string generator for transitions: actions  and guards
+# -------------------------------------------------------------------
 def mode_dynamics2str( mode_dynamics, offset ):
-  '''print the dict mode_dynamics at offset; 
+  '''print actions: print the dict mode_dynamics at offset; 
      if LHS is prime, print as is; else make LHS and RHS PRIMEd'''
   ans = ''
   tab = ' '*offset
@@ -702,14 +650,18 @@ def mode_dynamics2str( mode_dynamics, offset ):
   return ans
 
 def mode_inv2str( mode_inv, offset ):
-  '''print the LIST mode_inv at offset'''
+  '''print guard: print the LIST mode_inv at offset'''
   ans = ''
   tab = ' '*offset
   for v in mode_inv:
     and_str = ' AND ' if ans != '' else ''
     ans += "\n{0}{1}{2}".format(tab, and_str, v)
   return ans
+# -------------------------------------------------------------------
 
+# -------------------------------------------------------------------
+# Variable name and type string generator
+# -------------------------------------------------------------------
 def find_var_and_type( xmlnode ):
   ''' xmlnode = CyberController node '''
   varname = xmlnode.getAttribute('name')
@@ -735,7 +687,11 @@ def find_var_and_type( xmlnode ):
   #else:
     #assert False, 'ERROR: {0} unknown type'.format(vartype_str)
   return (varname, vartype_str)
+# -------------------------------------------------------------------
 
+# -------------------------------------------------------------------
+# Helper for extracting info from CyberComposition XML
+# -------------------------------------------------------------------
 def find_node_attr_val( xmlnodes, attr, val):
   "find xmlnode whose attr=val, and return it"
   for p in xmlnodes:
@@ -759,7 +715,11 @@ def find_magic( xmlnodes, attr, val, key, key2=None):
 
 def find_param_value( params, key ):
   return find_magic( params, 'name', key, 'Value')
+# -------------------------------------------------------------------
 
+# -------------------------------------------------------------------
+# Equality on lists of numbers..for translating transfer function blocks
+# -------------------------------------------------------------------
 def eq_num(a,b):
   return abs(a-b) < 1e-6
 
@@ -774,8 +734,14 @@ def eq(a, b):
     return eq_num(b[0],a)
   else:
     return eq_num(b,a)
+# -------------------------------------------------------------------
 
+# -------------------------------------------------------------------
+# Parsing routines for Variable--map from name/id/etc to Var Object
+# Symtab is a GLOBAL dict from node_id_str to Var-object.
+# -------------------------------------------------------------------
 def get_var(symtab, xmlnode):
+  '''xmlnode -> Var-obj '''
   node_id = xmlnode.getAttribute('_id')
   if symtab.has_key(node_id):
     return symtab[node_id]
@@ -786,23 +752,29 @@ def get_var(symtab, xmlnode):
   return symtab[node_id]
 
 def parse_variable(vstr, symtab):
-  '''can return None or object from symtab whose name = vstr'''
+  '''v_name_str -> Var-obj; return None/object from symtab whose name = vstr'''
   return get_var_attr(symtab, 'Name', vstr)
 
 def get_var_id(symtab, var_id):
+  '''var_id_str --> Var-obj'''
   if not symtab.has_key(var_id): 
     #print 'Warning: variable _id={0} NOT found in {1}. id maybe part of demux/scope/terminator'.format(var_id, symtab.keys())
     return None
   return symtab[var_id]
 
 def get_var_attr(symtab, attr, val, avoid=None):
+  '''(var-attr,value) --> Var-obj'''
   for i in symtab.values():
     if i.xmlnode.getAttribute(attr) == val:
       if avoid != i:
         return i
   return None
   #assert False, 'Err: variable {0}={1} NOT found'.format(attr, val)
+# -------------------------------------------------------------------
 
+# -------------------------------------------------------------------
+# Parsing for discrete transfer functions
+# -------------------------------------------------------------------
 def parse_num_den_str(numStr):
   try:
     if numStr[0] == '[' and numStr[-1] == ']':
@@ -812,7 +784,11 @@ def parse_num_den_str(numStr):
   except Exception, e:
     print 'Error: Unexpected str {0} in transfer fcn'.format(numStr)
     sys.exit(-1)
+# -------------------------------------------------------------------
 
+# -------------------------------------------------------------------
+# Primitive SL/SF XML nodes --> Component Objects
+# -------------------------------------------------------------------
 def parse_sum(ins, outs, params):
   # check value of param name=='Inputs', its Value='|+++'
   inputs = find_param_value( params, 'Inputs')
@@ -1043,6 +1019,7 @@ def parse_SFunction(ins, outs, params, lines, subsystems, xmlnode):
         ## in_var = get_var(symtab, in_xmlnode)
         ## sigma_base[data_var] = in_var
   # now we have the ins, outs for this CHART
+  ccdom = xmlnode.ownerDocument
   mode_varname = state_xml.getAttribute('name') + 'Mode'
   mode_xmlnode = ccdom.createElement('Simulink:OutputPort')
   mode_xmlnode.setAttribute('name', mode_varname)
@@ -1181,7 +1158,11 @@ def parse_constant(ins, outs, params):
       if num_val != None:
         return param(outs[0], number = num_val)
       return param(outs[0], param_name = value)
+# -------------------------------------------------------------------
 
+# -------------------------------------------------------------------
+# Helper parsing functions -- for expressions
+# -------------------------------------------------------------------
 def parse_number(nstr):
   try:
     ans = float(nstr)
@@ -1190,7 +1171,7 @@ def parse_number(nstr):
     return None
 
 def parse_term(estr, symtab):
-  '''return float, or Var object, or string'''
+  '''expr_string --> Expr Object; return float, or Var obj, or Expr obj'''
   estr = estr.strip()
   ans = parse_number(estr)
   if ans != None:
@@ -1285,7 +1266,11 @@ def parse_eqn(estr,symtab):
     elif op == '+=':
       return (lhs_var, Expr('+', 2, [lhs_var, rhs_var]))
   assert False, 'ERR: Unparsed string {0}'.format(estr)
+# -------------------------------------------------------------------
 
+# -------------------------------------------------------------------
+# update initialization dict from given Var-obj and its init-value-str
+# -------------------------------------------------------------------
 def add_initialization(initialization, varobj, ivalstr):
   ltype = varobj.get_type()
   if ivalstr == '':
@@ -1299,7 +1284,11 @@ def add_initialization(initialization, varobj, ivalstr):
       print 'Unable to convert to float', ivalstr
       assert False, 'ERR'
   initialization[ varobj ] = ival
+# -------------------------------------------------------------------
 
+# -------------------------------------------------------------------
+# Get property string from the xmlnode
+# -------------------------------------------------------------------
 def getPropStr(xmlnode):
   '''from this node, or any of its subsystems, get property string'''
   propStr = xmlnode.getAttribute('Description')
@@ -1312,16 +1301,16 @@ def getPropStr(xmlnode):
       return propStr
   return propStr
 
-def component2daexml(dom, xmlnode):
+# -------------------------------------------------------------------
+# One main function: subsystem CC XML --> Component Object
+# -------------------------------------------------------------------
+def subsystemXML2ComponentObj(xmlnode):
   '''xmlnode = CyberComposition node with tagName = Components; 
-     presently, just create INTERNAL representation and return;
-     eventually, populate the HybridSal dom dom'''
-  global ccdom
-  ccdom = dom
+     presently, just create INTERNAL representation and return;'''
   (ins, outs, params, lines, subsystems) = component_partition(xmlnode)
   if xmlnode.tagName == 'SimulinkWrapper':
     assert len(subsystems) == 1, 'ERROR: Simulink wrapper has > 1 subsys'
-    sub = component2daexml(dom, subsystems[0])
+    sub = subsystemXML2ComponentObj(subsystems[0])
     composed_system = compose( [sub], ins, outs, params, lines, xmlnode )
     composed_system.addLocals( params )
     return composed_system
@@ -1365,7 +1354,7 @@ def component2daexml(dom, xmlnode):
     print 'recursing...'
     subs = []
     for i in subsystems:
-      my_subsystem = component2daexml(dom, i)
+      my_subsystem = subsystemXML2ComponentObj(i)
       if my_subsystem == None:
         print 'component ignored'
       else:
@@ -1373,7 +1362,11 @@ def component2daexml(dom, xmlnode):
         subs.append( my_subsystem )
     composed_system = compose( subs, ins, outs, params, lines, xmlnode )
     return composed_system
+# -------------------------------------------------------------------
   
+# -------------------------------------------------------------------
+# Helper functions for extracting info from CC XML
+# -------------------------------------------------------------------
 def get_src_node_id( xmlnode ):
   i = xmlnode
   if xmlnode.tagName == 'Simulink:OutputPort':
@@ -1411,14 +1404,17 @@ def type_infer(var1, var2):
     var1.set_type(type2)
   if type2 == '':
     var2.set_type(type1)
+# -------------------------------------------------------------------
 
+# -------------------------------------------------------------------
+# Second MAIN procedure: Compose subsystems to one Component Object
 # algorithm:
 # start with out = out equation for each out variable in supercomponent
 # while RHS has a variable that has a definition in one of the components:
 # replace var by val in RHS
+# -------------------------------------------------------------------
 def compose(subs, ins, outs, params, lines, rootnode):
-  # subs = (symtab, list_of_eqns or dict:mode->list_of_eqns, optional)
-  # print 'Number of subcomponents to compose = {0}'.format(len(subs))
+  '''given list of Component-objs, as subs, compose them into ONE Component'''
 
   # first create the answer symtab, modes and equations
   symtab, ans_modes, eqns = {}, [[]], [{}]
@@ -1632,7 +1628,9 @@ def normalize_trans( trans, definitions ):
     # for k in definitions.keys():  # defs has y' = offset; output_var = expr;
       # if isinstance(k, Var):      # y' is an Expr, so y' = offset is NOT added
         # action[k] = definitions[k]
+# -------------------------------------------------------------------
 
+# -------------------------------------------------------------------
 # ASHISH: line to EQUATIONS
 # get the value of ivar from the subs...
 def get_src_of_outport(lines, i):
@@ -1641,12 +1639,14 @@ def get_src_of_outport(lines, i):
   srcPort_id = find_magic(lines, '_id', srcLineStr, 'srcLine_end_', key2='srcOutputSignalInterfaceConnection_end_')
   assert srcPort_id != None, 'ERR: backtracing Port {0} <- Line {1} <- ? failed'.format(ivar.name, srcLineStr)
   return srcPort_id
+# -------------------------------------------------------------------
 
     # now find which subsystem has output port with _id = srcPort...
     # for j in subs:
       # if j.hasOutputPort(srcPort):
         # j
 
+# -------------------------------------------------------------------
 def component_partition(xmlnode):
   "partition xmlnode.children into inputs, outputs, etc."
   children = getArgs(xmlnode)
@@ -1670,9 +1670,14 @@ def component_partition(xmlnode):
     else:
       print 'WARNING: Unrecognized tag {0}. Ignoring.'.format(i.tagName)
   return (ins,outs,params,lines,subsystems)
+# -------------------------------------------------------------------
 
 
+# -------------------------------------------------------------------
+# INTERFACE function
+# -------------------------------------------------------------------
 def cybercomposition2hsal(filename, options = []):
+    '''given filename = CC XML, generate HSAL, return HSALfilename, propNameList'''
     def existsAndNew(filename1, filename2):
         if os.path.isfile(filename1) and os.path.getmtime(filename1) >= os.path.getmtime(filename2):
             print "File {0} exists and is new".format(filename1)
@@ -1693,7 +1698,7 @@ def cybercomposition2hsal(filename, options = []):
     # now parse the dae into daexml
     hsalfilename = basename + '.hsal'
     if not existsAndNew(hsalfilename, filename):
-        component_list = ccdom2hsal(ccdom)
+        component_list = ccdom2ComponentList(ccdom)
         propList = component_list2hsal( component_list, hsalfilename)
     else: 
         f = open( hsalfilename, 'r' )
@@ -1718,7 +1723,11 @@ def cybercomposition2hsal(filename, options = []):
         '''
     print 'Properties in hybridsal model are ', propList
     return (basename, propList)
+# -------------------------------------------------------------------
 
+# -------------------------------------------------------------------
+# Part 2 of translation: From internal Component repr -> HSal
+# -------------------------------------------------------------------
 def component_list2hsal( component_list, hsalfilename):
   '''Dump the components, in my internal representation, to HSAL file'''
   contextname = os.path.basename(hsalfilename)
@@ -1788,7 +1797,11 @@ def component_list2hsal( component_list, hsalfilename):
     print >> fp, 'END'
     print >> sys.stderr, 'Created file {0}'.format(hsalfilename)
     return propList
+# -------------------------------------------------------------------
 
+# -------------------------------------------------------------------
+# Command-line invocation
+# -------------------------------------------------------------------
 def argCheck(args, printUsage):
     "args = sys.argv list"
     if not len(args) >= 2:
@@ -1810,7 +1823,6 @@ def argCheck(args, printUsage):
     return filename
 
 def main():
-    global dom
     filename = argCheck(sys.argv, printUsage)
     cybercomposition2hsal(filename, sys.argv[2:])
 
@@ -1825,3 +1837,4 @@ if __name__ == "__main__":
 	python daexmlPP.py RCEngine1.daexml > RCEngine1.dae
 	python daexml2hsal.py RCEngine1.daexml RCEngine.xml
 '''
+# -------------------------------------------------------------------

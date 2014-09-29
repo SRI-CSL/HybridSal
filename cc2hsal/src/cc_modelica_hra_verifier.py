@@ -35,7 +35,6 @@ os.environ['PATH'] += '{1}{0}{1}'.format(relabsrootfolder,os.path.pathsep)    # 
 import HSalRelAbsCons
 import cybercomposition2hsal
 import modelica2hsal
-import modelica_slicer
 from daexml2hsal import modelica2hsal_rename
 
 #copying from install.py... will find sal here.
@@ -365,10 +364,10 @@ def main():
         print 'Error: Unable to create HybridSal file from Modelica XML'
         return -1
       if not(type(hsalPfile) == str and os.path.isfile(hsalPfile) and os.path.getsize(hsalPfile) > 100):
-        print 'Error: Translation from Modelica to HybridSal failed. Quitting.'
-        return -1
+        print 'Warning: Slice is empty.'
       # this will create outfile == 'filenameModel.hsal'
 
+    if modfilename != None and hsalPfile != None:
       print 'Generated file {0} containing the sliced plant model'.format(hsalPfile)
 
       # Variables:
@@ -401,8 +400,8 @@ def main():
           pNameModLTLL[i][0] += 'f'
 
       print 'Abstracting the merged model...'
-    else: # modfilename == None
-      print 'No plant model found. Assuming nondeterministic plant...'
+    else: # modfilename == None or hsalPfile == None
+      print 'No plant model to use. Assuming nondeterministic plant...'
       hsalfile = hsalCfile
       # pNameModLTLL remains unchanged
 
