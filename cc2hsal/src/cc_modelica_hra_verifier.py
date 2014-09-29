@@ -272,9 +272,10 @@ def merge_files(hsalp_str,hsalc_str,track_map,primaryModule,pNameModLTLL,f):
   pre, post = '(RENAME ', 'system'
   for (k,v) in track_map.items():
     newv = modelica2hsal_rename(v)
-    system += '{2}{0} TO {1}'.format(newv, k, pre)
-    pre = ', '
-    post = ' IN system)'
+    if hsalp_ctxt.find(newv) != -1:
+      system += '{2}{0} TO {1}'.format(newv, k, pre)
+      pre = ', '
+      post = ' IN system)'
   system += post
   print >> f, '{2}: MODULE = {0} || {1};\n\n'.format(primaryModule, system, final)
 

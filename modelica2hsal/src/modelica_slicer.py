@@ -273,12 +273,22 @@ class VariableType:
     elmts = classes.getElementsByTagName('element')
     elmt_names = [valueOf(i).strip() for i in elmts]
     for i in elmt_names:
-      typ = json_get_type(meta, i)
-      if typ != None and typ.endswith('Model'):
-        if typ != 'PlantModel':	# Context, Environment, Controller
+      typ = json_get_type1(meta, i)
+      if typ in ['Conte','Envir']:  # Context, Environment
+        self.d[vname] = 'ContextModel'
+        return
+      if typ != None:	# Plant, Controller
+        self.d[vname] = 'PlantModel'	
+        return
+    if not self.d.has_key(vname):
+      for i in elmt_names:
+        typ = json_get_type2(meta, i)
+        if typ in ['Conte','Envir']:  # Context, Environment
           self.d[vname] = 'ContextModel'
           return
-        self.d[vname] = 'PlantModel'	
+        if typ != None:	# Plant, Controller
+          self.d[vname] = 'PlantModel'	
+          return
     if not self.d.has_key(vname):
       print >> sys.stderr, 'Var {0} has no type'.format(vname) 
     self.d[vname] = 'ContextModel'
@@ -379,7 +389,12 @@ def black_list( e_info ):
     return vname != 'time' and (vname.find('table') == -1 or vname.find('driver') == -1)
   good = all([goodr1(i) for i in e_info.get_curr()])
   good = good and all([goodr1(i) for i in e_info.get_rest()])
-  return not good
+  if not good:
+    return True
+  e_str = valueOf(e_info.e)
+  if e_str.find('Simulink') != -1 and e_str.find('Wrapper') != -1:
+    return True
+  return False
 
 def pick_defining_equation( var_name, nxtL, currL, preL ):
   '''if v occurs as NEXT, then add that eqn and add all curr in that eqn
@@ -710,19 +725,26 @@ def project(d):
 
 def consolidate(jsond):
   '''get the three different dicts in jsond and merge them'''
-  d1 = {}
-  #if jsond.has_key('InstanceMapping'):
-    #d1.update( project(jsond['InstanceMapping'] ))
   if jsond.has_key('ModelMapping'):
-    d1.update( project(jsond['ModelMapping'] ))
-  #if jsond.has_key('ExtendsMapping'):
-    #d1.update( project(jsond['ExtendsMapping'] ))
+    d0 = project(jsond['ModelMapping'] )
+  d1 = {}
+  if jsond.has_key('InstanceMapping'):
+    d1.update( project(jsond['InstanceMapping'] ))
+  if jsond.has_key('ExtendsMapping'):
+    d1.update( project(jsond['ExtendsMapping'] ))
   del jsond
-  return d1
+  return (d0,d1)
 
-def json_get_type(jsond, var_name):
-  if jsond.has_key(var_name):
-    return jsond[var_name]		# Just first 5 characters
+def json_get_type1(jsond, var_name):
+  (jsond1, jsond2) = jsond
+  if jsond1.has_key(var_name):
+    return jsond1[var_name][:5]		# Just first 5 characters
+  return None
+
+def json_get_type2(jsond, var_name):
+  (jsond1, jsond2) = jsond
+  if jsond2.has_key(var_name):
+    return jsond2[var_name][:5]		# Just first 5 characters
   return None
 # ----------------------------------------------------------------------
 
