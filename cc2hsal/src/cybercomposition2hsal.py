@@ -2,6 +2,8 @@
 # 1. transition -- need to be composed...
 # 2. Bug: Property is stored as a STRING; it is not UPDATED during COMPOSITION
 # INTERFACE: (base_filename,propNameList) = cybercomposition2hsal(cc_xml_filename)
+
+# Print parameters in order -- first all constants then expressions
 import sys
 import os
 import copy
@@ -102,6 +104,19 @@ def process_propStr(componentObj):
     ltlstr = ltlstr.replace( '!', 'NOT ' )
     ltlstr = ltlstr.replace( '->', '=>' )
     return ltlstr
+  def replace_and_if_needed( pstr ):
+    '''replace & by &amp; if & is not followed by lt; or gt;'''
+    a = pstr.split('&lt;')
+    newa = []
+    for i in a:
+      ib = i.split('&gt;')
+      newib = []
+      for j in ib:
+        jc = j.split('&amp;')
+        jc = [ k.replace('&', '&amp;') for k in jc ]
+        newib.append( '&amp;'.join(jc) )
+      newa.append('&gt;'.join(newib) )
+    return '&lt;'.join(newa)
   def re_escape_ops( pstr ):
     '''replace < by &lt; and > by &gt; in pstr's expr attribute'''
     i = pstr.find( 'expr' )
@@ -112,7 +127,8 @@ def process_propStr(componentObj):
       j = pstr.find( '"', i+1)
       assert j != -1, 'ERR: LTL property expr attribute is incomplete?'
       expr = pstr[i:j+1]
-      expr = expr.replace( '&', '&amp;' )
+      # expr = expr.replace( '&', '&amp;' )
+      expr = replace_and_if_needed( expr )
       expr = expr.replace( '<', '&lt;' )
       expr = expr.replace( '>', '&gt;' )
       ans = pstr[0:i] + expr + pstr[j+1:]
@@ -122,19 +138,22 @@ def process_propStr(componentObj):
   propStr = componentObj.prop
   if propStr == '':
     return propStr, []
-  propStr1 = propStr.replace("&quot;", '"')
-  propStr1 = re_escape_ops( propStr1 )
   try:
-    prop_dom = xml.dom.minidom.parseString(propStr1)
+    prop_dom = xml.dom.minidom.parseString(propStr)
   except Exception, e:
-    print 'property XML: unable to parse, invalid XML'
-    print propStr1
-    # prop_dom = xml.dom.minidom.parseString(testStr)
-    # prop_dom = xml.dom.minidom.parseString(testStr2)
-    # testStr33 = testStr3.replace("&quot;", '"')
-    # prop_dom = xml.dom.minidom.parseString(testStr33)
-    print 'Quitting', sys.exc_info()[0]
-    sys.exit(-1)
+    propStr1 = propStr.replace("&quot;", '"')
+    propStr1 = re_escape_ops( propStr1 )
+    try:
+      prop_dom = xml.dom.minidom.parseString(propStr1)
+    except Exception, e:
+      print 'property XML: unable to parse, invalid XML'
+      print propStr1
+      # prop_dom = xml.dom.minidom.parseString(testStr)
+      # prop_dom = xml.dom.minidom.parseString(testStr2)
+      # testStr33 = testStr3.replace("&quot;", '"')
+      # prop_dom = xml.dom.minidom.parseString(testStr33)
+      print 'Quitting', sys.exc_info()[0]
+      sys.exit(-1)
   props = prop_dom.getElementsByTagName('ltlProperty')
   ans, propNameList = '', []
   for pnode in props:
@@ -246,6 +265,26 @@ def getArg(node,index):
             if j == index:
                 return(i)
     return None
+
+def is_key_in_dict(k, assgn):
+  for lhs in assgn.keys():
+    if lhs==k or (isinstance(lhs,(Expr,Var)) and lhs.contains_variable(k)):
+      return True
+    elif isinstance(lhs,(str,unicode)) and lhs==k.name:
+      return True
+  return False
+
+def is_key_in_some_dict(k, dictL):
+  for d in dictL:
+    if is_key_in_dict(k, d):
+      return True
+  return False
+
+def is_key_in_trans(i_var, trans):
+  for (gg,actions) in trans:
+    if is_key_in_dict(i_var, actions):
+      return True
+  return False
 # -------------------------------------------------------------------
 
 # -------------------------------------------------------------------
@@ -276,7 +315,7 @@ class Var:
     if e not in self.usedby:
       self.usedby.append(e)
   def contains_variable(self, v):
-    return self is v
+    return (self is v) or (self.name == v.name)
   def substitute(self, sigma):
     if sigma.has_key(self):
       return sigma[self]
@@ -309,10 +348,13 @@ class Expr:
     return isinstance(other,Expr) and self.op==other.op and self.args==other.args
   def contains_variable(self, v):
     for i in self.args:
-      if isinstance(i, Var) and i == v:
+      if isinstance(i, Var) and i.contains_variable( v ):
         return True
       elif isinstance(i, Expr) and i.contains_variable(v):
         return True
+      elif isinstance(i, (str, unicode)) and v.name==i:
+        return True
+    return False
   def substitute(self, sigma):
     'NOTE: destructive operation'
     for i in range(self.arity):
@@ -323,6 +365,36 @@ class Expr:
       elif isinstance(argi, Expr):
         self.args[i] = argi.substitute(sigma)
     return self
+  def divide2mult(self):
+    '''replace e relop a/b by e*b relop a assuming b>0'''
+    if self.op in ['<', '>', '<=', '>=', '=', '/=']:
+      lhs = self.args[0]
+      rhs = self.args[1]
+      if isinstance(rhs,Expr) and rhs.op == '/':
+        a,b = rhs.args[0], rhs.args[1]
+        lhsb = Expr('*', 2, [lhs, b])
+        lhsbopa = Expr(self.op, 2, [lhsb, a])
+        bgt0 = Expr('>', 2, [b,0])
+        case1 = Expr('AND', 2, [bgt0, lhsbopa])
+        blt0 = Expr('<', 2, [b,0])
+        lhsbnegopa = Expr(self.op, 2, [a, lhsb])
+        case2 = Expr('AND', 2, [blt0, lhsbnegopa])
+        return Expr('OR', 2, [case1, case2])
+      elif isinstance(lhs,Expr) and lhs.op == '/':
+        # a/b op rhs
+        a,b = lhs.args[0], lhs.args[1]
+        rhsb = Expr('*', 2, [rhs, b])
+        rhsbopa = Expr(self.op, 2, [a, rhsb])
+        bgt0 = Expr('>', 2, [b,0])
+        case1 = Expr('AND', 2, [bgt0, rhsbopa])
+        blt0 = Expr('<', 2, [b,0])
+        rhsbnegopa = Expr(self.op, 2, [rhsb, a])
+        case2 = Expr('AND', 2, [blt0, rhsbnegopa])
+        return Expr('OR', 2, [case1, case2])
+      else:
+        return self
+    else:
+      return self
   def __str__(self):
     '''if next(x) -> x';; der(x) --> xdot';; else usual...??'''
     def brac_it(x):
@@ -421,9 +493,41 @@ class Component:
     self.xmlnode = xmlnode
     self.params = params
     self.prop = prop
+  def divide2mult(self):
+    for mode_eqns in self.dynamics:
+      for k in mode_eqns.keys():
+        mode_eqns[k] = divide2multRec(mode_eqns[k])
+    for i in range(len(self.mode_invs)):
+      for j in range(len(self.mode_invs[i])):
+        self.mode_invs[i][j] = divide2multRec( self.mode_invs[i][j] )
+    for (gg,acts) in self.trans:
+      for i in range(len(gg)):
+        gg[i] = divide2multRec( gg[i] )
   def get_name(self):
     if self.xmlnode != None:
       return self.xmlnode.getAttribute('name')
+  def move_to_params(self, paramdict):
+    '''just remove from init and local decl'''
+    self.local = [i for i in self.local if not paramdict.has_key(i.getAttribute('name'))]
+    for i in paramdict.keys():
+      for j in self.init.keys():
+        if j.name == i:
+          del self.init[j]
+    self.params.update( paramdict )
+  def get_potential_params(self):
+    '''Make local variable a global parameter so that nonlinearity becomes linearity in SAL '''
+    param = {}
+    for i in self.local:
+      i_var = get_var(self.symtab, i)
+      if is_key_in_some_dict(i_var, self.dynamics):
+        continue
+      if is_key_in_trans(i_var, self.trans):
+        continue
+      if self.init.has_key(i_var):
+        (varname, vartype) = find_var_and_type( i )
+        param[varname] = (vartype, self.init[i_var])
+        print '{0}:{1} potential param'.format(varname, param[varname])
+    return param
   def __str__(self):
     if self.xmlnode != None:
       print self.xmlnode.getAttribute('name')
@@ -446,22 +550,35 @@ class Component:
     out_vars = []
     for i in outs:
       out_vars.append( get_var(symtab, i) )
+    # print 'Project out_vars: ', [str(i) for i in out_vars]
     for i in range(len(eqns)):
       modei_eqn, modei_inv = eqns[i], invs[i]
       for k in modei_eqn.keys():
-        if isinstance(k, Var) and k not in out_vars:
+        if isinstance(k, Var) and k not in out_vars:  
+          # stateflow actions y' = 0; y' is not projected coz it is an Expr, not Var
           del modei_eqn[k]
           # check: intermediate state variables...
-    #print 'Normalized eqns {0}'.format([(str(k),str(v)) for k,v in eqnlist.items()])
-    #print 'Normalized invs {0}'.format([str(i) for i in invlist])
+      # print 'Projected eqns {0}'.format([(str(k),str(v)) for k,v in modei_eqn.items()])
+    #print 'Projected invs {0}'.format([str(i) for i in invlist])
+    for (gg, action) in self.trans:
+      for k in action.keys():
+        if isinstance(k, Var) and k not in out_vars:  
+          del action[k]
+    # for k in self.init.keys():
+      # if isinstance(k, Var) and k not in out_vars:  
+        # if isinstance(self.init[k], (Var,Expr)):
+          # del self.init[k]
   def addLocals(self, params):
     '''Add ParameterRef's as locals and add their initialization too'''
     for i in params:
       varname = i.getAttribute('name')
       varObj = parse_variable(varname, self.symtab)
       if varObj != None:    # ignore param already declared as local_var
-        continue
-      varObj = get_var(self.symtab, i)
+        if self.init.has_key( varObj ): # ignore only if initialized
+          continue
+      else:
+        varObj = get_var(self.symtab, i)
+        self.local.append( i )
       type_str = i.getAttribute('Class')
       val = i.getAttribute('Value')
       if type_str == 'Real':
@@ -471,10 +588,10 @@ class Component:
       else:
         assert False, 'ERR: Unknown type {0} for param {1}'.format(type_str,name)
       i.setAttribute('type', type_str)
-      self.local.append( i )
       value = parse_number(val)
       assert value != None, 'ERR: Unable to parse value for param {0}'.format(name)
-      self.init[ varObj ] = value
+      if not self.init.has_key( varObj ):
+        self.init[ varObj ] = value
       # ans[name] = (type_str, value)
   def toHSalTopDecls(self):
     '''return string -- top TYPE/Constant decls -- generated by this mod'''
@@ -508,8 +625,15 @@ class Component:
       assert vartype != '', 'ERR: Var {0} has no type'.format(varname)
     if len(self.init) > 0:
       ans += '\n  INITIALIZATION'
+      init_var_done = []
       for (var,val) in self.init.items():
         ans += '\n    {0} = {1};'.format(var, val)
+        init_var_done.append( str(var))
+      for k in self.dynamics[0].keys():  # defs has y' = offset; output_var = expr;
+        if isinstance(k, Var):      # y' is an Expr, so y' = offset is NOT added
+          if not self.init.has_key(k) and str(k) not in init_var_done:
+            ans += '\n    {0} = {1};'.format(str(k), str(self.dynamics[0][k]))
+            init_var_done.append( str(k))
     ans += '\n  TRANSITION'
     if len(self.dynamics) == 1:
       ans += mode_dynamics2str(self.dynamics[0], 3)
@@ -532,15 +656,32 @@ class Component:
         for gg in guard:
           guard_str += ' AND ' if guard_str != '' else ''
           guard_str += '(' + str(gg) + ')'
+        action_str = mode_dynamics2str( action, 4 )
+        '''
         action_str = ''
         for (k,v) in action.items():
           action_str += ';\n    ' if action_str != '' else ''
           action_str += str(k) + ' = ' + str(v)
+        '''
         ans += guard_str + ' -->\n    ' + action_str
       ans += '\n  ]'
     ans += '\n END;'
     return ans
 
+# -------------------------------------------------------------------
+# Replace a/b by multiplication so that things become linear
+# -------------------------------------------------------------------
+def divide2multRec(expr):
+  if not isinstance(expr, Expr):
+    return expr
+  newargs = [ divide2multRec(i) for i in expr.args ]
+  if newargs == expr.args:
+    newexpr = expr
+  else:
+    newexpr = Expr(expr.op, expr.arity, newargs)
+  return newexpr.divide2mult()
+# -------------------------------------------------------------------
+      
 def simulink_transition_xmlnode2str(tran):
   '''<Transition Action= ConditionAction= Guard Trigger dstTransition_end_ srcTransition_end_>'''
   return ''
@@ -1278,28 +1419,36 @@ def type_infer(var1, var2):
 def compose(subs, ins, outs, params, lines, rootnode):
   # subs = (symtab, list_of_eqns or dict:mode->list_of_eqns, optional)
   # print 'Number of subcomponents to compose = {0}'.format(len(subs))
-  # first create the symtab
+
+  # first create the answer symtab, modes and equations
   symtab, ans_modes, eqns = {}, [[]], [{}]
-  # while there is a var on RHS of Eqns that has a definition in subs
-  # multiply component into answer
+
+  # remove IGNORED components
   subs = [i for i in subs if i != None]
   print 'Number of subcomponents to compose = {0}'.format(len(subs))
+  # while there is a var on RHS of Eqns that has a definition in subs
+  # multiply component into answer
+
   # print 'COMPOSING:'
   for component in subs:
-    # print 'component symtab: {0}'.format(component.symtab.keys())
-    # print 'component: {0}'.format(component)
-    symtab.update(component.symtab)
-  for i in ins:
+    symtab.update(component.symtab)   # update answer symbol table
+  for i in ins:                       # insert input vars in symtab
     get_var(symtab, i)
-  for i in outs:
-    ivar = get_var(symtab, i)
-    '''
+  # for i in outs:                      # insert output vars in symtab
+    # ivar = get_var(symtab, i)
+  outs_var = [ get_var(symtab, i) for i in outs ]
+  '''
     src_port_id = get_src_of_outport(lines, i)
     var2 = get_var_id(symtab, src_port_id)
     eqns[0][ivar] = var2
-    '''
+  '''
   # print 'composed symtab: {0}'.format(symtab.keys())
   sys.stdout.flush()
+
+  # base composed component has one mode and is defined by 
+  # mapping of external interface vars to internal ones
+  # eqns[0], currently {}, will hold these equations; 
+  # see initialization above; we have 1 mode {}; mode_inv = []
   for i in lines:
     src_id = get_src_port_id(i)
     dst_id = get_dst_port_id(i)
@@ -1323,17 +1472,24 @@ def compose(subs, ins, outs, params, lines, rootnode):
       else:
         print 'WARNING: Missing source for output? signal {0}'.format(var2.name)
     else:
-        print 'WARNING: Both source {0} and sink {1} are missing'.format(src_id, dst_id)
+        print 'WARNING: Both source {0} and sink {1} of a line are missing'.format(src_id, dst_id)
   # now we have eqns[0] all set up correctly....
-  # multiply the number of modes of all the subcomponents....
-  # len(eqns) is the product... it is 1 initially...
+
+  # eqns[0] needs to be used to update initializations and transitions too; so make pointer to it for later.
+  definitions = eqns[0]
+
   # make type(var1) == type(var2)
   for (var1,var2) in eqns[0].items():
     type_infer(var1, var2)
+
+  # multiply the number of modes of all the subcomponents....
+  # len(eqns) is the product... it is 1 initially...
   initialization = {}
   for component in subs:
     new_ans_modes, new_ans_eqns = [], []
     initialization.update( component.init )
+
+    # new_ans_modes and new_ans_eqns = product of first i components
     for i in range(len(component.dynamics)):
       # for each mode of the new sub-component...
       assert len(component.dynamics)==len(component.mode_invs), 'ERR: modes = {0}; dynamics = {1}'.format(len(component.mode_invs), component.dynamics)
@@ -1361,7 +1517,6 @@ def compose(subs, ins, outs, params, lines, rootnode):
       print 'Mode {0} Inv: {1}'.format(i, [str(e) for e in ans_modes[i]])
     '''
   # done: eqns, ans_modes contains the composition, but need to simplify
-  # MISSING: add variables to symtab.
   # ASHISH: Need to multiply the trans too!!!!
   local, trans, params = [], [], {}
   for i in subs:
@@ -1370,6 +1525,15 @@ def compose(subs, ins, outs, params, lines, rootnode):
     if i.params != None:
       params.update( i.params )
   normalize( eqns, ans_modes, trans, symtab ) 
+
+  # initialization: add output_var definition...done also for trans inside normalize
+  '''
+  for k in eqns[0].keys():  # defs has y' = offset; output_var = expr;
+    if isinstance(k, Var):      # y' is an Expr, so y' = offset is NOT added
+      if k in outs_var and not initialization.has_key(k):
+        initialization[k] = eqns[0][k]
+  '''
+
   # Now project onto ins, outs + extras...
   # project(ins, outs, eqns, ans_modes, symtab)
   # missing: info about initialization and transitions
@@ -1380,7 +1544,8 @@ def compose(subs, ins, outs, params, lines, rootnode):
   if propStr == '':
     for i in subs:
       propStr = i.prop
-      if i != '':
+      propStr = compose_property( propStr, definitions )
+      if propStr != '':
         break
   ans =  Component(symtab, eqns, ans_modes, ins=ins, outs=outs, tran=trans, init = initialization, local=local, params=params, xmlnode=rootnode, prop=propStr)
   ans.project()
@@ -1389,16 +1554,39 @@ def compose(subs, ins, outs, params, lines, rootnode):
   # print '------------------------------------'
   return ans
 
+def compose_property( propStr, definitions ):
+  '''definitions = Eqns[0] obtained form lines; apply it to propStr'''
+  def compose_property_one( propStr, v_str1, v_str2, white_space):
+    index = propStr.find(v_str1)
+    ans = ''
+    while index != -1:
+      ans += propStr[0:index]
+      if index+1 < len(propStr) and propStr[index+1] in white_space:
+        ans += v_str2
+      elif index-1 >= 0 and propStr[index-1] in white_space:
+        ans += v_str2
+      else:
+        ans += v_str1
+      propStr = propStr[index+len(v_str1):]
+      index = propStr.find(v_str1)
+    ans += propStr
+    return ans
+  white_space = ' ()+-*/=<>'
+  for (k,v) in definitions.items():
+    propStr = compose_property_one(propStr, k.name, v.name, white_space)
+  return propStr
 
 def normalize( eqns, invs, trans, symtab ):
   "just apply substitutions exhaustively"
   for i in range(len(eqns)):
     modei_eqn, modei_inv = eqns[i], invs[i]
     normalize_eqn_list( modei_eqn, modei_inv, trans )
+  assert len(eqns) > 0, 'Err: Zero modes in system?'
+  # we use just equations from ONE mode to normalize transitions
+  normalize_trans(trans, eqns[0])
 
-def normalize_eqn_list( eqnlist, invlist, trans ):
-  # print 'Normalizing eqns {0}'.format([(str(k),str(v)) for k,v in eqnlist.items()])
-  # print 'Normalizing invs {0}'.format([str(i) for i in invlist])
+def normalize_a_substitution( eqnlist ):
+  '''Apply sigma to itself so that sigma(x) = sigma(sigma(x))'''
   for var in eqnlist.keys():
     sub = {var: eqnlist[var]}
     # print 'debug: var {0} -> val {1}'.format(var,val)
@@ -1409,17 +1597,41 @@ def normalize_eqn_list( eqnlist, invlist, trans ):
         # print 'debug: subbing var {0} -> val {1} in {2}'.format(var,val,v)
         eqnlist[k] = v.substitute( sub ) 
         # print 'debug: result = {2}'.format(var,val,eqnlist[k])
+  return eqnlist
+
+def normalize_eqn_list( eqnlist, invlist, trans ):
+  # print 'Normalizing eqns {0}'.format([(str(k),str(v)) for k,v in eqnlist.items()])
+  # print 'Normalizing invs {0}'.format([str(i) for i in invlist])
+  # first normalize the substitution eqnlist
+  eqnlist = normalize_a_substitution( eqnlist )
+  # now apply substitution eqnlist to invlist
   for e1 in invlist:
     assert not isinstance(e1, Var), 'ERR: mode-inv shd not be a var {0}'.format(e1)
     e1.substitute( eqnlist )
+  ''' # old code -- was using all mode equations to normalize transitions
   for (guard,action) in trans:
     for gg in guard:
       gg.substitute( eqnlist )
-    for (k,v) in trans:
+    for (k,v) in action.items():  # ASHISH: changed trans -> action.items() here
       if isinstance(v, Expr):
         v.substitute( eqnlist )
+  '''
   # print 'Normalized eqns {0}'.format([(str(k),str(v)) for k,v in eqnlist.items()])
   # print 'Normalized invs {0}'.format([str(i) for i in invlist])
+
+def normalize_trans( trans, definitions ):
+  '''apply definitions = sub to guard of each transition, and 
+     add to the action and normalize action'''
+  for (guard,action) in trans:
+    for gg in guard:
+      gg.substitute( definitions )
+    for (k,v) in action.items():  # ASHISH: changed trans -> action.items() here
+      if isinstance(v, Expr):
+        v.substitute( definitions )
+    # Mode changes are not assumed to influence 'output' variables
+    # for k in definitions.keys():  # defs has y' = offset; output_var = expr;
+      # if isinstance(k, Var):      # y' is an Expr, so y' = offset is NOT added
+        # action[k] = definitions[k]
 
 # ASHISH: line to EQUATIONS
 # get the value of ivar from the subs...
@@ -1522,16 +1734,51 @@ def component_list2hsal( component_list, hsalfilename):
         if params.has_key(name):
           if params[name] == component.params[name]:
             pass
+          elif params[name][0] == 'TYPE' and len(params[name][1])==len(component.params[name][1]):
+            # ('TYPE','{gear0,gear1}') and ('TYPE','{gear1,gear0}')
+            pass
           else:
+            print params[name]
+            print component.params[name]
             assert False, 'ERROR: Repeated inconsistent declaration for parameter {0}'.format(name)
       params.update( component.params )
+
+    # try to extend params by including some local variables
+    potential_params = {}
+    for component in component_list:
+      tmp = component.get_potential_params()
+      if len(potential_params)==0:
+        potential_params.update( tmp )
+        continue
+      for p_name in tmp.keys():
+        if potential_params.has_key(p_name) and tmp[p_name] != potential_params[p_name]:
+          print 'Warning: {0} has different values in different components'.format(p_name)
+          potential_params.clear()
+          break
+      if len(potential_params) != 0:
+        potential_params.update( tmp )
+      else:
+        break   # failed to lift parameters...
+    if len(potential_params) != 0:
+      for component in component_list:
+        component.move_to_params(potential_params)
+    params.update( potential_params )
+    # done: Now local vars that can be treated as params are moved up to params
+
     # print global declarations.... now print them
     ans = ''
     if params != None:
+      # first print variable = constant
       for (name,(type_str, value)) in params.items():
-        ans += '{0}: {1} = {2};\n'.format(name,type_str,value)
+        if not isinstance(value, Expr) and (not isinstance(value,(str,unicode)) or len(value) < 6):
+          ans += '{0}: {1} = {2};\n'.format(name,type_str,value)
+      # next print variable = expression
+      for (name,(type_str, value)) in params.items():
+        if isinstance(value, Expr) or (isinstance(value,(str,unicode)) and len(value) >= 6):
+          ans += '{0}: {1} = {2};\n'.format(name,type_str,value)
     print >> fp, ans
     for component in component_list:
+      component.divide2mult() 
       print >> fp, component.toHSalModDecl(params) 
     propList = []
     for component in component_list:
