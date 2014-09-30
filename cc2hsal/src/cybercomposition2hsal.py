@@ -1523,7 +1523,7 @@ def compose(subs, ins, outs, params, lines, rootnode):
     if i.params != None:
       params.update( i.params )
   normalize( eqns, ans_modes, trans, symtab ) 
-  normalize_trans( trans, definitions, outs_var )
+  normalize_trans( trans, definitions, eqns[0] )
   normalize_init( initialization, definitions, outs_var)
 
   # Now project onto ins, outs + extras...
@@ -1611,12 +1611,12 @@ def normalize_eqn_list( eqnlist, invlist, trans ):
   # print 'Normalized eqns {0}'.format([(str(k),str(v)) for k,v in eqnlist.items()])
   # print 'Normalized invs {0}'.format([str(i) for i in invlist])
 
-def normalize_trans( trans, definitions, outs_var ):
+def normalize_trans( trans, definitions, mode0_equations ):
   '''apply definitions = sub to guard of each transition, and 
      add to the action and normalize action'''
   for (guard,action) in trans:
     for gg in guard:
-      gg.substitute( definitions )
+      gg.substitute( mode0_equations )    # THIS IS A HACK...we need to properly COMPOSE
     action.update( definitions )
     action = normalize_a_substitution(action)
     '''for (k,v) in action.items():  # ASHISH: changed trans -> action.items() here
