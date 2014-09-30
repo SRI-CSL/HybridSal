@@ -498,6 +498,7 @@ class Component:
     out_vars = []
     for i in outs:
       out_vars.append( get_var(symtab, i) )
+    local_vars = [ get_var(symtab,i) for i in self.local ]
     # print 'Project out_vars: ', [str(i) for i in out_vars]
     for i in range(len(eqns)):
       modei_eqn, modei_inv = eqns[i], invs[i]
@@ -510,12 +511,12 @@ class Component:
     #print 'Projected invs {0}'.format([str(i) for i in invlist])
     for (gg, action) in self.trans:
       for k in action.keys():
-        if isinstance(k, Var) and k not in out_vars:  
+        if isinstance(k, Var) and k not in out_vars and k not in local_vars:  
           del action[k]
-    # for k in self.init.keys():
-      # if isinstance(k, Var) and k not in out_vars:  
+    for k in self.init.keys():
+      if isinstance(k, Var) and k not in out_vars and k not in local_vars:
         # if isinstance(self.init[k], (Var,Expr)):
-          # del self.init[k]
+        del self.init[k]
   def addLocals(self, params):
     '''Add ParameterRef's as locals and add their initialization too'''
     for i in params:
@@ -575,8 +576,9 @@ class Component:
       ans += '\n  INITIALIZATION'
       init_var_done = []
       for (var,val) in self.init.items():
-        ans += '\n    {0} = {1};'.format(var, val)
-        init_var_done.append( str(var))
+        if str(var) not in init_var_done:
+          ans += '\n    {0} = {1};'.format(var, val)
+          init_var_done.append( str(var))
       for k in self.dynamics[0].keys():  # defs has y' = offset; output_var = expr;
         if isinstance(k, Var):      # y' is an Expr, so y' = offset is NOT added
           if not self.init.has_key(k) and str(k) not in init_var_done:
@@ -1521,14 +1523,8 @@ def compose(subs, ins, outs, params, lines, rootnode):
     if i.params != None:
       params.update( i.params )
   normalize( eqns, ans_modes, trans, symtab ) 
-
-  # initialization: add output_var definition...done also for trans inside normalize
-  '''
-  for k in eqns[0].keys():  # defs has y' = offset; output_var = expr;
-    if isinstance(k, Var):      # y' is an Expr, so y' = offset is NOT added
-      if k in outs_var and not initialization.has_key(k):
-        initialization[k] = eqns[0][k]
-  '''
+  normalize_trans( trans, definitions, outs_var )
+  normalize_init( initialization, definitions, outs_var)
 
   # Now project onto ins, outs + extras...
   # project(ins, outs, eqns, ans_modes, symtab)
@@ -1579,7 +1575,7 @@ def normalize( eqns, invs, trans, symtab ):
     normalize_eqn_list( modei_eqn, modei_inv, trans )
   assert len(eqns) > 0, 'Err: Zero modes in system?'
   # we use just equations from ONE mode to normalize transitions
-  normalize_trans(trans, eqns[0])
+  # normalize_trans(trans, eqns[0])
 
 def normalize_a_substitution( eqnlist ):
   '''Apply sigma to itself so that sigma(x) = sigma(sigma(x))'''
@@ -1615,19 +1611,35 @@ def normalize_eqn_list( eqnlist, invlist, trans ):
   # print 'Normalized eqns {0}'.format([(str(k),str(v)) for k,v in eqnlist.items()])
   # print 'Normalized invs {0}'.format([str(i) for i in invlist])
 
-def normalize_trans( trans, definitions ):
+def normalize_trans( trans, definitions, outs_var ):
   '''apply definitions = sub to guard of each transition, and 
      add to the action and normalize action'''
   for (guard,action) in trans:
     for gg in guard:
       gg.substitute( definitions )
-    for (k,v) in action.items():  # ASHISH: changed trans -> action.items() here
+    action.update( definitions )
+    action = normalize_a_substitution(action)
+    '''for (k,v) in action.items():  # ASHISH: changed trans -> action.items() here
       if isinstance(v, Expr):
         v.substitute( definitions )
     # Mode changes are not assumed to influence 'output' variables
-    # for k in definitions.keys():  # defs has y' = offset; output_var = expr;
-      # if isinstance(k, Var):      # y' is an Expr, so y' = offset is NOT added
-        # action[k] = definitions[k]
+    for k in definitions.keys():  # defs has y' = offset; output_var = expr;
+      if isinstance(k, Var):      # y' is an Expr, so y' = offset is NOT added
+        if k in outs_var and not action.has_key(k):
+          action[k] = definitions[k]
+    '''
+
+def normalize_init( initialization, definitions, outs_var ):
+  initialization.update(definitions)
+  normalize_a_substitution(initialization)
+  # initialization: add output_var definition...done also for trans inside normalize
+  '''
+  for k in definition.keys():  # defs has y' = offset; output_var = expr;
+    if isinstance(k, Var):      # y' is an Expr, so y' = offset is NOT added
+      if k in outs_var and not initialization.has_key(k):
+        initialization[k] = eqns[0][k]
+  '''
+
 # -------------------------------------------------------------------
 
 # -------------------------------------------------------------------

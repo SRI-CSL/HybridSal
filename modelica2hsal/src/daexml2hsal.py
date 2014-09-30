@@ -1626,13 +1626,13 @@ def createPlant(state, ceqns, oeqns, iEqns = {}, def_dict = {}):
             ans += "\n  INPUT {0}: REAL".format(i)
         else:
             ans += "\n  OUTPUT  {0}: REAL".format(i)
-    ans  += "\n  INITIALIZATION"
+    # ans  += "\n  INITIALIZATION"
     first = True
     for i in reals:
       if not def_dict.has_key(i) or def_dict[i].tagName=='identifier':
         initval = getInitialValue(vmap,i,iEqns,enums)
         if initval != None:
-            sep = ";" if not(first) else ""
+            sep = ";" if not(first) else "\n INITIALIZATION"
             first = False if first else first
             var=i if not def_dict.has_key(i) else valueOf(def_dict[i])
             ans += "{2}\n\t {0} = {1}".format(var,initval,sep)
