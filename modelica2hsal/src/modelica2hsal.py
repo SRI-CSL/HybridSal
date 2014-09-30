@@ -235,6 +235,9 @@ def modelica2hsal(filename, pfilename = None, options = []):
       print >> sys.stderr, 'WARNING: NO REQUIREMENT FOUND in plant model.'
     print >> sys.stderr, 'Creating HybridSal model....'
     outfile = daexml2hsal.daexml2hsal(dom1, dom2, daexmlfilename, dom3)
+    if outfile == None:
+      print 'WARNING: Plant model is empty. Using non-deterministic plant.'
+      return (None, None)
     print >> sys.stderr, 'Created HybridSal model.'
     return (outfile, track_map)
 # ----------------------------------------------------------------------

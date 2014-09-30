@@ -392,7 +392,7 @@ def black_list( e_info ):
   if not good:
     return True
   e_str = valueOf(e_info.e)
-  if e_str.find('Simulink') != -1 and e_str.find('Wrapper') != -1:
+  if e_str.find('Simulink') != -1 and e_str.find('rapper') != -1:
     return True
   return False
 
@@ -496,6 +496,7 @@ def new_wrapper(varlist, eqns, kvars, ovarl, varXMLs):
 
   # mark the edges on the roots to be "preserved"
   for root in roots:
+    print root
     root.track_mark_preserve()
 
   # From the trees, extract sliced_v, sliced_kv, sliced_e, sliced_ie.....

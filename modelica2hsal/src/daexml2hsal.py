@@ -1911,6 +1911,8 @@ def convert2hsal(dom1, dom2, dom3 = None):
       system_str += '|| monitor' if ans3 != '' else ''
     ans4 = "\n\n system: MODULE = {0} ;".format(system_str)
     # replace varname.var -> varname_var
+    if system_str == '':
+      return ('','')
     ans += ans1 + ans2 + ans3 + ans4
     propStr = createProperty(dom3)
     (ans, propStr) = alpha_rename(ans, propStr, state)
@@ -2147,6 +2149,9 @@ def daexml2hsal(dom1, dom2, filename, dom3):
         print e
         print 'Unable to handle such models...quitting'
         sys.exit(-1)
+    if hsalstr=='':
+      print 'Warning: daexml generates empty HybridSal model'
+      return None
     return create_output_file(filename, hsalstr, propStr)
 
 def addTime(dom2):
