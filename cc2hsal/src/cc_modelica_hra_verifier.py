@@ -225,6 +225,12 @@ Description: This tool analyzes all LTL properties in the CC.xml model,
 # ---------------------------------------------------------------------
 def argCheck(args, printUsage):
     "args = sys.argv list"
+    if '--test' in args:
+        run_all_tests()
+        sys.exit(0)
+    if '--clean' in args:
+        run_all_tests(True)
+        sys.exit(0)
     if not len(args) >= 2:
         printUsage()
         sys.exit(-1)
@@ -513,9 +519,47 @@ def main():
       print 'Then, Use the command: sal-inf-bmc -d 4 <GeneratedSALFile> <propertyName added in generated SAL file>'
       return -1
     return 0
+# ---------------------------------------------------------------------
 
+# ---------------------------------------------------------------------
+def run_all_tests(clean=False):
+    def clean(i,j):
+      del_if_exists( i+'.hsal' )
+      del_if_exists( j+'_slice.xml' )
+      del_if_exists( j+'_slice.daexml' )
+      del_if_exists( j+'_slice.daexml1' )
+      del_if_exists( j+'_slice.daexml2' )
+      del_if_exists( j+'_slice.daexml3' )
+      del_if_exists( j+'_slice.daexml4' )
+      del_if_exists( j+'_sliceModel.hsal' )
+      del_if_exists( i+j+'_sliceModel.hsal' )
+      del_if_exists( i+j+'_sliceModel.hxml' )
+      del_if_exists( i+j+'_sliceModel.sal' )
+    def del_if_exists(f):
+      dirs = ['cc2hsal/examples/', 'modelica2hsal/examples/']
+      for d in dirs:
+        if os.path.isfile( d+f ):
+          os.remove( d+f )
+    test_files = [('SimplifiedShiftControllerDecl','SDT_OM_Cyber_dss','modelicaURI2CyPhyMap.json')]
+    test_files.append( ('TorqueConverterDecl', 'SDT_OM_Cyber_dss','modelicaURI2CyPhyMap.json') )
+    test_files.append( ('TorqueReductionSignalDecl', 'SDT_OM_Cyber_dss','modelicaURI2CyPhyMap.json') )
+    test_files.append(('SimplifiedShiftControllerDeclold','sdt_om_cyber_dss_old','sdt_om_cyber_dss_old.json'))
+    test_files.append(('SimplifiedControllersCyber_before','SystemDesignTest_r663','modelicaURI2CyPhyMap_r663.json'))
+    for (i,j,k) in test_files:   
+      clean(i,j)
+      cmd = [ "python", "cc2hsal/src/cc_modelica_hra_verifier.py" ]
+      cmd.append( 'cc2hsal/examples/' + i+'.xml')
+      cmd.append( 'modelica2hsal/examples/' + j+'.xml')
+      cmd.extend( ['--mapping', k] )
+      if clean==False:
+        subprocess.call( cmd )
+        clean(i,j)
+# ---------------------------------------------------------------------
+
+# ---------------------------------------------------------------------
 if __name__ == "__main__":
     ret_code = main()
     os._exit(ret_code)
     #sys.exit(ret_code)
+# ---------------------------------------------------------------------
 

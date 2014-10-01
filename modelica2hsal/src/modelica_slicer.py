@@ -152,6 +152,9 @@ class EDetails:
     return None
   def is_lhs(self, vname):
     return self.lhs == ([], [vname], [])
+  def is_dummy_definition( self ):
+    '''x = y is bad if y is a DER variable'''
+    return len(self.rhs[1])==1 and self.rhs[1][0].startswith('$DER')
 # ----------------------------------------------------------------------
 
 # ----------------------------------------------------------------------
@@ -357,8 +360,8 @@ class TreeNode:
         return node.vname+'#'
       else:
         done.append(node)
-        ans = self.vname + '('
-        for i in self.children:
+        ans = node.vname + '('
+        for i in node.children:
           ans += my_str(i, done)
           ans += ', '
         ans += ')'
@@ -402,35 +405,56 @@ def pick_defining_equation( var_name, nxtL, currL, preL ):
      if v occurs as CURR in RHS and LHS is 0, then add that eqn and vars
      else: mark v as INPUT'''
   #print >> sys.stderr, 'For {0}: {1}, {2}, {3}'.format( var_name, len(nxtL), len(currL), len(preL))
+
+  # if var_name is a context variable, return None
   if vtype.iscontext( var_name ):
     print >> sys.stderr, 'I',
     return None
+
+  # if var_name is a continuous state var with dx/dt, return defining dx/dt
   if len(nxtL) == 1:
     print >> sys.stderr, 'd!',
     return nxtL[0]
+
+  # if var_name is a continuous state var with dx/dt, but more than 1 dx/dt eqn, return one
   if len(nxtL) > 1:
     #print >> sys.stderr, 'Warning: {1} equations contain d{0}/dt'.format(var_name, len(nxtL))
     print >> sys.stderr, 'd+',
     return nxtL[0]
-  new_currL = []
+
+  # classify all regular eqns into defining equations and other equations 
+  defining_eqns, new_currL = [], []
   for e_info in currL:
     lhs_var = e_info.get_lhs_var()
     if lhs_var == var_name and len(e_info.get_nxt()) == 0:
       #print >> sys.stderr, 'found x = sth equation, checking...'
-      del new_currL
       if black_list( e_info ):
         # print 'equation for {0} blacklisted'.format(var_name)
         print >> sys.stderr, 'b',
         return None
-      print >> sys.stderr, '=',
-      return e_info
+      defining_eqns.append( e_info )
+      # return e_info
     elif lhs_var == None:
       new_currL.append( e_info )
+
+  # now if there is a good defining eqn, use it...
     # else: equation defines some variable, so ignore it...
+  if len(defining_eqns) == 1:
+    print >> sys.stderr, '=!',
+    return defining_eqns[0]
+  for e_info in defining_eqns:
+    if not e_info.is_dummy_definition():
+      print >> sys.stderr, '=+',
+      return e_info
+  if len(defining_eqns) > 0:
+    print >> sys.stderr, '=$',
+    return defining_eqns[0]
   #print >> sys.stderr, '{0} choices remaining'.format(len(new_currL))
+
+  # Else return any other equation containing var_name
   for e_info in new_currL:
     if len(e_info.get_nxt()) == 0:
-      print >> sys.stderr, '=+',
+      print >> sys.stderr, '=0',
       return e_info
   return None
 # ----------------------------------------------------------------------
