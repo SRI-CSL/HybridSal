@@ -50,6 +50,10 @@ import xml.dom.minidom
 # ----------------------------------------------------------------------
 
 # ----------------------------------------------------------------------
+ignore_context = True		# Do not include context vars in slice
+# ----------------------------------------------------------------------
+
+# ----------------------------------------------------------------------
 # Usage 
 # ----------------------------------------------------------------------
 def printUsage():
@@ -296,7 +300,7 @@ class VariableType:
       print >> sys.stderr, 'Var {0} has no type'.format(vname) 
     self.d[vname] = 'ContextModel'
   def iscontext(self, vname):
-    return self.istypval(vname, 'ContextModel')
+    return ignore_context and self.istypval(vname, 'ContextModel')
   def isplant(self, vname):
     return self.istypval(vname, 'PlantModel')
   def istypval(self, vname, val):
@@ -977,6 +981,11 @@ def modelica_slice_file(filename, varlist, options=[]):
       modelicaURI2CyPhyMap = options[index+1].strip()
     else:
       modelicaURI2CyPhyMap = 'modelicaURI2CyPhyMap.json'
+
+    if '--ignoremapping' in options:
+      global ignore_context
+      ignore_context = False
+
     dirname = os.path.dirname(filename)
     jsonfile = os.path.join(dirname, modelicaURI2CyPhyMap)
     d = jsonfile2dict( jsonfile )
