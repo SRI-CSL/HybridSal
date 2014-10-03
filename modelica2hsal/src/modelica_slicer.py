@@ -152,13 +152,20 @@ class EDetails:
     return self.allrest
   def get_lhs_var(self):
     if self.lhs[0] == [] and self.lhs[2] == [] and len(self.lhs[1])==1:
+      # if len(self.lhs[3]) == 0:
       return self.lhs[1][0] 
+    return None
+  def get_rhs_var(self):
+    if self.rhs[0] == [] and self.rhs[2] == [] and len(self.rhs[1])==1:
+      # if len(self.rhs[3]) == 0:
+      return self.rhs[1][0] 
     return None
   def is_lhs(self, vname):
     return self.lhs == ([], [vname], [])
   def is_dummy_definition( self ):
     '''x = y is bad if y is a DER variable'''
-    return len(self.rhs[1])==1 and self.rhs[1][0].startswith('$DER')
+    return len(self.rhs[1])==1 and len(self.lhs[1])==1 and (self.rhs[1][0].startswith('$DER') or self.lhs[1][0].startswith('$DER'))
+ 
 # ----------------------------------------------------------------------
 
 # ----------------------------------------------------------------------
@@ -350,7 +357,8 @@ class TreeNode:
           rest.extend( vrest )
     if self.label != None:
       if self.label.e.tagName == 'equation':
-        eqns.append( self.label.e )
+        if self.label.e not in eqns:
+          eqns.append( self.label.e )
       # else it is a aliasVariable, gets added to sliced_v later.
       for i in self.label.get_rest():
         if i not in rest:
@@ -403,6 +411,45 @@ def black_list( e_info ):
     return True
   return False
 
+def classify_as_defining( currL, var_name ):
+  '''Each e in list is classified as defining var or not.
+     Return (me_lhs, other_lhs, others) where
+      me_lhs contains eqns of the form var_name = expr
+      other_lhs contains eqns of the form some_var = expr 
+      others contain eqns of the form Not_a_var = expr
+  '''
+  me_at_lhs, other_at_lhs, other_eqns = [], [], []
+  for e_info in currL:
+    lhs_var = e_info.get_lhs_var()
+    if len(e_info.get_nxt()) != 0:
+      continue
+    if lhs_var == var_name:
+      #print >> sys.stderr, 'found x = sth equation, checking...'
+      if black_list( e_info ):
+        # print 'equation for {0} blacklisted'.format(var_name)
+        return (None, None, None)
+      me_at_lhs.append( e_info )
+      # return e_info
+    elif lhs_var != None:
+      other_at_lhs.append( e_info )
+    else:
+      other_eqns.append( e_info )
+  return (me_at_lhs, other_at_lhs, other_eqns)
+
+def pick_one_from(defining_eqns):
+  '''Pick one var = Expr equation from the given list'''
+  if len(defining_eqns) == 1:
+    print >> sys.stderr, '=!',
+    return defining_eqns[0]
+  for e_info in defining_eqns:
+    if not e_info.is_dummy_definition():
+      print >> sys.stderr, '=+',
+      return e_info
+  if len(defining_eqns) > 0:
+    print >> sys.stderr, '=$',
+    return defining_eqns[0]
+  return None
+
 def pick_defining_equation( var_name, nxtL, currL, preL ):
   '''if v occurs as NEXT, then add that eqn and add all curr in that eqn
      if v occurs as CURR as sole LHS var, then add that eqn and vars
@@ -427,39 +474,27 @@ def pick_defining_equation( var_name, nxtL, currL, preL ):
     return nxtL[0]
 
   # classify all regular eqns into defining equations and other equations 
-  defining_eqns, new_currL = [], []
-  for e_info in currL:
-    lhs_var = e_info.get_lhs_var()
-    if lhs_var == var_name and len(e_info.get_nxt()) == 0:
-      #print >> sys.stderr, 'found x = sth equation, checking...'
-      if black_list( e_info ):
-        # print 'equation for {0} blacklisted'.format(var_name)
-        print >> sys.stderr, 'b',
-        return None
-      defining_eqns.append( e_info )
-      # return e_info
-    elif lhs_var == None:
-      new_currL.append( e_info )
+  me_at_lhs, other_at_lhs, new_currL = classify_as_defining(currL, var_name)
+  if me_at_lhs == None:
+    print >> sys.stderr, 'b',	# definition is black-listed
+    return None
 
-  # now if there is a good defining eqn, use it...
-    # else: equation defines some variable, so ignore it...
-  if len(defining_eqns) == 1:
-    print >> sys.stderr, '=!',
-    return defining_eqns[0]
-  for e_info in defining_eqns:
-    if not e_info.is_dummy_definition():
-      print >> sys.stderr, '=+',
-      return e_info
-  if len(defining_eqns) > 0:
-    print >> sys.stderr, '=$',
-    return defining_eqns[0]
-  #print >> sys.stderr, '{0} choices remaining'.format(len(new_currL))
+  # now if there is a good LHS defining eqn, use it...
+  def_eqn = pick_one_from( me_at_lhs )
+  if def_eqn != None:
+    return def_eqn
 
-  # Else return any other equation containing var_name
-  for e_info in new_currL:
-    if len(e_info.get_nxt()) == 0:
-      print >> sys.stderr, '=0',
-      return e_info
+  # else: ignoring equations that define some variable, 
+  # return any other equation containing var_name
+  if len(new_currL) > 0:
+    print >> sys.stderr, '=0',
+    return new_currL[0]
+
+  # now if there is a good RHS defining eqn, use it...
+  if len(other_at_lhs) > 0:
+    print >> sys.stderr, '=o',
+    return other_at_lhs[0]
+
   return None
 # ----------------------------------------------------------------------
 
@@ -1003,6 +1038,9 @@ def modelica_slice_file(filename, varlist, options=[]):
 # ----------------------------------------------------------------------
 def argCheck(args, printUsage):
     "args = sys.argv list"
+    if '--test' in args:
+      test_slicer()
+      sys.exit(0)
     if not len(args) >= 2:
         printUsage()
         sys.exit(-1)
@@ -1029,6 +1067,19 @@ def main():
     index = options.index('--slicewrt')
     varlist = options[index+1].split(',')
     modelica_slice_file(filename, varlist, options=options)
+# ----------------------------------------------------------------------
+
+# ----------------------------------------------------------------------
+# Testing Code
+# ----------------------------------------------------------------------
+def test_slicer():
+  plant_xml = '../examples/SystemDesignTest_r663.xml'
+  varlist = ["driver_gear_select", "shift_request_state", "output_speed_torque_converter", "input_speed_torque_converter", "prndl"]
+  if os.path.isfile(plant_xml):
+    print 'Running test '
+    modelica_slice_file(plant_xml, varlist, options=['--mapping', 'modelicaURI2CyPhyMap_r663.json'])
+  else:
+    print 'Run test from modelica2hsal/src directory'
 # ----------------------------------------------------------------------
 
 # ----------------------------------------------------------------------

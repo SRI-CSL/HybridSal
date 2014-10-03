@@ -652,23 +652,28 @@ def preprocessEqnNEW(eL,cstate,dstate):
           ans += '{2}{0}*{1}'.format(coeff, daexmlPP.ppExpr(var),sep)
       return ans
     def occur_check(p, v):
-        num_occ = 0
+        # num_occ = 0
         for e in p.keys():
           if isinstance(e, (str,unicode)):
             if e == v:
-              num_occ += 1
+              # num_occ += 1
+              return True
           elif isinstance(e, tuple):
             if e[0] == v:
-              num_occ += 1
+              # num_occ += 1
+              return True
+          elif e == None:
+            continue
           else:
             varXMLs = e.getElementsByTagName('identifier')
             for vv in varXMLs:
               if valueOf(vv).strip() == v:
-                num_occ += 1
-              if num_occ > 1:
+                # num_occ += 1
                 return True
-          if num_occ > 1:
-            return True
+              # if num_occ > 1:
+                # return True
+          # if num_occ > 1:
+            # return True
         return False
     def freevar(p, dstate, cstate):
         varList = p.keys()
@@ -911,6 +916,7 @@ def expr2sal(node, flag=True):
     elif node.tagName == 'pre':
         return valueOf(getArg(node,1)).strip()
     elif node.tagName == 'der':
+        # print 'printing der node\n', node.toxml()
         return valueOf(getArg(node,1)).strip() + "dot'"
     elif node.tagName == 'number' or node.tagName == 'string':
         return valueOf(node).strip()
@@ -1647,7 +1653,7 @@ def createPlant(state, ceqns, oeqns, iEqns = {}, def_dict = {}):
         (var,val) = (rhs,lhs) if rhs.tagName == 'der' else (lhs,rhs)
         assert var.tagName == 'der', 'ERROR: Unable to covert DAE to dx/dt = Ax+b'
         name = valueOf(getArg(var,1)).strip()
-        # print 'converting expr to cexpr:', expr2sal(val)
+        print 'converting der({0})={1} to cexpr:'.format(name, expr2sal(val))
         rhs =  expr2cexpr(val, symtab)
         ode.append( (name, rhs) )
         print >> sys.stderr, 'ODE for {0} has {1} cases'.format(name,len(rhs))

@@ -522,7 +522,7 @@ def main():
 # ---------------------------------------------------------------------
 
 # ---------------------------------------------------------------------
-def run_all_tests(clean=False):
+def run_all_tests(cleanonly=False):
     def clean(i,j):
       del_if_exists( i+'.hsal' )
       del_if_exists( j+'_slice.xml' )
@@ -540,6 +540,7 @@ def run_all_tests(clean=False):
       for d in dirs:
         if os.path.isfile( d+f ):
           os.remove( d+f )
+    print 'Running all tests...'
     test_files = [('SimplifiedShiftControllerDecl','SDT_OM_Cyber_dss','modelicaURI2CyPhyMap.json')]
     test_files.append( ('TorqueConverterDecl', 'SDT_OM_Cyber_dss','modelicaURI2CyPhyMap.json') )
     test_files.append( ('TorqueReductionSignalDecl', 'SDT_OM_Cyber_dss','modelicaURI2CyPhyMap.json') )
@@ -551,9 +552,12 @@ def run_all_tests(clean=False):
       cmd.append( 'cc2hsal/examples/' + i+'.xml')
       cmd.append( 'modelica2hsal/examples/' + j+'.xml')
       cmd.extend( ['--mapping', k] )
-      if clean==False:
+      if cleanonly==False:
+        print '------------------------------------------------'
+        print cmd
         subprocess.call( cmd )
         clean(i,j)
+        print '------------------------------------------------'
 # ---------------------------------------------------------------------
 
 # ---------------------------------------------------------------------
