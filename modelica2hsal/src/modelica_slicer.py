@@ -559,7 +559,7 @@ def new_wrapper(varlist, eqns, kvars, ovarl, varXMLs):
 
   # mark the edges on the roots to be "preserved"
   for root in roots:
-    print root
+    # print root
     root.track_mark_preserve()
 
   # From the trees, extract sliced_v, sliced_kv, sliced_e, sliced_ie.....

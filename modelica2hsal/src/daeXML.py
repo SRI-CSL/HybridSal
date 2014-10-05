@@ -1886,6 +1886,10 @@ def SimplifyEqnsPhase4(dom, cstate, dstate):
         if newinits != None:
           newinits = substitute(newinits, mapping)
       varvals = newknownvars.getElementsByTagName('variablevalue')
+      '''for (keys,values) in mapping.items():
+        print '{0} := {1}'.format(keys, values.toxml())
+      print neweqns.toxml()
+      '''
       # print 'len(newknownvars) = {0}'.format( len(varvals) )
 
     # All knownVars have been eliminated. Now proceed to equations.
@@ -1919,6 +1923,9 @@ def SimplifyEqnsPhase4(dom, cstate, dstate):
         else:
           pass
 
+      '''for (keys,values) in mapping.items():
+        print '{0} := {1}'.format(keys, values.toxml())
+      '''
       # Now I have generated a mapping. Apply it if its nonzero.
       if len(mapping) > 0:
         neweqns = substitute(neweqns, mapping)
@@ -1928,11 +1935,13 @@ def SimplifyEqnsPhase4(dom, cstate, dstate):
       else:
         pass
 
+      # print neweqns.toxml()
       # Some simplifications may be enabled now. So apply them.
       done &= simplify3(neweqns)
       done &= simplify1(neweqns)
       done &= simplify2(neweqns)
       done &= simplify0(neweqns)
+      # print neweqns.toxml()
 
     # All done. Update eqns and inits in the dom.
     neweqns.setAttribute('arity', str(len(varvals)))

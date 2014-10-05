@@ -652,41 +652,63 @@ def preprocessEqnNEW(eL,cstate,dstate):
           ans += '{2}{0}*{1}'.format(coeff, daexmlPP.ppExpr(var),sep)
       return ans
     def occur_check(p, v):
-        # num_occ = 0
+        '''checks if v occurs in p TWICE or MORE'''
+        num_occ = 0
         for e in p.keys():
           if isinstance(e, (str,unicode)):
             if e == v:
-              # num_occ += 1
-              return True
+              num_occ += 1
           elif isinstance(e, tuple):
             if e[0] == v:
-              # num_occ += 1
-              return True
+              num_occ += 1
           elif e == None:
             continue
           else:
             varXMLs = e.getElementsByTagName('identifier')
             for vv in varXMLs:
               if valueOf(vv).strip() == v:
-                # num_occ += 1
+                num_occ += 1
+              if num_occ > 1:
                 return True
-              # if num_occ > 1:
-                # return True
-          # if num_occ > 1:
-            # return True
+          if num_occ > 1:
+            return True
         return False
     def freevar(p, dstate, cstate):
         varList = p.keys()
+        var_to_solve = None
         for v in varList:
-            if isinstance(v,(str,unicode)) and v not in cstate and v not in dstate:
-                if not occur_check(p, v):
-                    return v
-        return None
+          if isinstance(v,(str,unicode)) and v not in cstate and v not in dstate:
+            if not occur_check(p, v):
+              var_to_solve = v
+              break
+        if var_to_solve == None:
+          return None
+        # Now check that there is no derivative in p
+        for v in varList:
+          if isinstance(v, tuple) and v[1]:
+            return None
+          elif isinstance(v, xml.dom.minidom.Element):
+            if has_der_xml(v):
+              return None
+        return var_to_solve
     def dervar(varList, dstate, cstate):
+        dervar = None
         for v in varList:
-            if isinstance(v,tuple) and v[0] in cstate:
-                return v
-        return None
+          if isinstance(v,tuple) and v[0] in cstate:
+            dervar = v
+            break
+        if dervar == None:
+          return None
+        # Now check that dervar is the ONLY der-variable
+        for v in varList:
+          if isinstance(v,tuple) and v[0] != dervar[0]:
+            return None
+          elif isinstance(v, xml.dom.minidom.Element):
+            ders = v.getElementsByTagName('der')
+            for derv in ders:
+              if valueOf(getArg(derv,1)).strip() != dervar[0]:
+                return None
+        return dervar
     def moveDerLeft(p, q):
         p = polyrepBOp('-',p,q)
         q.clear()
@@ -1015,6 +1037,62 @@ def getInitialValue(vmap, var, iEqns, enums):
     print 'Initial value obtained as {0}'.format(ans)
     return ans
 
+def recursively_update_trans(trans, lhs, rhs):
+  '''trans = dict: lhs->rhs; add given lhs->rhs, but trans[lhs] exists'''
+  def is_a_var( expr_sal_str ):
+    estr = expr_sal_str.strip()
+    if ' ' in estr or '(' in estr or '=' in estr or 'OR' in estr or 'AND' in estr:
+      return False
+    return True
+  old_rhs = trans[lhs]
+  if rhs == old_rhs:
+    return trans
+  elif is_a_var(rhs):
+    rhsprime = rhs if rhs.endswith("'") else rhs+"'"
+    if not trans.has_key(rhsprime):
+      trans[rhsprime] = lhs
+      return trans
+    elif is_a_var(old_rhs):
+      oldrhsprime = old_rhs if old_rhs.endswith("'") else old_rhs+"'"
+      if not trans.has_key(oldrhsprime):
+        trans[oldrhsprime] = lhs
+        trans[lhs] = rhs
+        return trans
+      else:
+        '''lhs->old_rhs; rhs->?; old_rhs->?'''
+        print 'Ignoring discrete assignment {0} = {1}'.format(lhs,rhs)
+        return trans
+    else:
+      '''lhs->old_rhs; old_rhs not a var; rhs-> xx'''
+      xx = trans[rhsprime]
+      if is_a_var(xx):
+        xxprime = xx if xx.endswith("'") else xx+"'"
+        if not trans.has_key(xxprime):
+          trans[xxprime] = rhsprime
+          trans[rhsprime] = lhs
+          return trans
+        else:
+          print 'Ignoring discrete assignment {0} = {1}'.format(lhs,rhs)
+          return trans
+      else:
+        print 'Ignoring discrete assignment {0} = {1}'.format(lhs,rhs)
+        return trans
+  else:
+    if is_a_var(old_rhs):
+      oldrhsprime = old_rhs if old_rhs.endswith("'") else old_rhs+"'"
+      if not trans.has_key(oldrhsprime):
+        trans[oldrhsprime] = lhs
+        trans[lhs] = rhs
+        return trans
+      else:
+        '''lhs->old_rhs; rhs->?; old_rhs->?'''
+        print 'Ignoring discrete assignment {0} = {1}'.format(lhs,rhs)
+        return trans
+    else:
+      print 'Ignoring discrete assignment {0} = {1}'.format(lhs,rhs)
+      return trans
+  return trans
+
 # need to handle INITIAL properly
 def createControl(state, deqns, guard, iEqns = {}, def_dict = {}):
     "print the control HSAL module"
@@ -1049,26 +1127,39 @@ def createControl(state, deqns, guard, iEqns = {}, def_dict = {}):
           ans += "\n  OUTPUT {0}: {1}".format(k, v)
     varValInitL = extractInit(deqns)
     first = True
+    done_init = []
     for (var, val, init) in varValInitL:
         lhs = expr2sal(var, flag = False)
         if init != None:
+            if lhs in done_init:
+              continue
             sep = ";" if not(first) else "\n  INITIALIZATION"
             first = False if first else first
             rhs = expr2sal(init, flag = False)
             ans += "{2}\n\t {0} = {1}".format(lhs,rhs,sep)
+            done_init.append(lhs)
         else:  # get initialization from vmap[var]
             initval = getInitialValue(vmap,lhs,iEqns,enums)
-            if initval != None:
+            if initval != None and lhs not in done_init:
                 sep = ";" if not(first) else "\n  INITIALIZATION"
                 first = False if first else first
                 ans += "{2}\n\t {0} = {1}".format(lhs,initval,sep)
+                done_init.append(lhs)
+    del done_init
     ans  += "\n  TRANSITION\n  ["
     guard = guard if guard != "" else "TRUE"
     ans  += "\n  {0} -->".format(guard)
-    sep, done_vars = "", []
+    # first create a DICT so that repeated vars are identified
+    trans = {}
     for (var, val, init) in varValInitL:
         lhs = expr2sal(var)
         rhs = expr2sal(val)
+        if trans.has_key(lhs):
+          trans = recursively_update_trans(trans, lhs, rhs)
+        else:
+          trans[lhs] = rhs
+    sep, done_vars = "", []
+    for (lhs,rhs) in trans.items():
         ans += "{2}\n\t {0} = {1}".format(lhs,rhs,sep)
         sep = ";" 
         done_vars.append( lhs[:-1] )
@@ -1189,6 +1280,10 @@ def simplifyITEeq(e1, e2, var=None):
     print >> sys.stderr, 'SimplifyITEeq output has {0} cases'.format(len(ans))
     return (var, ans)
 
+def has_der_xml(xml_node):
+  ders = xml_node.getElementsByTagName('der')
+  return len(ders) > 0
+
 def others2salmonitorNew(oeqns, bools, ints, reals):
     def xml2vars(v):
         ans = set()
@@ -1203,6 +1298,8 @@ def others2salmonitorNew(oeqns, bools, ints, reals):
     guard = ""
     variables = set()
     for e in oeqns:
+        if has_der_xml(e):
+          continue    # ASHISH: Here define dot var as output of plant...or use difference?
         lhs = getArg(e,1) 
         rhs = getArg(e,2) 
         sep = " AND" if not first else ""
@@ -1634,14 +1731,19 @@ def createPlant(state, ceqns, oeqns, iEqns = {}, def_dict = {}):
             ans += "\n  OUTPUT  {0}: REAL".format(i)
     # ans  += "\n  INITIALIZATION"
     first = True
+    done_init = []
     for i in reals:
       if not def_dict.has_key(i) or def_dict[i].tagName=='identifier':
         initval = getInitialValue(vmap,i,iEqns,enums)
         if initval != None:
+            var=i if not def_dict.has_key(i) else valueOf(def_dict[i])
+            if var in done_init:
+              continue
             sep = ";" if not(first) else "\n INITIALIZATION"
             first = False if first else first
-            var=i if not def_dict.has_key(i) else valueOf(def_dict[i])
             ans += "{2}\n\t {0} = {1}".format(var,initval,sep)
+            done_init.append(var)
+    del done_init
     # ASHISH: get init values from dom2 ????
     # first get conditional diff eqns ; then print
     # ans  += "\n  TRUE -->"
@@ -1653,7 +1755,7 @@ def createPlant(state, ceqns, oeqns, iEqns = {}, def_dict = {}):
         (var,val) = (rhs,lhs) if rhs.tagName == 'der' else (lhs,rhs)
         assert var.tagName == 'der', 'ERROR: Unable to covert DAE to dx/dt = Ax+b'
         name = valueOf(getArg(var,1)).strip()
-        print 'converting der({0})={1} to cexpr:'.format(name, expr2sal(val))
+        # print 'converting der({0})={1} to cexpr:'.format(name, expr2sal(val))
         rhs =  expr2cexpr(val, symtab)
         ode.append( (name, rhs) )
         print >> sys.stderr, 'ODE for {0} has {1} cases'.format(name,len(rhs))
@@ -1707,10 +1809,14 @@ def createPlant(state, ceqns, oeqns, iEqns = {}, def_dict = {}):
         first = False
         ans += "{2}\n  {0} AND {1} -->".format(toSal(p,0),toSal(n,1),sep)
         ffirst = True
+        done_trans = []
         for (var,val) in vvl:
+            if var in done_trans:
+                continue
             sep = ";" if not(ffirst) else ""
             ffirst = False if ffirst else ffirst
             ans += "{2}\n\t {0} = {1}".format(var+"dot'",expr2sal(val,flag=False),sep)
+            done_trans.append(var)
     ans += "\n  ]"
     ans += "\n END;\n"
     return ans
