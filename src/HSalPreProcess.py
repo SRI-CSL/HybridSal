@@ -147,6 +147,8 @@ def handleContext(ctxt):
         if (uTypeXML.localName != 'TYPENAME') | (HSalXMLPP.valueOf(uTypeXML) != 'REAL'):
             continue
         fuXML = HSalXMLPP.getArg(i, 4)
+        if fuXML == None:     # No value; e.g., the case x: REAL;
+            continue
         # get all NAMEEXPR in fuXML; replace by f(nameexpr)
         fuXML = replaceNameexprsNumerals(defs, fuXML)
         # Now evaluate the expression and check if it is a constant.

@@ -149,7 +149,7 @@ def get_first_module_name( hsal_model ):
     sys.exit(-1)
  
 # get all properties (THEOREM) in a hsal-str
-def get_props_from_hsal_file(hsal_model):
+def get_props_from_hsal_str(hsal_model):
   '''get all (propertyName, moduleName) from the HybridSal file. Recall
      propertyName: THEOREM moduleName |- LTL_prop'''
   propList = []
@@ -167,6 +167,26 @@ def get_props_from_hsal_file(hsal_model):
     propList.append( [propName, moduleName, propStr] )
     index = hsal_model.find("THEOREM", pEndIndex)
   return propList
+
+# get all PARAMETERS in a hsal-str
+def get_params_from_hsal_str(hsal_str):
+  '''get all x: REAL=val; params from the HybridSal str.'''
+  paramList = []
+  # parameters are between first BEGIN and first MODULE
+  index = hsal_str.find("BEGIN")
+  if index == -1:
+    return paramList
+  end_index = hsal_str.find("MODULE", index)
+  if end_index == -1:
+    return paramList
+  index = index + 5   # End of BEGIN
+  end_index -= 3      # Before : MODULE
+  while index != -1 and index < end_index - 3:
+    pname_end_index = hsal_str.find(":", index)
+    pname = hsal_str[index+1: pname_end_index].strip()
+    paramList.append( pname )
+    index = hsal_str.find(";", pname_end_index)
+  return paramList
 
 # given hsal-file as str, return str of the named MODULE in it.
 def get_module_str_from_hsal_file(hsal_model, modulename):
@@ -252,14 +272,42 @@ def argCheck(args, printUsage):
 # ---------------------------------------------------------------------
 
 # ---------------------------------------------------------------------
+# Replace values of parameters in string by values from p_map
+# ---------------------------------------------------------------------
+def update_param_values(hsal_model, p_map):
+  '''return new hsal_model by replacing param values by new ones'''
+  ans = hsal_model
+  for i in p_map.keys():
+    index = ans.find( i )
+    if index != -1:
+      index_begin = ans.find('=', index)
+      index_end = ans.find( ';', index)
+      # Case 1: param: TYPE = value;
+      if index_begin != -1 and index_begin < index_end:
+        print 'Replaced {2}: {0} by {1}'.format(ans[index_begin+1:index_end], p_map[i], i)
+        ans = ans[0:index_begin+1] + ' ' + str(p_map[i]) + ans[index_end:]
+      # Case 2: param: TYPE ;
+      elif index_end != -1:
+        ans = ans[0:index_end] + ' = ' + str(p_map[i]) + ans[index_end:]
+        print 'Replaced {2}: No value by {1}'.format(ans[index_end], p_map[i], i)
+      else:
+        print 'Warning: Parameter declaration found but unable to replace'
+    else:
+      print 'Warning: Parameter {0} NOT found in SAL file'.format(i)
+  return ans
+# ---------------------------------------------------------------------
+
+# ---------------------------------------------------------------------
 # Merge two HSal files; Return value: hsalfilename, propNameList
 # ---------------------------------------------------------------------
-def merge_files(hsalp_str,hsalc_str,track_map,primaryModule,pNameModLTLL,f):
+def merge_files(hsalp_str,hsalc_str,trackmap,primaryModule,pNameModLTLL,f):
   '''merge the two strings, create a new HSal file, write to f'''
   def get_content(hsal_str):
     index1 = hsal_str.find('BEGIN')
     index2 = hsal_str.rfind('END')
     return hsal_str[index1+5:index2]
+
+  (track_map, p_map) = trackmap
 
   # add plant model
   hsalp_ctxt = get_content(hsalp_str)
@@ -268,6 +316,7 @@ def merge_files(hsalp_str,hsalc_str,track_map,primaryModule,pNameModLTLL,f):
 
   # add controller model
   hsalc_ctxt = get_content(hsalc_str)
+  hsalc_ctxt = update_param_values(hsalc_ctxt, p_map)
   print >> f, hsalc_ctxt
   # Now we have controller+properties 
   
@@ -340,7 +389,7 @@ def main():
     # hsalCfile = name of controller file, propNameList = property Names
     # extract property name, modName, str from the hsal file
     hsalc_str = hsal_file_to_str( hsalCfile )
-    pNameModLTLL = get_props_from_hsal_file(hsalc_str)
+    pNameModLTLL = get_props_from_hsal_str(hsalc_str)
 
     # get the main controller module of interest
     if len(pNameModLTLL) > 0:
@@ -359,11 +408,19 @@ def main():
     variableList = [i[0] for i in ins]	# ins = (var,type)-list
     print 'Input variables list: ', variableList
 
+    # Now we need to get parameter names...
+    paramList = get_params_from_hsal_str(hsalc_str)
+    print 'Parameter list: ', paramList
+
     # Now run the modelica2hsal that includes the modelica_slicer...
     if modfilename != None:
       print 'Slicing the plant and creating plant in HybridSAL...'
       aa = sys.argv[3:]
       aa.extend(['--slicewrt', variableList])
+      # Comment the following line for using param values from Matlab XML
+      # Uncomment it for using param values from Modelica XML
+      aa.extend(['--slicewrtp', paramList])
+      aa.extend(['--primaryControlModule', primaryModule])
       try:
         (hsalPfile, track_map) = modelica2hsal.modelica2hsal(modfilename, pfilename=None, options=aa)
       except Exception, e:

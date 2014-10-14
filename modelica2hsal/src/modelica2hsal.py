@@ -13,7 +13,9 @@ import modelica_slicer
 # modelica2hsal(filename, prop_filename, options)
 #  where options = ['--slicewrt', varlist, ...]
 #  Returns: (hsal_filename, track_map)
-#  where track_map = dict: Str->Str maps varlist to output vars in hsal
+#  where track_map = (
+#   map1 = dict: Str->Str maps varlist to output vars in hsal
+#   map2 = dict: Str->Str maps parameters to their values
 # ----------------------------------------------------------------------
 
 # ----------------------------------------------------------------------
@@ -144,10 +146,17 @@ def modelica2hsal(filename, pfilename = None, options = []):
       if len(varlist) == 0:
         print 'ERROR: Cannot slice with respect to empty list of variables!'
         sys.exit(1)
-      (filename, mdom, track_map) = modelica_slicer.modelica_slice_file(filename, varlist, options=options)
+      if '--slicewrtp' in options:
+        index = options.index('--slicewrtp')
+        plist = options[index+1]
+        if type(plist) != list:
+          plist = plist.split(',')
+      else:
+        plist = []
+      (filename, mdom, track_map) = modelica_slicer.modelica_slice_file(filename, varlist, options=options, params=plist)
       del mdom
     else:
-      track_map = {}
+      track_map = ({}, {})
     # slicer can change filename by replacing '-' by '_'
 
     if filename == None:

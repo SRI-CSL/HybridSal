@@ -6,9 +6,10 @@ import xml.dom.minidom
 # Usage:
 # ----------------------------------------------------------------------
 # Inside python call:
-#  modelica_slicer.modelica_slice_file(filename, varlist)
+#  modelica_slicer.modelica_slice_file(filename, varlist, options, params)
 #    where varlist = list of variable names (str)
 #  returns: (slice_filename, modelicadom, track_map)
+#  options: --mapping, --ignoremapping
 #
 # Command line:
 #  python src/modelica_slicer.py examples/no_controls_dae.xml --slicewrt "driveLine.pTM_with_TC.torque_Converter_Lockup.clutch_lockup.phi_rel" > tmp.txt
@@ -64,8 +65,14 @@ Usage: python src/modelica_slicer.py <modelica_file.xml> --slicewrt "v1,v2,v3"
 
 Description: This will create a file called modelica_file_slice.xml
 
-NOTE: If it exists, the program uses file modelicaURI2CyPhyMap.json for 
-   classifying variables as plant/controller/context variables.
+Command line arguments:
+--slicewrt "v1,v2" : Slice with respect to the specified variables
+--slicewrtp "p1,p2" : p1,p2 can be names of parameters to 
+   extract from the Modelica XML file.
+--mapping "modelicaURI2CyPhyMap.json": Ignore variables classified as
+   context in the json file; the default filename that is used to 
+   classify variables as plant/context can be changed here.
+--ignoremapping: Ignore the json file and include contexts in slice.
     '''
 # -------------------------------------------------------------------
 
@@ -820,7 +827,8 @@ def modelicadom_slicer(modelicadom, varlist, meta={}):
        output a tuple with sliced_e, sliced_v, etc. 
        Optional arg meta = dict corresponding to the META-X JSON file
     '''
-    ctxt = modelicadom.getElementsByTagName('dae')[0]
+    ctxt = modelicadom.firstChild
+    assert ctxt.tagName == 'dae', 'Err: Expected dae tag in XML'
     variables = getChildByTagName(ctxt, 'variables')
     equations = getChildByTagName(ctxt, 'equations')
     #zeroCrossing = getChildByTagName(ctxt, 'zeroCrossingList')
@@ -913,7 +921,7 @@ def modelicadom_slicer(modelicadom, varlist, meta={}):
 
     return ( slice_e, sliced_v, sliced_kv, slice_ie, track_map )
 
-def output_sliced_dom(slice_filename, sliced_e, slice_ie, sliced_v, other_v, dom, trk):
+def output_sliced_dom(slice_filename, sliced_e, slice_ie, sliced_v, other_v, dom, trk, p2value_map):
   '''output XML in the given filename'''
   with open(slice_filename, 'w') as fp:
     print >> fp, '''<?xml version="1.0" encoding="UTF-8"?>
@@ -924,7 +932,8 @@ def output_sliced_dom(slice_filename, sliced_e, slice_ie, sliced_v, other_v, dom
     '''
     total_vars = len(sliced_v) + len(other_v)
     trks = str(trk).replace("'", "&quot;")
-    print >> fp, '<variables dimension="{0}" trackmap="{1}">'.format(total_vars,trks)
+    pmap = str(p2value_map).replace("'", "&quot;")
+    print >> fp, '<variables dimension="{0}" trackmap="{1}" parammap="{2}">'.format(total_vars,trks,pmap)
     print >> fp, '<orderedVariables dimension="{0}">'.format(len(sliced_v))
     print >> fp, '<variablesList>'
     for i in sliced_v:
@@ -972,19 +981,84 @@ def extract_map_from_xml(slice_filename):
       print 'Error: Input XML file is not well-formed'
       print 'Quitting', sys.exc_info()[0]
       sys.exit(-1)
-    variables = modelicadom.getElementsByTagName('variables')[0]
+    # variables = modelicadom.getElementsByTagName('variables')[0]
+    dae = modelicadom.firstChild
+    variables = getChildByTagName(dae, 'variables')
     track_map_str = variables.getAttribute('trackmap')
     #print 'track_map_str is ', track_map_str
     track_map = eval(track_map_str)
     print 'Interface mapping between modelica<->CC is ', track_map
-    return track_map
+    p_map_str = variables.getAttribute('parammap')
+    p_map = eval(p_map_str)
+    return (track_map, p_map)
+# ----------------------------------------------------------------------
+
+# ----------------------------------------------------------------------
+# Extract parameter values from the Modelica DOM
+# ----------------------------------------------------------------------
+def extract_param_values_from_xml(modelicadom, paramscopy, pMod):
+  '''pMod = Name of MODULE repre the controller; useful for finding
+     the correct variable in modelicadom that maps to given parameter'''
+  def is_good_param( pname, params, pMod):
+    for i in params:
+      if pname == i:
+        return i
+      elif pname.endswith( '__'+i ) and pname.find(pMod) != -1:
+        return i
+      # elif pname.endswith( i):
+        # return i
+    return None
+  def is_bindExpr_cst( var ):
+    bindvalexpr = getChildByTagName(var, 'bindValueExpression')
+    if bindvalexpr == None:
+      return None
+    bindexpr = getChildByTagName(bindvalexpr, 'bindExpression')
+    if bindexpr == None:
+      return None
+    value = bindexpr.getAttribute('string')
+    try:
+      val = float( value )
+      return val
+    except:
+      if value == "true":
+        return "TRUE"
+      elif value == "false":
+        return "FALSE"
+      return None
+  p2value_map, name2name_map = {}, {}
+  if paramscopy==[]:
+    return p2value_map  # name2name_map
+  params = list( paramscopy )
+  dae = modelicadom.firstChild
+  variables = getChildByTagName(dae, 'variables')
+  knownVariables = getChildByTagName(variables, 'knownVariables')
+  variablesList = getChildByTagName(knownVariables,'variablesList')
+  for i in variablesList.childNodes:
+    if i.nodeType!=i.ELEMENT_NODE:
+      continue
+    if i.getAttribute('variability') != 'parameter':
+      continue
+    pname = i.getAttribute('name').strip()
+    j = is_good_param( pname, params, pMod )
+    if j == None:
+      continue
+    i_val = is_bindExpr_cst( i )
+    if i_val == None:
+      continue
+    p2value_map[ j ] = i_val
+    name2name_map[ j ] = pname
+    params.remove( j )
+    if len(params)==0:
+      break
+  return p2value_map  # name2name_map
 # ----------------------------------------------------------------------
 
 # ----------------------------------------------------------------------
 # if calling slicer through python, this is the function to call.
 # ----------------------------------------------------------------------
-def modelica_slice_file(filename, varlist, options=[]):
+def modelica_slice_file(filename, varlist, options=[], params=[]):
     '''create a file base(filename)_slice.xml.
+       params = list of parameters whose values shd be extracted too
        Wrapper over modelicadom_slicer and output_sliced_dom
     '''
     assert os.path.isfile(filename), 'ERROR: File does not exist'
@@ -1021,16 +1095,23 @@ def modelica_slice_file(filename, varlist, options=[]):
       global ignore_context
       ignore_context = False
 
+    if '--primaryControlModule' in options:
+      index = options.index('--primaryControlModule')
+      primaryModule = options[index+1].strip()
+    else:
+      primaryModule = ''
+    p2value_map = extract_param_values_from_xml(modelicadom, params, primaryModule)
+
     dirname = os.path.dirname(filename)
     jsonfile = os.path.join(dirname, modelicaURI2CyPhyMap)
     d = jsonfile2dict( jsonfile )
     (sliced_e, sliced_v, other_v, slice_ie, track_map) = modelicadom_slicer(modelicadom, varlist, meta=d)
     if len(sliced_e) > 0:
       print >> sys.stderr, 'Creating file {0}...'.format(slice_filename)
-      output_sliced_dom(slice_filename, sliced_e, slice_ie, sliced_v, other_v, modelicadom, track_map)
-      return (slice_filename, modelicadom, track_map)
+      output_sliced_dom(slice_filename, sliced_e, slice_ie, sliced_v, other_v, modelicadom, track_map, p2value_map)
+      return (slice_filename, modelicadom, (track_map, p2value_map))
     else:
-      return (None, None, None)
+      return (None, None, (None,None))
 # ----------------------------------------------------------------------
 
 # ----------------------------------------------------------------------
@@ -1066,7 +1147,10 @@ def main():
     assert '--slicewrt' in options, 'Error: Specify slice variables. {0}'.format(printUsage())
     index = options.index('--slicewrt')
     varlist = options[index+1].split(',')
-    modelica_slice_file(filename, varlist, options=options)
+    if '--slicewrtp' in options:
+      index = options.index('--slicewrtp')
+      plist = options[index+1].split(',')
+    modelica_slice_file(filename, varlist, options=options, params=plist)
 # ----------------------------------------------------------------------
 
 # ----------------------------------------------------------------------

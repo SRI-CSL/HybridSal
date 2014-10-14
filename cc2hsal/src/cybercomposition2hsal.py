@@ -180,7 +180,7 @@ def process_propStr(componentObj):
     ans += '{1} |- {0}'.format( newPropStr, componentObj.get_name() )
     ans += ';\n'
     propNameList.append( propName )
-  print ans
+  #print ans
   return (ans, propNameList)
 # -------------------------------------------------------------------
 
@@ -471,10 +471,13 @@ class Component:
         continue
       if is_key_in_trans(i_var, self.trans):
         continue
+      (varname, vartype) = find_var_and_type( i )
       if self.init.has_key(i_var):
-        (varname, vartype) = find_var_and_type( i )
         param[varname] = (vartype, self.init[i_var])
-        print '{0}:{1} potential param'.format(varname, param[varname])
+      else:
+        param[varname] = (vartype, None)
+      #print '{0}:{1} potential param'.format(varname, param[varname])
+      print 'P{0}'.format(varname, param[varname]),
     return param
   def __str__(self):
     if self.xmlnode != None:
@@ -547,7 +550,10 @@ class Component:
     ans = ''
     if self.params != None:
       for (name,(type_str, value)) in self.params.items():
-        ans += '{0}: {1} = {2};\n'.format(name,type_str,value)
+        if value != None:
+          ans += '{0}: {1} = {2};\n'.format(name,type_str,value)
+        else:
+          ans += '{0}: {1};\n'.format(name,type_str)
     return ans
   def toHSalModDecl(self, params):
     '''return string -- MODULE decl'''
@@ -566,9 +572,11 @@ class Component:
     for i in self.local:
       (varname, vartype) = find_var_and_type( i )
       if params.has_key(varname):
-        print 'Warning: Local variable {0} is a global parameter'.format(varname)
+        # print 'Warning: Local variable {0} is a global parameter'.format(varname)
+        print 'W5{0}'.format(varname),
       elif find_magic(self.outs, 'name', varname, 'name') != None:
-        print 'Warning: Local variable {0} is an output var'.format(varname)
+        #print 'Warning: Local variable {0} is an output var'.format(varname)
+        print 'W6{0}'.format(varname),
       else:
         ans += '\n  LOCAL {0}: {1}'.format(varname, vartype)
       assert vartype != '', 'ERR: Var {0} has no type'.format(varname)
@@ -1319,7 +1327,7 @@ def subsystemXML2ComponentObj(xmlnode):
   elif xmlnode.tagName == 'Simulink:Primitive':
     # base case
     blocktype = xmlnode.getAttribute('BlockType') 
-    print 'base case {0}...'.format(blocktype)
+    print 'b',    # base case
     if blocktype == 'Sum':
       return parse_sum(ins, outs, params)
     elif blocktype == 'Saturate':
@@ -1353,12 +1361,12 @@ def subsystemXML2ComponentObj(xmlnode):
       print 'ERROR: Missing code. Blocktype {0} not handled yet.'.format(blocktype)
   else:
     # recurse
-    print 'recursing...'
+    print 'r',
     subs = []
     for i in subsystems:
       my_subsystem = subsystemXML2ComponentObj(i)
       if my_subsystem == None:
-        print 'component ignored'
+        print 'c',   # 'component ignored'
       else:
         my_subsystem.xmlnode = i
         subs.append( my_subsystem )
@@ -1423,7 +1431,8 @@ def compose(subs, ins, outs, params, lines, rootnode):
 
   # remove IGNORED components
   subs = [i for i in subs if i != None]
-  print 'Number of subcomponents to compose = {0}'.format(len(subs))
+  # print 'Number of subcomponents to compose = {0}'.format(len(subs))
+  print 'c{0}('.format(len(subs)),
   # while there is a var on RHS of Eqns that has a definition in subs
   # multiply component into answer
 
@@ -1461,16 +1470,19 @@ def compose(subs, ins, outs, params, lines, rootnode):
         # print '{0} -> {1}'.format(var2, var1)
         eqns[0][var2] = var1
       else:
-        print 'WARNING: Missing destination for input? signal {0}'.format(var1.name)
+        # print 'WARNING: Missing destination for input? signal {0}'.format(var1.name)
+        print 'W1'.format(var1.name),
     elif var1 == None and var2 != None:
       var1 = get_var_attr(symtab, 'name', var2.name, avoid=var2)
       if var1 != None:
         # print '{0} -> {1}'.format(var2, var1)
         eqns[0][var2] = var1
       else:
-        print 'WARNING: Missing source for output? signal {0}'.format(var2.name)
+        # print 'WARNING: Missing source for output? signal {0}'.format(var2.name)
+        print 'W2'.format(var2.name),
     else:
-        print 'WARNING: Both source {0} and sink {1} of a line are missing'.format(src_id, dst_id)
+        #print 'WARNING: Both source {0} and sink {1} of a line are missing'.format(src_id, dst_id)
+        print 'W3'.format(src_id, dst_id),
   # now we have eqns[0] all set up correctly....
 
   # eqns[0] needs to be used to update initializations and transitions too; so make pointer to it for later.
@@ -1529,7 +1541,8 @@ def compose(subs, ins, outs, params, lines, rootnode):
   # Now project onto ins, outs + extras...
   # project(ins, outs, eqns, ans_modes, symtab)
   # missing: info about initialization and transitions
-  print 'composition complete'
+  # print 'composition complete'
+  print ')',
   # if len(subs) == 1:
     # ins, outs = subs[0].ins, subs[0].outs
   propStr = rootnode.getAttribute('Description')
@@ -1680,7 +1693,8 @@ def component_partition(xmlnode):
       outputs = i.getElementsByTagName('OutputSignalInterface')
       outs.extend(outputs)
     else:
-      print 'WARNING: Unrecognized tag {0}. Ignoring.'.format(i.tagName)
+      #print 'WARNING: Unrecognized tag {0}. Ignoring.'.format(i.tagName)
+      print 'W4{0}'.format(i.tagName),
   return (ins,outs,params,lines,subsystems)
 # -------------------------------------------------------------------
 
@@ -1733,7 +1747,7 @@ def cybercomposition2hsal(filename, options = []):
             print 'Model not supported: Unable to handle some expressions currently'
             sys.exit(-1)
         '''
-    print 'Properties in hybridsal model are ', propList
+    print '\nProperties in hybridsal model are ', propList
     return (basename, propList)
 # -------------------------------------------------------------------
 
@@ -1773,7 +1787,8 @@ def component_list2hsal( component_list, hsalfilename):
         continue
       for p_name in tmp.keys():
         if potential_params.has_key(p_name) and tmp[p_name] != potential_params[p_name]:
-          print 'Warning: {0} has different values in different components'.format(p_name)
+          # print 'Warning: {0} has different values in different components'.format(p_name)
+          print 'W4{0}'.format(p_name),
           potential_params.clear()
           break
       if len(potential_params) != 0:
@@ -1791,7 +1806,9 @@ def component_list2hsal( component_list, hsalfilename):
     if params != None:
       # first print variable = constant
       for (name,(type_str, value)) in params.items():
-        if not isinstance(value, Expr) and (not isinstance(value,(str,unicode)) or len(value) < 6):
+        if value == None:
+          ans += '{0}: {1};\n'.format(name,type_str,value)
+        elif not isinstance(value, Expr) and (not isinstance(value,(str,unicode)) or len(value) < 6):
           ans += '{0}: {1} = {2};\n'.format(name,type_str,value)
       # next print variable = expression
       for (name,(type_str, value)) in params.items():
@@ -1807,7 +1824,7 @@ def component_list2hsal( component_list, hsalfilename):
       print >> fp, propSal
       propList.extend( ipropList )    # update list of property names
     print >> fp, 'END'
-    print >> sys.stderr, 'Created file {0}'.format(hsalfilename)
+    # print >> sys.stderr, 'Created file {0}'.format(hsalfilename)
     return propList
 # -------------------------------------------------------------------
 

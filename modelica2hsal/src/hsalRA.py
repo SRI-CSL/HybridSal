@@ -106,7 +106,7 @@ def main():
     global dom
     (filename, pfilename) = modelica2hsal.argCheck(sys.argv, printUsage)
     try:
-        outfile = modelica2hsal.modelica2hsal(filename, pfilename, options = sys.argv[1:])
+        (outfile,trk_map) = modelica2hsal.modelica2hsal(filename, pfilename, options = sys.argv[1:])
     except Exception, e:
         print e
         print 'Error: Unable to create HybridSal file from Modelica XML'
