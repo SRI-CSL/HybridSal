@@ -1,0 +1,434 @@
+
+HybridSal for Modelica and Matlab: A User Guide
+
+We describe the steps involved in using the HybridSal
+verification tool for proving correctness of controller
+designs in a cyber-physical system model.
+
+There are four main steps involved in using the
+HybridSal verification tool.
+
+ Step 1. Building a model of the system to be verified
+ Step 2. Adding properties to the model that need to be verified
+ Step 3. Running the tool 
+ Step 4. Understanding the output results of the tool
+  
+Steps 1, 2 and 4 are performed outside the HybridSal verification
+tool. The META CyPhy tool would support these steps. See the 
+documentation on the META CyPhy tool for details on how to perform
+Steps 1, 2, and 4.  Just for completeness, we will include a 
+brief description of these steps in this document.
+
+
+We provide more details on the four steps now.
+
+Step 1. Building a model of the system to be verified
+
+A model of the system consists of two main parts: a controller
+model and  a plant model.
+
+Controller models are assumed to be developed in
+Matlab's Simulink Stateflow language.  The preferred version
+of Matlab is R13b.
+
+Note: The verification tool can not analyze arbitrary Simulink
+Stateflow models. It can only handle certain blocks.  For an
+example of controllers that can be analyzed, the reader should
+see the example ShiftController, TorqueConverter and 
+TorqueReductionSignal controller models.
+
+Note: To get started, it may be appropriate to take one of these
+three controller models, edit it in different ways, and then
+use the modified models as the input models for verification.
+
+Note: If the verification tool is given a controller model that 
+uses Matlab constructs that are not handled, the tool terminates
+with an appropriate error message (which will be printed to
+the console).
+
+Plant models are assumed to be developed in the Modelica-CyPhy
+integrated environment.
+
+Both models -- the controller and the plant --  are exported and
+saved as XML files using the Meta/CyPhy tool.  The HybridSal
+verification tool takes these XML files as its input.
+
+Note: In the verification tool, the mapping between the controller 
+variables and the plant variables is performed by "name" -- 
+that is, for every input of the controller, it is assumed that 
+there is a variable in the plant whose name has the controller 
+variable name as its suffix.  Modelica's aliasVariables feature 
+can be used for this purpose.  This should not arise as an issue
+if the XML files are generated using the META/CyPhy tool.
+
+Step 2. Adding properties to the model that need to be verified
+
+The verification tool's primary focus is the controller.
+In fact, the plant model is optional and the tool can
+verify controllers in isolation.
+
+Properties are added to the controller models.  
+
+Vanderbilt University has developed scripts that extend the 
+graphical user interface of Matlab Simulink/Stateflow with 
+dialog boxes for specifying (linear) temporal logic properties 
+using a template- or pattern-based system.
+
+Desired properties of the controllers are attached to the 
+Simulink subsystem or Stateflow chart using this extension.
+
+The reader is encouraged to view the properties in the example
+controller models.
+
+When the META tool exports the controller model as XML, it 
+includes the properties in the generated XML file.
+These properties are then verified by the verification tool.
+
+Note: Properties should refer to interface variables of the
+Matlab controller (preferably), but they can also refer to
+the interface variables of the subcomponent (a stateflow chart,
+for example) in which they are specified.
+
+
+Step 3. Running the tool 
+
+When the verification tool is invoked from the META tool, it 
+reports its progress on the console via a series of messages.
+Assuming that the controller and plant models have been exported
+as XML files, the verification tool performs the following
+steps internally:
+
+ (1) Translate the controller XML file into a HybridSal 
+ representation of the controller model, including the properties
+
+ (2) Slice the plant XML model to create a sliced plant XML file 
+ that only contains the parts of the plant model relevant for 
+ analyzing the controller
+
+ (3) Translate the sliced XML file into a HybridSal representation of
+ the sliced plant model
+
+ (4) Merge the controller and the sliced plant model
+
+ (5) Abstract the composed model
+
+ (6) Verify the properties on the abstract model
+
+ (7) Collect the results in a results file
+
+ (8) Generate Matlab files for the controller input variables
+ to simulate the counterexamples for properties that are found to
+ be false
+
+Intermediate results are stored in temporary files (that are not
+removed after the tool has terminated).   If 
+pathname1/controller_filename.xml  is the controller model, and 
+pathname2/plant_filename.xml  is the plant model, then the
+verification tool creates the following files in that order:
+
+  (1) file pathname1/controller_filename.hsal, which is the HybridSal
+  translation of the controller model
+
+  (2) file pathname2/plant_filename_slice.xml, which is a slice of the
+  the plant model that is relevant for the controller
+
+  (3) a series of pathname2/plant_filename_slice.daexml, .daexml1, 
+  .daexml2, .daexml3 and .daexml4 files that contain intermediate
+  stages of translating the plant XML to HybridSal
+  
+  (4) file pathname2/plant_filename_sliceModel.hsal, which is the
+  HybridSal translation of the sliced plant model
+  
+  (5) file pathname1/controller_filenameplant_filename_sliceModel.hsal,
+  which is a proper merge of the plant and controller HybridSal models;
+  the file also includes the properties that need to be verified
+
+  (6) file pathname1/controller_filenameplant_filename_sliceModel.sal,
+  which is an abstraction of the corresponding .hsal file, obtained by
+  applying relational abstraction to the HybridSal model
+  
+  (7) file pathname1/controller_filenameplant_filename_sliceModelResult.txt,
+  which is the file that contains the results of verifying all the
+  properties.
+
+Step 4. Understanding the output results of the tool
+
+As mentioned above, the file
+  pathname1/controller_filenameplant_filename_sliceModelResult.txt
+contains the verification results.  However, the META tool also
+presents the verification results graphically in the dashboard.
+A green box indicates the property was verified, a red box 
+indicates it was found to be false.  False properties generate 
+a counter-example -- a scenario under which the violation is
+exhibited by the model.  These counter-examples are in the
+results.txt file mentioned above.  There are automatic scripts
+that convert these counter-examples into Matlab files that can 
+be used to simulate the counter-example scenario in Matlab.
+The user has to open the controller models in Matlab, attach the
+inputs of the models to these generated files, and then run
+a regular Matlab simulation.
+
+
+\subsection{Building/editing the cyber model}
+
+We start with controllers designed by VU.
+The Matlab files for these controllers are:
+\begin{itemize}
+  \item Torque\_Converter\_control.mdl
+  \item TorqueReductionSignal.mdl
+  \item SimplifiedShiftController.mdl
+\end{itemize}
+
+These files can be opened in Simulink and edited.
+For example, Figure~\ref{fig-top} shows 
+the {\tt{SimplifiedShiftController}} in Simulink.
+
+\begin{figure}[t]
+\includegraphics[width=5in]{shiftcontrollertop.png}
+\caption{SimplifiedShiftController in Simulink}
+\label{fig-top}
+\end{figure}
+
+If the LTL-extension for Matlab, developed by Vanderbilt,
+is installed, then LTL properties
+can be attached to these models directly by right clicking
+on the model.
+Figure~\ref{fig-ltl} shows a screenshot of the process of
+attaching an LTL property to the top-level Simulink
+model of the shift controller.
+Note that the LTL property specifier is template-based --
+there are predefined LTL templates that the user can pick.
+In the example in Figure~\ref{fig-ltl}, we have picked
+the template called {\tt{Response}}, which is useful for
+specifying properties that state that something should
+(eventually) happen if something else has occured.
+Details of the different LTL templates can be found on the
+website 
+\\
+{\url{http://patterns.projects.cis.ksu.edu/documentation/patterns/ltl.shtml}}
+
+\begin{figure}[t]
+\includegraphics[width=5in]{shiftcontrollerltl.png}
+\caption{Inserting LTL property into the SimplifiedShiftController model
+in Simulink.  Vanderbilt's LTL extension must be installed over the 
+basic Matlab Simulink/Stateflow installation.}
+\label{fig-ltl}
+\end{figure}
+
+
+The LTL property specification window that opens up when
+clicking on the {\tt{Response}} button is shown in 
+Figure~\ref{fig-prop}.
+Properties can be specified on the input and output
+port names of the Simulink top-level block.
+In the example shown in Figure~\ref{fig-prop},
+the input variable {\tt{driver\_gear\_select}}
+and the output variable {\tt{gear\_selected}}
+are used to specify the property.
+Arithmetic operators such as $==, \leq, \geq, <, >$ can
+be used to specify the property.
+We note that LTL operators {\tt{always}} (written as {\tt{G}})
+and {\tt{eventually}} (written as {\tt{F}}) can still be
+used inside the property specification blocks of the larger
+LTL template.
+In the example shown in Figure~\ref{fig-prop},
+we have used the {\tt{G}} operator to say that if the
+input {\tt{driver\_gear\_select}} is consistently set to $1$,
+then eventually the output {\tt{gear\_selected}} will take a
+value that is at most $1$.
+
+\begin{figure}[t]
+\includegraphics[width=5in]{ltlwindow.png}
+\caption{SimplifiedShiftController in Simulink}
+\label{fig-prop}
+\end{figure}
+
+Once the text blocks have been filled, the model and 
+the LTL properties can both be saved using the standard
+Simulink {\tt{save as}} command.
+Models (and the properties) are saved as .mdl files.
+Multiple properties can be attached to the same model.
+
+\subsection{Converting Matlab to Cyber Composition language}
+
+Using the {\tt{MDL2MGACyber.exe}} tool, an XML representation
+of the models is generated. 
+The details of calling this conversion tool and its interface
+in the META dashboard is not described in this tutorial.
+For purposes of verification, all we really need is the 
+XML files generated from the MDL files.
+Corresponding to the above mdl files,
+we get the following files, assuming that the models are
+saved with the same name as before even after adding the
+LTL properties.
+
+\begin{itemize}
+  \item Torque\_Converter\_control.xml
+  \item TorqueReductionSignal.xml
+  \item SimplifiedShiftController.xml
+\end{itemize}
+
+The {\tt{cc\_hra\_verifier}} distribution also contains
+an example
+   {\tt{SimplifiedControllerCyberWithProp.xml}}
+   file that contains all the three components above 
+   in a single file.
+   Note that the LTL properties are included in the
+   XML files.
+
+\subsection{Verifying the CyberComposition XML}
+
+The tool 
+{\tt{cc\_hra\_verifier}} takes as input the
+XML file generated above and outputs the result
+of verifying the LTL properties embedded inside
+the XML file against the model in the same file.
+
+Internally, the {\tt{cc\_hra\_verifier}} tool performs
+the following actions:
+\begin{enumerate}
+  \item
+First, the tool
+converts the XML into HybridSal.
+The result of the conversion is a new file called
+{\tt{<filename>.hsal}}, where 
+{\tt{<filename}} is the basename of the XML file.
+The HybridSal file will contain the model
+and all the LTL properties that were in the XML file.
+
+For example, if the {\tt{cc\_hra\_verifier}} tool
+is used on {\tt{SimplifiedShiftController.xml}}, then
+it will generate a file called
+{\tt{SimplifiedShiftController.hsal}}.
+
+Interested users can open this file and see the formal representation
+of the cyber-models and the LTL properties.
+
+  \item 
+    Second, 
+    a relational abstraction of the HybridSal model
+    is constructed. The result is stored in a file
+    with the same filename, but with extension ``.sal''.
+
+    In the above example, the tool will create a new file
+    called 
+{\tt{SimplifiedShiftController.sal}}.
+
+  \item Third, the SAL model is model-checked using an infinite-state
+    model checker.
+
+    The output is either a counter-example for the property,
+    or a statement that no counter-example was found.
+    
+    The result is stored in a file called
+    {\tt{<filename>Result.txt}}. For the example above,
+    {\tt{cc\_hra\_verifier}} would generate
+    the results in the file
+    {\tt{SimplifiedShiftControllerResult.sal}}.
+
+\end{enumerate}
+
+Design/property changes can
+be made using Matlab on the Simulink/Stateflow models.
+The verification process can then be repeated.
+For example, the stateflow chart in the
+shift controller, which is shown in Figure~\ref{fig-chart},
+can be edited -- by adding transitions, removing transitions,
+or changing the guards or actions, etc.
+Alternatively, it is also possible to edit the
+intermediate HybridSal or Sal files directly and the
+verification tools can be run on these file using
+command-line invocation --
+this can save time, but the edits are not carried
+back to the Matlab models.
+
+\begin{figure}[t]
+\includegraphics[width=5in]{chart.png}
+\caption{The stateflow chart inside the toplevel
+  {\tt{ShiftController}} model.  This chart is opened
+  here in Matlab, and it can be edited, saved, and re-verified
+  for the LTL properties attached to the enclosing toplevel 
+Simulink subsystem.}
+\label{fig-chart}
+\end{figure}
+
+\section{Displaying Results in the Dashboard}
+
+We have also developed scripts that enable integration
+of the tool with the dashboard.  In particular, we have 
+scripts that can display the output of the verification
+tool {\tt{cc\_hra\_verifier}} in the dashboard.
+
+Figure~\ref{fig-dash1} shows the top-level
+display for the results. Assuming there were two
+properties named {\tt{p2}} and {\tt{AbsenceProperty}} --
+the verification results are shown as in 
+Figure~\ref{fig-dash1}.
+The green color indicates that Property {\tt{p2}} 
+was verified, and the red color indicates that 
+Property {\tt{AbsenceProperty}} was violated.
+
+
+\begin{figure}[t]
+\includegraphics[width=5in]{dashboard1.jpg}
+\caption{Top-level display for the verification results
+  in the dashboard. 
+Note that there are two properties, called {\tt{p2}} and
+{\tt{AbsenceProperty}}, whose results are displayed. 
+One property, namely {\tt{p2}}, was verified, but the
+other one, namely {\tt{AbsenceProperty}}, was violated.}
+\label{fig-dash1}
+\end{figure}
+
+Further details about the verification results can be
+obtained by clicking on the two properties.
+Clicking on Property {\tt{p2}} shows the screenshot
+in Figure~\ref{fig-dash2a}, while clicking on 
+Property~{\tt{AbsenceProperty}} shows the 
+screenshot in Figure~\ref{fig-dash2b}.
+
+\begin{figure}[t]
+\includegraphics[width=5in]{dashboard2a.jpg}
+\caption{Details of the verification of Property~{\tt{p2}}.}
+\label{fig-dash2a}
+\end{figure}
+
+\begin{figure}[t]
+\includegraphics[width=5in]{dashboard2b.jpg}
+\caption{Details of the verification of Property~{\tt{AbsenceProperty}}.}
+\label{fig-dash2b}
+\end{figure}
+
+
+\section{Remarks}
+
+In the above tutorial, only the cyber components
+were being analyzed.
+The plant model is completely abstracted.
+Hence, the analysis can be coarse.
+But, the analysis can still be useful, especially
+if care is taken in specifying the LTL properties.
+In particular, LTL properties should constrain the
+inputs of the controllers, and then check that the
+response of the controller is appropriate for that
+scenario.  The predefined LTL templates may not be
+sufficient for this purpose.
+
+The properties {\tt{p1}} and {\tt{p2}} in the
+HybridSal files were included to illustrate the
+utility. 
+Property {\tt{p1}} says that if  the input
+{\tt{shift\_requested}} is consistently set to $1$,
+then after a few steps,  the output 
+{\tt{gear\_selected}} of the controller is $1$.
+This property was found to be invalid.
+Property {\tt{p2}} says that if  the input
+{\tt{shift\_requested}} is consistently set to $1$,
+then after a few steps,  the output 
+{\tt{gear\_selected}} of the controller is at most $2$.
+No counter-examples were found for this property.
+However, it is possible to fix the controller logic
+to make property {\tt{p1}} true.
+Failure of {\tt{p1}} was possibly a bug in the designed
+controller.
+
