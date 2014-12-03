@@ -1021,6 +1021,7 @@ def rename_enumValues(node, enums):
 def getInitialValue(vmap, var, iEqns, enums):
     if iEqns.has_key(var):
         node = iEqns[var]
+        node = rename_enumValues( node, enums )		# ASHISH: 12/02/2014 ADDED
         return expr2sal(node,flag=False)
     if not vmap.has_key(var):
         return None
@@ -1135,6 +1136,8 @@ def createControl(state, deqns, guard, iEqns = {}, def_dict = {}):
               continue
             sep = ";" if not(first) else "\n  INITIALIZATION"
             first = False if first else first
+	    # ASHISH: FOllowing LINE added on 12/02/2014 CHECK check Here here HERE
+            # init = rename_enumValues( init, enums )
             rhs = expr2sal(init, flag = False)
             ans += "{2}\n\t {0} = {1}".format(lhs,rhs,sep)
             done_init.append(lhs)

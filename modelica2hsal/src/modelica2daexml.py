@@ -81,6 +81,9 @@ def helper_create_app(tag, childs, position = None, arity = None):
             for j in childs:
                 if j != None:
                     print j.toprettyxml() 
+                else:
+                    print 'Null'
+            assert False, 'Null children'
         else:
             node.appendChild(i)
     return node 

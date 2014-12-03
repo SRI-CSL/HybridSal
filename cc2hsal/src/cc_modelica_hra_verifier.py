@@ -257,18 +257,22 @@ def argCheck(args, printUsage):
     if args[1].startswith('-'):
         printUsage()
         sys.exit(-1)
+    files = []
     for i in range(1,min(3, len(args))):
       filename = args[i]
       basename,ext = os.path.splitext(filename)
-      if not(ext == '.xml'):
-        print 'ERROR: Unknown extension {0}; expecting .xml'.format(ext)
-        printUsage()
-        sys.exit(-1)
+      if not(ext == '.xml') and not(ext == '.json'):
+        # print 'ERROR: Unknown extension {0}; expecting .xml'.format(ext)
+        # printUsage()
+        # sys.exit(-1)
+        continue
       if not(os.path.isfile(filename)):
         print 'ERROR: File {0} does not exist'.format(filename)
         printUsage()
         sys.exit(-1)
-    return (args[1], args[2] if len(args)>=3 else None)
+      files.append(filename)
+    assert files[0].endswith('.xml'), 'Error: First argument should be an xml file'
+    return (files[0], files[1] if len(files)>=2 else None)
 # ---------------------------------------------------------------------
 
 # ---------------------------------------------------------------------
@@ -355,22 +359,28 @@ def existsAndNew(filename1, filename2):
 # ---------------------------------------------------------------------
 
 # ---------------------------------------------------------------------
+# Check if given filename is a SignalFlow file (controller)
+# ---------------------------------------------------------------------
+def check_if_controller_file( ccfilename ):
+    f = open(ccfilename, 'r')
+    ans, i = False, 0
+    while (ans == False and i < 4):
+      line = f.readline()
+      if line.find('SignalFlow') != -1:
+        ans = True
+      i += 1
+    f.close()
+    return ans
+# ---------------------------------------------------------------------
+
+# ---------------------------------------------------------------------
 # Main function called on command-line invocation
 # ---------------------------------------------------------------------
-def main():
-    def getexe():
-      folder = os.path.split(inspect.getfile( inspect.currentframe() ))[0]
-      relabsfolder = os.path.join(folder, '..', '..', 'bin')
-      relabsfolder = os.path.realpath(os.path.abspath(relabsfolder))
-      return relabsfolder
-
-    # get controller-filename and modelica-filename from argv
-    (ccfilename, modfilename) = argCheck(sys.argv, printUsage)
-
+def controllerplant2hsal(ccfilename, modfilename, opts):
     # convert controller to SAL
     print 'Generating controller in HybridSAL...'
     try:
-      (basefilename, propNameList) = cybercomposition2hsal.cybercomposition2hsal(ccfilename, options = sys.argv[2:])
+      (basefilename, propNameList) = cybercomposition2hsal.cybercomposition2hsal(ccfilename, options = opts)
     except Exception, e:
       print e
       print 'ERROR: Unable to translate CyberComposition XML to HybridSal'
@@ -469,6 +479,13 @@ def main():
       hsalfile = hsalCfile
       # pNameModLTLL remains unchanged
 
+    return hsalfile, pNameModLTLL
+# ---------------------------------------------------------------------
+
+# ---------------------------------------------------------------------
+# Given HybridSal file and properties in it, analyze and create Result.txt file
+# ---------------------------------------------------------------------
+def hsal2end(hsalfile, pNameModLTLL):
     # now I need to run hsal2hasal; first parse the HSal file
     try:
       xmlfilename = HSalRelAbsCons.hsal2hxml(hsalfile)
@@ -576,6 +593,53 @@ def main():
       print 'Then, Use the command: sal-inf-bmc -d 4 <GeneratedSALFile> <propertyName added in generated SAL file>'
       return -1
     return 0
+# ---------------------------------------------------------------------
+
+# ---------------------------------------------------------------------
+def plant2hsal(modfilename, propfilename, opts):
+    print 'No controller found. Converting plant model to HybridSAL...'
+    try:
+      (hsalPfile, track_map) = modelica2hsal.modelica2hsal(modfilename, pfilename=propfilename, options=opts)
+    except Exception, e:
+      print e
+      print 'Error: Unable to create HybridSal file from Modelica XML'
+      return -1
+    if not(type(hsalPfile) == str and os.path.isfile(hsalPfile) and os.path.getsize(hsalPfile) > 100):
+        print 'Warning: Generated HybridSal file is empty.'
+      # this will create outfile == 'filenameModel.hsal'
+
+    if modfilename != None and hsalPfile != None:
+      print 'Generated file {0} containing the plant model'.format(hsalPfile)
+  
+    hsalp_str = hsal_file_to_str( hsalPfile )
+    pNameModLTLL = get_props_from_hsal_str(hsalp_str)
+
+    return hsalPfile, pNameModLTLL
+# ---------------------------------------------------------------------
+
+# ---------------------------------------------------------------------
+# Main function called on command-line invocation
+# ---------------------------------------------------------------------
+def main():
+    def getexe():
+      folder = os.path.split(inspect.getfile( inspect.currentframe() ))[0]
+      relabsfolder = os.path.join(folder, '..', '..', 'bin')
+      relabsfolder = os.path.realpath(os.path.abspath(relabsfolder))
+      return relabsfolder
+
+    # get controller-filename and modelica-filename from argv
+    (ccfilename, modfilename) = argCheck(sys.argv, printUsage)
+
+    ccfile_exists = check_if_controller_file(ccfilename)
+
+    if ccfile_exists:
+      hsalfile, pNameModLTLL = controllerplant2hsal(ccfilename, modfilename, sys.argv[2:])
+    else:
+      propfilename = modfilename
+      hsalfile, pNameModLTLL = plant2hsal(ccfilename, propfilename, sys.argv[2:])
+
+    # convert controller to SAL
+    return hsal2end(hsalfile, pNameModLTLL)
 # ---------------------------------------------------------------------
 
 # ---------------------------------------------------------------------

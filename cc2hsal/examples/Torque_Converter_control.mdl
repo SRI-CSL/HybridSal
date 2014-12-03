@@ -27,7 +27,7 @@ Model {
       Name		      "torque_converter_locked"
     }
     ParameterArgumentNames  ""
-    ComputedModelVersion    "1.36"
+    ComputedModelVersion    "1.37"
     NumModelReferences	    0
     NumTestPointedSignals   0
   }
@@ -51,7 +51,7 @@ Model {
       $ObjectID		      2
       $ClassName	      "Simulink.WindowInfo"
       IsActive		      [1]
-      Location		      [550.0, 146.0, 1036.0, 584.0]
+      Location		      [821.0, 56.0, 1036.0, 584.0]
       Object {
 	$PropName		"ModelBrowserInfo"
 	$ObjectID		3
@@ -60,7 +60,7 @@ Model {
 	DockPosition		"Left"
 	Width			[50]
 	Height			[50]
-	Filter			[8]
+	Filter			[9]
       }
       Object {
 	$PropName		"ExplorerBarInfo"
@@ -73,8 +73,8 @@ Model {
 	$ObjectID		5
 	$ClassName		"Simulink.EditorInfo"
 	IsActive		[1]
-	ViewObjType		"SimulinkTopLevel"
-	LoadSaveID		"0"
+	ViewObjType		"SimulinkSubsys"
+	LoadSaveID		"27"
 	Extents			[984.0, 384.0]
 	ZoomFactor		[1.0]
 	Offset			[0.0, 0.0]
@@ -87,9 +87,9 @@ Model {
   ModifiedByFormat	  "%<Auto>"
   LastModifiedBy	  "meta"
   ModifiedDateFormat	  "%<Auto>"
-  LastModifiedDate	  "Wed Mar 05 11:43:46 2014"
-  RTWModifiedTimeStamp	  315920561
-  ModelVersionFormat	  "1.%<AutoIncrement:36>"
+  LastModifiedDate	  "Fri May 09 11:23:41 2014"
+  RTWModifiedTimeStamp	  321535406
+  ModelVersionFormat	  "1.%<AutoIncrement:37>"
   ConfigurationManager	  "None"
   SampleTimeColors	  off
   SampleTimeAnnotations	  off
@@ -909,7 +909,7 @@ Model {
   System {
     Name		    "Torque_Converter_control"
     Location		    [550, 146, 1586, 730]
-    Open		    on
+    Open		    off
     ModelBrowserVisibility  off
     ModelBrowserWidth	    200
     ScreenColor		    "white"
@@ -978,7 +978,7 @@ Model {
       MaskHideContents	      off
       System {
 	Name			"Torque_Converter_control"
-	Location		[237, 412, 1078, 977]
+	Location		[821, 56, 1857, 640]
 	Open			off
 	ModelBrowserVisibility	off
 	ModelBrowserWidth	200
@@ -1045,7 +1045,6 @@ Model {
 	  Position		  [145, 22, 280, 48]
 	  ZOrder		  -4
 	  ShowName		  off
-	  Value			  "min_speed_ratio_thresh"
 	}
 	Block {
 	  BlockType		  Constant
@@ -1054,7 +1053,6 @@ Model {
 	  Position		  [25, 176, 150, 204]
 	  ZOrder		  -4
 	  ShowName		  off
-	  Value			  "min_gear_number_thresh"
 	}
 	Block {
 	  BlockType		  Product
@@ -1334,8 +1332,8 @@ Model {
 	  MaskHideContents	  off
 	  System {
 	    Name		    "pedal_override_threshold"
-	    Location		    [832, 398, 1303, 806]
-	    Open		    off
+	    Location		    [821, 56, 1857, 640]
+	    Open		    on
 	    ModelBrowserVisibility  off
 	    ModelBrowserWidth	    200
 	    ScreenColor		    "white"
@@ -1419,7 +1417,7 @@ Model {
 	      SID		      "34"
 	      Position		      [30, 178, 135, 202]
 	      ZOrder		      -4
-	      Value		      "pedal_disable_thresh"
+	      Value		      "0"
 	    }
 	    Block {
 	      BlockType		      Constant
@@ -1427,7 +1425,7 @@ Model {
 	      SID		      "35"
 	      Position		      [35, 68, 140, 92]
 	      ZOrder		      -4
-	      Value		      "pedal_enable_thresh"
+	      Value		      "0"
 	    }
 	    Block {
 	      BlockType		      Outport
@@ -2117,8 +2115,6 @@ Stateflow {
     firstTransition	    16
     viewObj		    2
     machine		    1
-    subviewS {
-    }
     ssIdHighWaterMark	    24
     decomposition	    CLUSTER_CHART
     firstData		    7
