@@ -191,9 +191,10 @@ class PolyRep:
 # ----------------------------------------------------------------------
 def getPredsInConds(contEqns):
     '''get all predicates used in IF conditions.
-    Return value is a dict: identifier-name to list of float-values
+    Return value is a dict: identifier-name to list of (float)-values
     OR (op,id1,id2), interpreted as expr id1.op.id2, to 
-    list-of-float-values, where id1,id2 are variable names-strings'''
+    list-of-(float)-values, where id1,id2 are variable names-strings
+    OR polyrep to value-list. value-list can have identifiers (enum)'''
     def add2Preds(preds, name, val):
         if preds.has_key(name):
             if val != None and val not in preds[name]:
@@ -217,6 +218,14 @@ def getPredsInConds(contEqns):
                 assert False, 'pre(pre(x)) found'
             # print 'trying to add {0}'.format(name)
             return add2Preds(preds, name, float(valueOf(a2)))
+        # NEW CASE TO HANDLE var = enum_identifier 
+        elif a1.tagName in ['identifier','pre'] and a2.tagName == 'identifier':
+            try:
+                name = valueOf(a1).strip() if a1.tagName == 'identifier' else valueOf(getArg(a1,1)).strip()
+            except AttributeError, exception:
+                assert False, 'pre(pre(x)) expression found'
+            # print 'trying to add {0}'.format(name)
+            return add2Preds(preds, name, valueOf(a2))
         elif s1 in ['or', 'and']:
             preds = getPredsInExpr(a1, preds)
             preds = getPredsInExpr(a2, preds)
