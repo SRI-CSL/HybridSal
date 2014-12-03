@@ -228,16 +228,23 @@ cc_modelica_hra_verifier: A Verifier for CyberComposition +
    Modelica models; Uses HybridSal Relational Abstracter
 
 Usage: python cc_modelica_hra_verifier.py <CC.xml> [<Modelica.xml>]  OR
-       cc_modelica_hra_verifier.exe <CC.xml> [<Modelica.xml>]
+       cc_modelica_hra_verifier.exe <CC.xml> [<Modelica.xml>] OR
+       cc_modelica_hra_verifier.exe <Modelica.xml> [property.json]
+       [--mapping file.json]
+
 
 Description: This tool analyzes all LTL properties in the CC.xml model, 
  after composing the controller CC.xml with the plan Modelica.xml. 
  Specifying the plant model, Modelica.xml, is optional.
  If both controller and plant are specified, and LTL properties are
  included in the controller model, then the output is a file called 
- CCModelica_sliceModelResults.txt containing the analysis results.
+ <CC>Modelica_sliceModelResults.txt containing the analysis results.
  If only the controller model is given, and it includes LTL properties,
- then the output is a file called CCResults.txt.'''
+ then the output is a file called <CC>Results.txt.
+ If only the modelica file is given, then the output file is called
+ <Modelica>ModelResults.txt
+ Optional argument mapping can be used to specify the name of the
+ modelicaURI2CyPhyMap file; default is modelicaURI2CyPhyMap.json.'''
 # ---------------------------------------------------------------------
 
 # ---------------------------------------------------------------------
