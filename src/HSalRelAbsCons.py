@@ -940,8 +940,9 @@ def absGuardedCommand(gc, inputs, basemod):
     guard = HSalXMLPP.getArg(guard,1)
     guardCopy = guard.cloneNode(True)
     if (opt & 0x4 != 0) :
-        primeguard = HSalPreProcess2.makePrime(guardCopy, inputs, basemod)
-        guardCopy = createNodeInfixApp('AND',guardCopy,primeguard)
+        primeguard = HSalPreProcess2.makePrimeWrap(guardCopy, inputs, basemod)
+        if primeguard != None:
+          guardCopy = createNodeInfixApp('AND',guardCopy,primeguard)
     absgc = absGuardedCommandAux(varlist,A,b,inputs)
     absguardnode = createNodeInfixApp('AND',guardCopy,absgc)
     absguard = createNodeTagChild('GUARD',absguardnode)

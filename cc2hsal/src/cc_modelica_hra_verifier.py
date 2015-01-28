@@ -391,16 +391,16 @@ def controllerplant2hsal(ccfilename, modfilename, opts):
     except Exception, e:
       print e
       print 'ERROR: Unable to translate CyberComposition XML to HybridSal'
-      return -1
+      return -1,-1
     if type(basefilename) != str:
       'ERROR: cc2hsal return value type: string expected'
-      return -1
+      return -1,-1
 
     # check if cc2hsal worked properly
     hsalCfile = basefilename + '.hsal'
     if not(os.path.isfile(hsalCfile) and os.path.getsize(hsalCfile) > 100):
       print 'ERROR: Unable to translate CyberComposition XML to HybridSal. Quitting.'
-      return -1
+      return -1,-1
     print 'Created file {0}'.format(hsalCfile)
 
     # hsalCfile = name of controller file, propNameList = property Names
@@ -443,7 +443,7 @@ def controllerplant2hsal(ccfilename, modfilename, opts):
       except Exception, e:
         print e
         print 'Error: Unable to create HybridSal file from Modelica XML'
-        return -1
+        return -1,-1
       if not(type(hsalPfile) == str and os.path.isfile(hsalPfile) and os.path.getsize(hsalPfile) > 100):
         print 'Warning: Slice is empty.'
       # this will create outfile == 'filenameModel.hsal'
@@ -469,7 +469,7 @@ def controllerplant2hsal(ccfilename, modfilename, opts):
           f = open(hsalfile, 'w')
         except Exception, e:
           print 'Failed to open {0} for writing merged file'.format(hsalfile)
-          return -1
+          return -1,-1
         print >> f, "{0}: CONTEXT =\nBEGIN\n".format(os.path.basename(hsalfile)[:-5])
         pNameModLTLL = merge_files(hsalp_str, hsalc_str, track_map, primaryModule, pNameModLTLL, f)
         print >> f, "END"
@@ -610,7 +610,7 @@ def plant2hsal(modfilename, propfilename, opts):
     except Exception, e:
       print e
       print 'Error: Unable to create HybridSal file from Modelica XML'
-      return -1
+      return -1,-1
     if not(type(hsalPfile) == str and os.path.isfile(hsalPfile) and os.path.getsize(hsalPfile) > 100):
         print 'Warning: Generated HybridSal file is empty.'
       # this will create outfile == 'filenameModel.hsal'
@@ -644,6 +644,10 @@ def main():
     else:
       propfilename = modfilename
       hsalfile, pNameModLTLL = plant2hsal(ccfilename, propfilename, sys.argv[2:])
+
+    if hsalfile == -1:
+      print 'Failed to create HybridSal file. Aborting.'
+      return -1
 
     # convert controller to SAL
     return hsal2end(hsalfile, pNameModLTLL)

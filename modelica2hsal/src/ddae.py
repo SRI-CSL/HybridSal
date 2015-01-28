@@ -128,7 +128,7 @@ def d_identifier_access(s, nodes):
 def d_IDENTIFIER(t, s, nodes):
     'IDENTIFIER :\
         "\\\\[^ ]+ " |\
-        "[a-zA-Z_$][a-zA-Z_0-9]*" '
+        "[a-zA-Z_$][a-zA-Z_0-9$]*" '
     return s[0]
 
 def d_ACCESS(s, nodes):

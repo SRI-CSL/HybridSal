@@ -976,6 +976,7 @@ def parse_gain(ins, outs, params):
 
 def parse_SFunction(ins, outs, params, lines, subsystems, xmlnode):
   def parse_actions( action_str, symtab, flag=True ):
+    # print 'parsing actions ', action_str
     actions = action_str.split(';')
     ans = {}
     for j in actions:

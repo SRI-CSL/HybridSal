@@ -290,6 +290,7 @@ def getMathMLcloneEqn(node, backup_val):
         args = getArgs(eml)
         op = args[0]
         assert op.tagName == 'equivalent', 'Expecting equivalent, found {0}'.format(eml.toprettyxml())
+        assert len(args) == 3, 'Error: Ill-formed equation found: {0}'.format(eml.toprettyxml())
         return (args[1], args[2])
 
     def topleveleqn(mathmleqn):

@@ -119,11 +119,7 @@ def getInputs(basemod):
             inputs.append(HSalXMLPP.valueOf(j))
     return inputs
 
-def makePrime(expr, inputs, basemodule):
-    """Replace var by var' in expr"""
-    # first get the types of all variables from dom
-    if inputs == None:
-        inputs = getInputs(basemodule)
+def getallreals(basemodule):
     vdecls = basemodule.getElementsByTagName('VARDECL')
     allRealVars = list()
     for i in vdecls:
@@ -135,6 +131,15 @@ def makePrime(expr, inputs, basemodule):
             varname = HSalXMLPP.valueOf(varnames[0])
             if typename == 'REAL':
                 allRealVars.append(varname)
+    return allRealVars
+
+def makePrime(expr, inputs, basemodule, allRealVars=None):
+    """Replace var by var' in expr"""
+    # first get the types of all variables from dom
+    if inputs == None:
+        inputs = getInputs(basemodule)
+    if allRealVars == None:
+        allRealVars = getallreals(basemodule)
     # now allRealVars has names of all REAL variables in the CONTEXT
     ans = expr.cloneNode(True)
     # get all NAMEEXPR nodes; if its parent is TUPLELITERAL then add prime to it
@@ -152,6 +157,36 @@ def makePrime(expr, inputs, basemodule):
         primeVar = xmlHelpers.createNodeTagChild("NEXTOPERATOR", icopy)
         parentNode.replaceChild(oldChild=i, newChild=primeVar)
     return ans
+
+def makePrimeWrap(expr, inputs, basemodule, allRealVars=None):
+    """Replace var by var' in expr; if subexpr already has primes, ignore it"""
+    if inputs == None:
+      inputs = getInputs(basemodule)
+    if allRealVars == None:
+      allRealVars = getallreals(basemodule)
+    if expr.tagName == 'APPLICATION':
+      op = getArg(expr, 1)
+      name = HSalXMLPP.valueOf(op)
+      if name == 'AND':
+        args = getArg(expr, 2)   # TUPLELITERAL
+        arg1 = getArg(args, 1)
+        arg2 = getArg(args, 2)
+        narg1 = makePrimeWrap(arg1, inputs, basemodule, allRealVars)
+        narg2 = makePrimeWrap(arg2, inputs, basemodule, allRealVars)
+        if narg1 == None and narg2 == None:
+          return None
+        elif narg1 == None:
+          return narg2
+        elif narg2 == None:
+          return narg1
+        else:
+          return createNodeAnd([ narg1, narg2 ])
+      else:
+        nexts = expr.getElementsByTagName('NEXTOPERATOR')
+        if nexts != None and len(nexts) > 0:
+          return None
+        else:
+          return makePrime(expr, inputs, basemodule, allRealVars)
 
 def handleBasemoduleInvarDecl(basemod):
     """<INVARDECL> \phi </INVARDECL> is removed and 

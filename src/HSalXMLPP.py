@@ -91,7 +91,7 @@ def HSalPPInfixApp(node,outerSymb=None):
     str2 = getNameTag(node, 'NAMEEXPR')
     str1 = HSalPPExpr(appArg(node,1),outerSymb=str2)
     str3 = HSalPPExpr(appArg(node,2),outerSymb=str2)
-    if higherPrec(outerSymb,str2):
+    if higherPrec(outerSymb,str2) or node.getAttribute('PARENS')=='1':
         ans = "("+str1+" "+str2+" "+str3+")"
     else:
         ans = str1+" "+str2+" "+str3
