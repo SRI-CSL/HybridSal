@@ -1,0 +1,29 @@
+PuriVaraiya: CONTEXT = 
+BEGIN
+
+control: MODULE =
+BEGIN
+LOCAL gap, vi, vf, ai, time: REAL
+INPUT af: REAL
+INITIALIZATION
+ time = 0;
+ ai  IN {x:REAL | -5 <= x AND x <= 2};
+ vi  IN {x:REAL | 0 <= x AND x <= 30};
+ vf  IN {x:REAL | 0 <= x AND x <= 30};
+ gap IN {x:REAL | x >= 5 AND ((vi >= vf AND x - 10 - (vi - vf) - 0.1 * (vi - vf) * 60 >= 0) OR (vi <= vf AND x - 10 - (vi-vf) - 0.1 *(vi-vf)* 0 >= 0))};
+
+TRANSITION
+[
+vf >= 0 AND vi >= 0 AND af >= -5 AND af <= 2 AND ai >= -5 AND ai <= 2 --> 
+  aidot' = -3*ai - 3*(vi - vf) + gap - (vi + 10) ;
+  vidot' = ai ;
+  gapdot' = vf - vi ;
+  vfdot' = af;
+  timedot' = 1;
+]
+END;
+
+correct : THEOREM
+control |- G(gap >= 0);
+
+END

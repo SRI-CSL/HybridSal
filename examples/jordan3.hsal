@@ -1,0 +1,35 @@
+% x(t) = t*cos(w*t) 
+% dx/dt = cos(wt) - t sin(wt) = cos(wt) - y
+% d (t sin(wt))/dt = sin(wt) + t cos(wt) = sin(wt) + x
+% dx/dt = u - y; dy/dt = v + x; du/dt = -v; dv/dt= u
+jordan3: CONTEXT = 
+BEGIN
+
+product (x:REAL,y:REAL,z:REAL) : BOOLEAN  = 
+ IF y = 0 OR z = 0 THEN x = 0 ELSE IF y > 0 THEN (x > 0 AND loglb(x) <= logub(y) + logub(z) AND logub(x) >= loglb(y) + loglb(z)) ELSE (x < 0 AND loglb(-(x)) <= logub(-(y)) + logub(z) AND logub(-(x)) >= loglb(-(y)) + loglb(z)) ENDIF  ENDIF  ;
+
+control: MODULE =
+BEGIN
+LOCAL x, y, u, v, time: REAL
+INITIALIZATION
+ time = 0;
+ x = 0;
+ y = 0;   % v IN {x:REAL | 0 <= x AND x <= 5};
+ u = 1; v = 0;
+
+TRANSITION
+[
+ product(x, u, time) AND product(y, v, time) -->
+  % dx/dt = u - y; dy/dt = v + x; du/dt = -v; dv/dt= u
+  xdot' = u - y;
+  ydot' = v + x;
+  udot' = -v;
+  vdot' = u;
+  timedot' = 1;
+]
+END;
+
+correct : THEOREM
+control |- G( time < 3 => x < 10 );
+
+END

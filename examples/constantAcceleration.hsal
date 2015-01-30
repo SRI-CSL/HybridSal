@@ -1,0 +1,31 @@
+constantAcceleration: CONTEXT = 
+BEGIN
+
+product (x:REAL,y:REAL,z:REAL) : BOOLEAN  =
+ IF y = 0 OR z = 0 THEN x = 0
+ ELSIF y > 0 THEN (x > 0 AND loglb(x) <= logub(y)+logub(z) AND logub(x) >= loglb(y)+loglb(z))
+ ELSE  (x < 0 AND loglb(-x) <= logub(-y)+logub(z) AND logub(-x) >= loglb(-y)+loglb(z))
+ ENDIF ;
+
+control: MODULE =
+BEGIN
+LOCAL x, v, time: REAL
+INPUT a: REAL
+INITIALIZATION
+ time = 0;
+ v IN {x:REAL | 0 <= x AND x <= 5};
+ x IN {x:REAL | 0 <= x AND x <= 1};
+
+TRANSITION
+[
+v >= 0 AND a >= -5 AND a <= 2 AND product(v'-v, a, time'-time) AND product((x'-x)/10, (v+v')/20, time'-time) --> 
+  xdot' = v;
+  vdot' = a;
+  timedot' = 1;
+]
+END;
+
+correct : THEOREM
+control |- G( time < 3 => x < 32 );
+
+END

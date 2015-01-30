@@ -1,0 +1,29 @@
+jordan2: CONTEXT = 
+BEGIN
+
+product2(x:REAL,y:REAL,z:REAL) : BOOLEAN  =
+ IF z = 0 THEN x = 0
+ ELSE  (x > 0 AND loglb(x) <= y+logub(z) AND logub(x) >= y+loglb(z))
+ ENDIF ;
+
+control: MODULE =
+BEGIN
+LOCAL x, y, time: REAL
+INITIALIZATION
+ time = 0;
+ x = 0;
+ y = 1;   % v IN {x:REAL | 0 <= x AND x <= 5};
+
+TRANSITION
+[
+ product2(x', time-time', time'-time) -->
+  xdot' = -x + y;
+  ydot' = -y;
+  timedot' = 1;
+]
+END;
+
+correct : THEOREM
+control |- G( x < 3 );
+
+END
