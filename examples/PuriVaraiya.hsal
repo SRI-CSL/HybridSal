@@ -1,6 +1,12 @@
 PuriVaraiya: CONTEXT = 
 BEGIN
 
+product (x:REAL,y:REAL,z:REAL) : BOOLEAN  =
+ IF y = 0 OR z = 0 THEN x = 0
+ ELSIF y > 0 THEN (x > 0 AND loglb(x) <= logub(y)+logub(z) AND logub(x) >= loglb(y)+loglb(z))
+ ELSE  (x < 0 AND loglb(-x) <= logub(-y)+logub(z) AND logub(-x) >= loglb(-y)+loglb(z))
+ ENDIF ;
+
 control: MODULE =
 BEGIN
 LOCAL gap, vi, vf, ai, time: REAL
@@ -14,7 +20,7 @@ INITIALIZATION
 
 TRANSITION
 [
-vf >= 0 AND vi >= 0 AND af >= -5 AND af <= 2 AND ai >= -5 AND ai <= 2 --> 
+vf >= 0 AND vi >= 0 AND af >= -5 AND af <= 2 AND ai >= -5 AND ai <= 2 AND product(vf'-vf, af, time'-time) --> 
   aidot' = -3*ai - 3*(vi - vf) + gap - (vi + 10) ;
   vidot' = ai ;
   gapdot' = vf - vi ;
@@ -24,6 +30,6 @@ vf >= 0 AND vi >= 0 AND af >= -5 AND af <= 2 AND ai >= -5 AND ai <= 2 -->
 END;
 
 correct : THEOREM
-control |- G(gap >= 0);
+control |- G(gap >= 0 OR vi <= vf);
 
 END

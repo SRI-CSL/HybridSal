@@ -1,3 +1,4 @@
+% y(t) = y(0)e^{-t}; x(t) = (y(0) t + x(0)) * e^(-t)
 jordan2: CONTEXT = 
 BEGIN
 

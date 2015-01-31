@@ -1,0 +1,45 @@
+% y(t) = y(0)e^{-t}; x(t) = (y(0) t + x(0)) * e^(-t)
+% Model:  x(0) = x_1 + x_2 where x_1 = y(0) t e^-5 and x_2 = x(0) e^-t
+jordan2InitSet: CONTEXT = 
+BEGIN
+
+% x = e^y * z 
+product2(x:REAL,y:REAL,z:REAL) : BOOLEAN  =
+ IF z = 0 THEN x = 0
+ ELSIF z > 0 THEN  (x > 0 AND loglb(x) <= y+logub(z) AND logub(x) >= y+loglb(z))
+ ELSE (x < 0 AND loglb(-x) <= y+logub(-z) AND logub(-x) >= y+loglb(-z))
+ ENDIF ;
+
+% x = e^y * z * w ; assuming z >= 0
+product3(x:REAL,y:REAL,z:REAL,w:REAL) : BOOLEAN  =
+ IF z = 0 OR w = 0 THEN x = 0
+ ELSIF w > 0 THEN  (x > 0 AND loglb(x) <= y+logub(z)+logub(w) AND logub(x) >= y+loglb(z)+loglb(w))
+ ELSE  (x < 0 AND loglb(-x) <= y+logub(z)+logub(-w) AND logub(-x) >= y+loglb(z)+loglb(-w))
+ ENDIF ;
+
+control: MODULE =
+BEGIN
+LOCAL x, y, time: REAL
+LOCAL part1, part2: REAL
+INITIALIZATION
+ part1 = 0; part2 = 0;
+ time = 0;
+ x IN {z:REAL | 0 <= z AND z <= 1};
+ y IN {z:REAL | 1 <= z AND z <= 5};   % v IN {x:REAL | 0 <= x AND x <= 5};
+
+TRANSITION
+[
+ x' = part1' + part2' AND product3(part1', time-time', time'-time, y) AND product2(part2', time-time', x) -->
+  xdot' = -x + y;
+  ydot' = -y;
+  timedot' = 1;
+  part1' IN {z: REAL | TRUE};
+  part2' IN {z: REAL | TRUE};
+]
+END;
+
+% x < 5/e ? 6/e?
+correct : THEOREM
+control |- G( x < 3 );
+
+END
