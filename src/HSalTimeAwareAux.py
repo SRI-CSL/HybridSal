@@ -37,7 +37,8 @@ def createExpTimeBnd1( m ):
 
 def createExpTimeBnd2( m ):
     ans = "expTimeBnd2(x:REAL, y:REAL, z:REAL): BOOLEAN =\n"
-    ans+= " (x < {0} OR y < {0} OR z <= logub(x) - loglb(y));\n\n".format(mystr(math.exp(-m)))
+    # ans+= " (x < {0} OR y < {0} OR z <= logub(x) - loglb(y));\n\n".format(mystr(math.exp(-m)))
+    ans+= " (y < {0} OR z <= logub(x) - loglb(y));\n\n".format(mystr(math.exp(-m)))
     return ans
 
 def createEigenInvTime():
