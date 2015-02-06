@@ -1,0 +1,81 @@
+% How to run the example?
+% First construct an abstraction:
+% python src/HSalRelAbsCons.py -ta time,3,3,2 examples/cav15_real_jordan4.hsal
+% Then, model check (depth 1 is sufficient because relational abstractions are infinite horizon
+% sal-inf-bmc -d 1 cav15_real_jordan4 correct
+% sal-inf-bmc -d 1 cav15_real_jordan4 wrong
+
+% Real eigenvalue = -1; Jordan block size = 4;
+% Solution: y(t) = y(0)e^{-t}; x(t) = (y(0)t+x(0))*e^(-t); w(t) = (w(0)+tx(0)+t^2y(0)/2)e^-t
+% v(t) = (v(0)+w(0)t+x(0)tt/2+y(0)ttt/6)e^-t
+cav15_real_jordan4: CONTEXT = 
+BEGIN
+
+% x = e^y IF z > 0 ELSE -e^y
+myexp(x:REAL, y:REAL, z:REAL, t:REAL): BOOLEAN = 
+ IF z = 0 OR t = 0 THEN x = 0
+ ELSIF z > 0 THEN loglb(x) <= y AND logub(x) >= y 
+ ELSE loglb(-x) <= y AND logub(-x) >= y  ENDIF ;
+ 
+% x = ln(y)
+mylog(x:REAL, y:REAL): BOOLEAN = 
+ IF y = 0 THEN x = 0
+ ELSIF y > 0 THEN x >= loglb(y) AND x <= logub(y) 
+ ELSE x >= loglb(-y) AND x <= logub(-y) ENDIF ;
+
+control: MODULE =
+BEGIN
+LOCAL v, w, x, y, time: REAL
+LOCAL logv, logw, logx,logy,logtime: REAL	% logs of the OLD values
+LOCAL px1, px2, pw1, pw2, pw3, pv1, pv2, pv3, pv4: REAL
+INITIALIZATION
+ time = 0;
+ v IN {z:REAL | 0 <= z AND z <= 1 };
+ w IN {z:REAL | 1 <= z AND z <= 5 };
+ x IN {z:REAL | 1 <= z AND z <= 5};
+ y IN {z:REAL | 1 <= z AND z <= 5};   % v IN {x:REAL | 0 <= x AND x <= 5};
+
+TRANSITION
+[
+ mylog(logv', v) AND
+ mylog(logw', w) AND
+ mylog(logx', x) AND
+ mylog(logy', y) AND
+ mylog(logtime', time'-time) AND
+ x' = px1' + px2' AND 
+ myexp(px1', logx' - time' + time, x, 1) AND
+ myexp(px2', logy' + logtime' - time' + time, y, time'-time) AND
+ w' = pw1' + pw2' + pw3' AND
+ myexp(pw1', logw' - time' + time, w, 1) AND
+ myexp(pw2', logx' + logtime' - time' + time, x, time'-time) AND
+ myexp(pw3', logy' + 2*logtime' - 0.693 - time' + time, y, time'-time) AND
+ v' = pv1' + pv2' + pv3' + pv4' AND
+ myexp(pv1', logv' - time' + time, v, 1) AND
+ myexp(pv2', logw' + logtime' - time' + time, w, time'-time) AND
+ myexp(pv3', logx' + 2*logtime' - 0.693 - time' + time, x, time'-time) AND
+ myexp(pv4', logy' + 3*logtime' - 1.791 - time' + time, y, time'-time) -->
+  vdot' = -v + w;
+  wdot' = -w + x;
+  xdot' = -x + y;
+  ydot' = -y;
+  timedot' = 1;
+  px1' IN {z:REAL | TRUE};
+  px2' IN {z:REAL | TRUE};
+  pw1' IN {z:REAL | TRUE};
+  pw2' IN {z:REAL | TRUE};
+  pw3' IN {z:REAL | TRUE};
+  pv1' IN {z:REAL | TRUE};
+  pv2' IN {z:REAL | TRUE};
+  pv3' IN {z:REAL | TRUE};
+  pv4' IN {z:REAL | TRUE};
+]
+END;
+
+% sal-inf-bmc -d 1 cav15_real_jordan3 correct
+correct : THEOREM
+control |- G( v < 4.5 );		% upper-bound is around 3.8 I think
+
+% sal-inf-bmc -d 1 cav15_real_jordan3 wrong
+wrong : THEOREM
+control |- G( v < 3 ) ;
+END

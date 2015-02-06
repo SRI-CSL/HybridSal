@@ -1,0 +1,90 @@
+% Create an abstraction using:
+%   python src/HSalRelAbsCons.py -ta time,5,5,3 examples/cav15_complex_jordan6.hsal
+% Verify the property using the command:
+%   sal-inf-bmc -d 1 cav15_complex_jordan6 correct
+%
+% A = [ Im I 0; 0 Im I ; 0 0 Im ]; where Im = [-1 -1; 1 -1]; I = 2x2 identity matrix
+% Solution is: 
+% x = exp(-t) * [ a cos(t) - b sin(t) ]
+% y = exp(-t) * [ a sin(t) + b cos(t) ]
+% u = exp(-t) * [(c+at) cos(t) - (d+bt)sin(t)]
+% v = exp(-t) * [(c+at) sin(t) + (d+bt)cos(t)]
+% a = x(0), b = y(0), c = u(0), d = v(0)
+cav15_complex_jordan6: CONTEXT = 
+BEGIN
+
+% x = e^y IF z > 0 ELSE -e^y
+myexp(x:REAL, y:REAL, z:REAL, t:REAL): BOOLEAN = 
+ IF z = 0 OR t = 0 THEN x = 0
+ ELSIF z > 0 THEN loglb(x) <= y AND logub(x) >= y 
+ ELSE loglb(-x) <= y AND logub(-x) >= y  ENDIF ;
+ 
+% x = ln(y)
+mylog(x:REAL, y:REAL): BOOLEAN = 
+ IF y = 0 THEN x = 0
+ ELSIF y > 0 THEN x >= loglb(y) AND x <= logub(y) 
+ ELSE x >= loglb(-y) AND x <= logub(-y) ENDIF ;
+
+product (x:REAL,y:REAL,z:REAL) : BOOLEAN  = 
+ IF y = 0 OR z = 0 THEN x = 0 ELSE IF y > 0 THEN (x > 0 AND loglb(x) <= logub(y) + logub(z) AND logub(x) >= loglb(y) + loglb(z)) ELSE (x < 0 AND loglb(-(x)) <= logub(-(y)) + logub(z) AND logub(-(x)) >= loglb(-(y)) + loglb(z)) ENDIF  ENDIF  ;
+
+control: MODULE =
+BEGIN
+LOCAL x, y, u, v, r, s, time: REAL
+LOCAL logx, logy, logtime: REAL %% logu, logv, logtime: REAL
+LOCAL logu, logv: REAL %% logu, logv, logtime: REAL
+LOCAL prmod1, prmod2, psmod1, psmod2: REAL
+LOCAL pumod, pvmod : REAL
+INITIALIZATION
+ time = 0;
+ x IN {z:REAL| 0 <= z AND z <= 2};
+ y IN {z:REAL| 0 <= z AND z <= 2};
+ u IN {z:REAL| 0 <= z AND z <= 1};
+ v IN {z:REAL| 0 <= z AND z <= 1};
+ r IN {z:REAL| 0 <= z AND z <= 1};
+ s IN {z:REAL| 0 <= z AND z <= 1};
+ % Old x=1,y = 0; u=1,v=0  % v IN {x:REAL | 0 <= x AND x <= 5};
+
+TRANSITION
+[
+ % u'^2+v'^2 = [(u+x(0)t)^2+(v+y(0)t)^2] exp(-t)  since lambda = -1
+ % 
+ mylog(logu', u) AND
+ mylog(logv', v) AND
+ mylog(logx', x) AND
+ mylog(logy', y) AND
+ mylog(logtime', time'-time) AND
+ myexp(pumod', logx' + logtime', x, time'-time) AND
+ myexp(pvmod', logy' + logtime', y, time'-time) AND
+ quadInvModTime(u', v', u+pumod', v+pvmod', 1, time, time') AND
+ % r'^2+s'^2 = [(r+ut+0.5xtt)^2 + (s+vt+ytt)^2] exp(-t)
+ myexp(prmod1', logu' + logtime', u, time'-time) AND
+ myexp(psmod1', logv' + logtime', v, time'-time) AND
+ myexp(prmod2', logx' + 2*logtime' - 0.693, x, time'-time) AND
+ myexp(psmod2', logy' + 2*logtime' - 0.693, y, time'-time) AND
+ quadInvModTime(r', s', r+prmod1'+prmod2', s+psmod1'+psmod2', 1, time, time') -->
+ %quadInvModTime(u+pumod', v+pvmod', u', v', -1, time, time')  -->
+  % Ignore information in PHASE for now
+  % dx/dt = u - y; dy/dt = v + x; du/dt = -v; dv/dt= u
+  rdot' = -r -s + u;
+  sdot' = r - s + v;
+  udot' = -u-v + x;
+  vdot' = -v+u + y;
+  xdot' = -x-y;
+  ydot' = x-y;
+  timedot' = 1;
+]
+END;
+
+correctold : THEOREM
+control |- G( time < 3 => x < 10 );
+
+% u = exp(-t) * [(c+at) cos(t) - (d+bt)sin(t)]
+% where a = x(0), b = y(0), c = u(0), d = v(0)
+correct : THEOREM
+control |- G( time < 5 => r < 3.5 );		% r <= 2.1 I think
+
+wrong: THEOREM
+control |- G( time < 5 => r < 2 );
+
+END

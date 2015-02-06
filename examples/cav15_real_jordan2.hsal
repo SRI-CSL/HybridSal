@@ -1,0 +1,59 @@
+% How to run the example?
+% First construct an abstraction:
+% python src/HSalRelAbsCons.py -ta time,3,3,2 examples/cav15_real_jordan3.hsal
+% Then, model check (depth 1 is sufficient because relational abstractions are infinite horizon
+% sal-inf-bmc -d 1 cav15_real_jordan2 correct
+% sal-inf-bmc -d 1 cav15_real_jordan2 wrong
+
+% Real eigenvalue = -1; Jordan block size = 3;
+% Solution: y(t) = y(0)e^{-t}; x(t) = (y(0)t+x(0))*e^(-t); w(t) = (w(0)+tx(0)+t^2y(0)/2)e^-t
+cav15_real_jordan2: CONTEXT = 
+BEGIN
+
+% x = e^y IF z > 0 ELSE -e^y
+myexp(x:REAL, y:REAL, z:REAL, t:REAL): BOOLEAN = 
+ IF z = 0 OR t = 0 THEN x = 0
+ ELSIF z > 0 THEN loglb(x) <= y AND logub(x) >= y 
+ ELSE loglb(-x) <= y AND logub(-x) >= y  ENDIF ;
+ 
+% x = ln(y)
+mylog(x:REAL, y:REAL): BOOLEAN = 
+ IF y = 0 THEN x = 0
+ ELSIF y > 0 THEN x >= loglb(y) AND x <= logub(y) 
+ ELSE x >= loglb(-y) AND x <= logub(-y) ENDIF ;
+
+control: MODULE =
+BEGIN
+LOCAL x, y, time: REAL
+LOCAL logx,logy,logtime: REAL	% logs of the OLD values
+LOCAL px1, px2: REAL
+INITIALIZATION
+ time = 0;
+ x IN {z:REAL | 0 <= z AND z <= 1};
+ y IN {z:REAL | 1 <= z AND z <= 5};   % v IN {x:REAL | 0 <= x AND x <= 5};
+
+TRANSITION
+[
+ mylog(logx', x) AND
+ mylog(logy', y) AND
+ mylog(logtime', time'-time) AND
+ x' = px1' + px2' AND 
+ myexp(px1', logx' - time' + time, x, 1) AND
+ myexp(px2', logy' + logtime' - time' + time, y, time'-time)  -->
+  xdot' = -x + y;
+  ydot' = -y;
+  timedot' = 1;
+  px1' IN {z:REAL | TRUE};
+  px2' IN {z:REAL | TRUE};
+]
+END;
+
+% x < 5/e ? 6/e?
+% sal-inf-bmc -d 1 cav15_real_jordan3 correct
+correct : THEOREM
+control |- G( x < 2.7 );
+
+% sal-inf-bmc -d 1 cav15_real_jordan3 wrong
+wrong : THEOREM
+control |- G( x < 1.5 ) ;
+END

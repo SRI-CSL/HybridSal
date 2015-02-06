@@ -1,0 +1,69 @@
+% How to run the example?
+% First construct an abstraction:
+% python src/HSalRelAbsCons.py -ta time,3,3,2 examples/cav15_real_jordan3.hsal
+% Then, model check (depth 1 is sufficient because relational abstractions are infinite horizon
+% sal-inf-bmc -d 1 cav15_real_jordan3 correct
+% sal-inf-bmc -d 1 cav15_real_jordan3 wrong
+
+% Real eigenvalue = -1; Jordan block size = 3;
+% Solution: y(t) = y(0)e^{-t}; x(t) = (y(0)t+x(0))*e^(-t); w(t) = (w(0)+tx(0)+t^2y(0)/2)e^-t
+cav15_real_jordan3: CONTEXT = 
+BEGIN
+
+% x = e^y IF z > 0 ELSE -e^y
+myexp(x:REAL, y:REAL, z:REAL, t:REAL): BOOLEAN = 
+ IF z = 0 OR t = 0 THEN x = 0
+ ELSIF z > 0 THEN loglb(x) <= y AND logub(x) >= y 
+ ELSE loglb(-x) <= y AND logub(-x) >= y  ENDIF ;
+ 
+% x = ln(y)
+mylog(x:REAL, y:REAL): BOOLEAN = 
+ IF y = 0 THEN x = 0
+ ELSIF y > 0 THEN x >= loglb(y) AND x <= logub(y) 
+ ELSE x >= loglb(-y) AND x <= logub(-y) ENDIF ;
+
+control: MODULE =
+BEGIN
+LOCAL w, x, y, time: REAL
+LOCAL logw, logx,logy,logtime: REAL	% logs of the OLD values
+LOCAL px1, px2, pw1, pw2, pw3: REAL
+INITIALIZATION
+ time = 0;
+ w IN {z:REAL | -1 <= z AND z <= -0.1 };
+ x IN {z:REAL | 0 <= z AND z <= 1};
+ y IN {z:REAL | 1 <= z AND z <= 5};   % v IN {x:REAL | 0 <= x AND x <= 5};
+
+TRANSITION
+[
+ mylog(logw', w) AND
+ mylog(logx', x) AND
+ mylog(logy', y) AND
+ mylog(logtime', time'-time) AND
+ x' = px1' + px2' AND 
+ myexp(px1', logx' - time' + time, x, 1) AND
+ myexp(px2', logy' + logtime' - time' + time, y, time'-time) AND
+ w' = pw1' + pw2' + pw3' AND
+ myexp(pw1', logw' - time' + time, w, 1) AND
+ myexp(pw2', logx' + logtime' - time' + time, x, time'-time) AND
+ myexp(pw3', logy' + 2*logtime' - 0.693 - time' + time, y, time'-time) -->
+  wdot' = -w + x;
+  xdot' = -x + y;
+  ydot' = -y;
+  timedot' = 1;
+  px1' IN {z:REAL | TRUE};
+  px2' IN {z:REAL | TRUE};
+  pw1' IN {z:REAL | TRUE};
+  pw2' IN {z:REAL | TRUE};
+  pw3' IN {z:REAL | TRUE};
+]
+END;
+
+% w <= 1.62 
+% sal-inf-bmc -d 1 cav15_real_jordan3 correct
+correct : THEOREM
+control |- G( w < 1.9 );
+
+% sal-inf-bmc -d 1 cav15_real_jordan3 wrong
+wrong : THEOREM
+control |- G( w < 1.5 ) ;
+END
