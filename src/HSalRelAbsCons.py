@@ -296,7 +296,7 @@ def createNodeApp(funName, argList, infix=True):
     return ans
 
 def createModNode():
-    """mod(x:REAL):REAL = if x < 0 THEN -x ELSE x endif"""
+    """abs(x:REAL):REAL = if x < 0 THEN -x ELSE x endif"""
     fname = createNodeTag("IDENTIFIER", "abs")
     vardecl = createNodeVarType("a", "REAL")
     fparams = createNodeTagChild("VARDECLS", vardecl)
@@ -1039,10 +1039,14 @@ def hxml2sal(xmlfilename, optarg = 0, timearg = None, ptf=False):
     global dom
     global opt
     global time
+    global gen_sally
     opt = optarg
     time = timearg
     basename,ext = os.path.splitext(xmlfilename)
-    absSalFile = basename + ".sal"
+    if gen_sally:
+        absSalFile = basename + ".mcmt"
+    else:
+        absSalFile = basename + ".sal"
     if existsAndNew(absSalFile, xmlfilename):
       print 'Reusing existing abstract SAL file.'
       return absSalFile, True
@@ -1075,7 +1079,10 @@ def hxml2sal(xmlfilename, optarg = 0, timearg = None, ptf=False):
     print "Created file %s containing the abstract model" % absSalFile
     assertions = ctxt.getElementsByTagName("ASSERTIONDECLARATION")
     p1_exists = (assertions != None and len(assertions) > 0)
-    return absSalFile, p1_exists
+    if p1_exists:
+        return 0
+    else:
+        return 1
 
 def existsAndNew(filename1, filename2):
     if os.path.isfile(filename1) and os.path.getmtime(filename1) >= os.path.getmtime(filename2):
@@ -1216,6 +1223,7 @@ def main():
     global dom
     global opt
     global time
+    global gen_sally
     opt = 0
     time = None
     args = sys.argv[1:]
@@ -1257,6 +1265,7 @@ def main():
             print "-t|--time should be followed by a float"
             printUsage()
             return 1
+    gen_sally = ('-sally' in args) | ('--sally' in args)
     ptf = ('-ptf' in args) | ('--preserve-tmp-files' in args)
     if ('-ta' in args) | ('--timeaware' in args) :
         opt |= 0x20
