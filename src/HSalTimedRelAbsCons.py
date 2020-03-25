@@ -39,14 +39,14 @@ def parseSchedule():
         plantName = schedPeriodMap[0]
         samplingPeriod = float(schedPeriodMap[1])
         schedDict[plantName] = samplingPeriod
-        print '\nSampling Period = ' + str(samplingPeriod)
+        print('\nSampling Period = ' + str(samplingPeriod))
       else:
-        print "error: incorrect format of sched"
-        print "correct format::"
-        print "plant_name<space>freq<\\n>"
-        print "plant_name freq"
-        print "..."
-        print "plant_name freq"
+        print("error: incorrect format of sched")
+        print("correct format::")
+        print("plant_name<space>freq<\\n>")
+        print("plant_name freq")
+        print("...")
+        print("plant_name freq")
     return schedDict
 
 
@@ -57,7 +57,7 @@ def getT(plantName):
   try:
     return schedDict[plantName]
   except:
-    print "error: plant %s not found in sched file" %plantName
+    print("error: plant %s not found in sched file" %plantName)
 
 def isNumZero(x):
   #numerical tolerance to handle floating point issues
@@ -95,7 +95,7 @@ def getMatE(mat, r, c):
 def convertToSal2(varlist, evsMatT, ls, D, t):
   n = len(ls)
   if n != len(varlist):
-    print 'length of eigen vectors don\'t the length of X !!?? '
+    print('length of eigen vectors don\'t the length of X !!?? ')
   #each element of this nested list is an eigen vector
   evsTL = evsMatT.tolist()
   i = 0
@@ -117,7 +117,7 @@ def convertToSal2(varlist, evsMatT, ls, D, t):
     pd = '(' + p + '+ ' + str(D[i]) + ')'
     rel = pdot + '= ' + coeffStr(elt,pd) + '\n'
     i = i + 1
-    print rel
+    print(rel)
 #DEAD
 def plantRetType(varlist):
   s = '% plant return type\nA record of all plant output variables\n'
@@ -184,9 +184,9 @@ def convertToSal(varlist, eAT):
 def matrixExp(matA,t):
   matAT = matA * t
   eAT = scipy.linalg.expm(matAT) #using Pade approximation, default order = 7
-  print "Abstraction Matrix"
-  print matAT
-  print ""
+  print("Abstraction Matrix")
+  print(matAT)
+  print("")
   #get X(0)
   #X0 = [0.0 for i in range(len(initVarDict))]
   #for var in varlist:
@@ -231,7 +231,7 @@ def timedRelAbs(varlist,matA,matB,t):
   ls,evs = linalg.eig(matAT)
   for li in ls:
     if isNumZero(li.imag) and isNumZero(li.real):
-      print 'warning: one eigen value ~ 0!'
+      print('warning: one eigen value ~ 0!')
       zc = zc + 1
     elif isNumZero(li.imag) and not isNumZero(li.real):
       real_ls.append(li.real)
@@ -240,25 +240,25 @@ def timedRelAbs(varlist,matA,matB,t):
     #elif li.imag != 0 and li.real != 0:
     else:
       complx_ls.append(li)
-      print 'warning:complex eigen value found!'
+      print('warning:complex eigen value found!')
   
   #detectDupEig()
 
 #  if len(complx_ls) == 0 and len(imag_ls) == 0:    
 #    convertToSal(varlist,evs)
-  print 'varlist'
-  print varlist
-  print 'matA'
-  print matA
-  print 'matB'
-  print matB
+  print('varlist')
+  print(varlist)
+  print('matA')
+  print(matA)
+  print('matB')
+  print(matB)
 
-  print '========================'
-  print 'eigen vals'
-  print ls
-  print 'eigen vectors'
-  print evs
-  print '========================'
+  print('========================')
+  print('eigen vals')
+  print(ls)
+  print('eigen vectors')
+  print(evs)
+  print('========================')
 
 #calculate D = (CT)B/(,\)
 #for that we find CT[i]
@@ -270,9 +270,9 @@ def timedRelAbs(varlist,matA,matB,t):
     tmpMat = (evsMatT[i]*matB)/ls[i]
     D[i] = getMatE(tmpMat,0,0)
     if D[i] == numpy.inf or D[i] == -numpy.inf:
-      print 'warning: D = nz/(,\=0) \n will ommit eqn'
+      print('warning: D = nz/(,\=0) \n will ommit eqn')
     elif numpy.isnan(D[i]):
-      print 'warning D = 0/0, assigning D = 0'
+      print('warning D = 0/0, assigning D = 0')
       D[i] = 0.0
     else:
       pass
@@ -305,7 +305,7 @@ def writeIntermedFile(relAbs, varTypeDict):
     s += '\noutputs:\n' + opStr
     s += '\nplant_def:\n' + relAbs
     s += tl
-    print s
+    print(s)
     fp.write(s)
 
 def solutionAbs(varTypeDict,varlist,matA,matB,t):
@@ -324,9 +324,9 @@ def HSalPPSimpleDefn(node):
         rhsVal = float(HSalXMLPP.HSalPPExprs(rhsexpr[0].childNodes))
         return (lhsVar, rhsVal)
       except:
-        print "init expr rhs is not a number"
+        print("init expr rhs is not a number")
     else:
-      print "init expr not of the form lhs = rhs"
+      print("init expr not of the form lhs = rhs")
     return
 
 def HSalPPAssgns(assgns):
@@ -340,13 +340,13 @@ def HSalPPAssgns(assgns):
 def getDecls(basemod, declTag):
   declNodes = basemod.getElementsByTagName(declTag)
   if len(declNodes) <= 0:
-    print 'Warning: no '+declTag+' in plant'
+    print('Warning: no '+declTag+' in plant')
     declList = []
   else:    
     for node in declNodes:
       declList = HSalPPDecls(node.childNodes)
-    print declTag
-    print declList
+    print(declTag)
+    print(declList)
   return declList
 
 def HSalPPBaseModule(basemod):
@@ -428,13 +428,13 @@ def fixVarlist(flowi, varlist, varTypeDict):
 
   for [c,pp] in flowi:
     degree = sum(pp.values())
-    var = pp.keys()[0]
+    var = list(pp.keys())[0]
     try:
       index = varlist[var]
     except KeyError:
-      print 'Warning: '+var+' found in flow eqn but is not defined in plant'
+      print('Warning: '+var+' found in flow eqn but is not defined in plant')
       if findInList(var, varTypeDict['inputs']):
-        print 'found it as an input, addidng v\'=0 (everything is ok!)'
+        print('found it as an input, addidng v\'=0 (everything is ok!)')
         varlist[var] = len(varlist)        
       else:
         exit(0)          
@@ -449,10 +449,10 @@ def flow2Aibi(flowi, varlist, varTypeDict):
     for [c,pp] in flowi:
         degree = sum(pp.values())
         if degree > 1:
-            print "ERROR: Nonlinear dynamics found; can't handle"
+            print("ERROR: Nonlinear dynamics found; can't handle")
             return None
         elif degree == 1:
-            var = pp.keys()[0]
+            var = list(pp.keys())[0]
             index = varlist[var]
             Ai[index] = c
         else:
@@ -520,7 +520,7 @@ def interpretSALXML():
     [varlist,A,b] = flow2Ab(flow, varTypeDict)
     #Check if all plant variables are initialised
     if len(varlist) != len(initVarDict):
-      print "error:no. of plant variables dont match the no. of initial values\n"
+      print("error:no. of plant variables dont match the no. of initial values\n")
       exit(0)
     matA = scipy.mat(A)
     matBT = scipy.mat(b)
@@ -531,29 +531,29 @@ def interpretSALXML():
   ctxtName = HSalXMLPP.getName(ctxt)
   global globalPD
   globalPD['context'] = ctxtName
-  print "\n############################################"
-  print "Context: %s" % ctxtName
+  print("\n############################################")
+  print("Context: %s" % ctxtName)
   ctxtBody = (ctxt.getElementsByTagName("CONTEXTBODY")[0])
   modules = ctxtBody.getElementsByTagName("MODULEDECLARATION")
   if len(modules) > 1:
-    print "FATAL: more than 1 module:(%d) found\n" %len(modules)
+    print("FATAL: more than 1 module:(%d) found\n" %len(modules))
     exit(0)
 
 #  for module in modules:
   module = modules[0]
   moduleName = HSalXMLPP.getName(module)
   globalPD['module'] = moduleName
-  print "Module: %s" % moduleName
-  print "############################################\n"
+  print("Module: %s" % moduleName)
+  print("############################################\n")
   moduleChildNodes = module.childNodes
   for node in moduleChildNodes:
     if node.localName == 'BASEMODULE':
       varTypeDict = HSalPPBaseModule(node)
   gc = ctxtBody.getElementsByTagName("GUARDEDCOMMAND")
   if len(gc) > 1:
-    print "each transition will be interpreted as a HA mode\n"
+    print("each transition will be interpreted as a HA mode\n")
   elif len(gc) < 1:    
-    print "error:less than one transition\n"
+    print("error:less than one transition\n")
   else:
     i = 0
     modeDataList = []
@@ -564,7 +564,7 @@ def interpretSALXML():
         #return (varlist,matA,matB,t)
         modeDataList.append(getModeData(mode, varTypeDict))
       else:
-        print "error: no flow found in a mode\n"
+        print("error: no flow found in a mode\n")
         exit(0)
   plantName = moduleName
   t = getT(plantName)
@@ -586,7 +586,7 @@ def writeIntermedFile(relAbs, varTypeDict):
     s += '\noutputs:\n' + opStr
     s += '\nplant_def:\n' + relAbs
     s += tl
-    print s
+    print(s)
     fp.write(s)
 
 def getVarDefsSAL(varTypeDict):
@@ -629,7 +629,7 @@ def convertToSal(varlist, eAT):
 
 def printRelAbsDBG(relAbs):
   s = ''
-  for lhs,rhs in relAbs.iteritems():
+  for lhs,rhs in relAbs.items():
     s += lhs + '\' = '
     for c,x in rhs:
       s += ' + ' + str(c) + '*' + x
@@ -638,7 +638,7 @@ def printRelAbsDBG(relAbs):
 #    for i,v in enumerate(c):
 #      s += ' + ' + str(v) + '*' + x[i]
     s += '\n'
-  print s
+  print(s)
   exit(0)
   return None
 
@@ -673,7 +673,7 @@ def relAbsToXml(absTrans):
   for guard,relAbs in absTrans:
     #for every lhs var, create an assignment
     assignment = dom.createElement("ASSIGNMENTS")
-    for lhs,rhs in relAbs.iteritems():
+    for lhs,rhs in relAbs.items():
       nameexpr = createNodeTag("NAMEEXPR",lhs)
       nextop = createNodeTagChild("NEXTOPERATOR",nameexpr)
       rhsExpr = createNodeCXFromLinXpr(rhs, False)
@@ -691,7 +691,7 @@ def main():
     global dom
     filename = sys.argv[1]
     if not(os.path.isfile(filename)):
-        print "File does not exist. Quitting."
+        print("File does not exist. Quitting.")
         return 1
     basename,ext = os.path.splitext(filename)
     if ext == '.hxml':
@@ -700,10 +700,10 @@ def main():
         xmlfilename = basename + ".hxml"
         subprocess.call(["hybridsal2xml/hybridsal2xml", "-o", xmlfilename, filename])
         if not(os.path.isfile(xmlfilename)):
-            print "hybridsal2xml failed to create XML file. Quitting."
+            print("hybridsal2xml failed to create XML file. Quitting.")
             return 1
     else:
-        print "Unknown file extension; Expecting .hsal; Quitting"
+        print("Unknown file extension; Expecting .hsal; Quitting")
         return 1
     dom = xml.dom.minidom.parse(xmlfilename)
     setDom(dom)
@@ -713,10 +713,10 @@ def main():
     
     xmlFile = basename+".xml"
     with open(xmlFile, "w") as fp:
-      print >> fp, newCtxt.toxml() 
+      print(newCtxt.toxml(), file=fp) 
 
     absSalFile = basename+".sal"
-    print "Abstraction saved as a SAL file::" + absSalFile
+    print("Abstraction saved as a SAL file::" + absSalFile)
     with open(absSalFile, "w") as fp:
         HSalXMLPP.HSalPPContext(newCtxt, fp)
 

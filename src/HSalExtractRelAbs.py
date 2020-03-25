@@ -5,6 +5,8 @@
 
 # We need to take care of INITFORDECL and INVARDECL
 
+from __future__ import print_function
+
 # from xml.dom.minidom import parse, parseString
 import xml.dom.minidom
 import sys	# for sys.argv[0] and sys.stdout
@@ -26,7 +28,7 @@ def GuardedCommandLhsVar(gcmd):
 def isCont(gcmd):
     "Is this guarded command a continuous transition?"
     var = GuardedCommandLhsVar(gcmd)
-    # print "Variable is %s" % var
+    # print("Variable is %s" % var)
     if var == 0:
         return(0)
     if var[-3:] == 'dot':
@@ -40,49 +42,49 @@ def handleTransDecl(tdecl):
     cmds = somecmds.childNodes
     for i in cmds:
         #if i.localName == "GUARDEDCOMMAND":
-            #print "It is a guarded command"
+            #print("It is a guarded command")
         if i.localName == "MULTICOMMAND":
-            # print "It is a multi command"
+            # print("It is a multi command")
             gcmds = i.getElementsByTagName("GUARDEDCOMMAND")
             for j in gcmds:
                 if (not(isCont(j))):
                     break
             if (j == None): 
-                print "No abstraction found"
+                print("No abstraction found")
             else:
                 somecmds.replaceChild(j, i)
 
 def handleContext(ctxt):
     cbody = ctxt.getElementsByTagName("CONTEXTBODY")[0]
     mdecls = ctxt.getElementsByTagName("MODULEDECLARATION")
-    # print 'Number of module declarations is %d\n' % mdecls.length
+    # print('Number of module declarations is %d\n' % mdecls.length)
     for mdecl in mdecls:
         basemodule = mdecl.getElementsByTagName("BASEMODULE")
         if (basemodule == None or len(basemodule) == 0):
-            print 'Module compositions are being abstracted compositionally\n'
+            print('Module compositions are being abstracted compositionally\n')
         else:
             ldecls = basemodule[0].getElementsByTagName("LOCALDECL")
             invardecl = basemodule[0].getElementsByTagName("INVARDECL")
             initfmla = basemodule[0].getElementsByTagName("INITFORDECL")
             transdecl = basemodule[0].getElementsByTagName("TRANSDECL")
-            # print 'Number of local declarations is %d' % ldecls.length
-            # print 'Number of invar declarations is %d' % invardecl.length
-            # print 'Number of initfmla is %d' % initfmla.length
-            # print 'Number of transdecl is %d' % transdecl.length
+            # print('Number of local declarations is %d' % ldecls.length)
+            # print('Number of invar declarations is %d' % invardecl.length)
+            # print('Number of initfmla is %d' % initfmla.length)
+            # print('Number of transdecl is %d' % transdecl.length)
             handleTransDecl(transdecl[0])
-        # print mdecl.toxml()
+        # print(mdecl.toxml())
     return ctxt
 
 def extractRelAbs(dom, filePtr=sys.stdout, ptf=False):
     dom = handleContext(dom)	# Destructive
     if ptf:
-      print >> filePtr, dom.toxml() 
+        print(dom.toxml(), file=filePtr)
     return dom
 
 def main():
     dom = xml.dom.minidom.parse(sys.argv[1])
     dom = handleContext(dom)
-    print dom.toxml() 
+    print((dom.toxml()))
 
 if __name__ == "__main__":
     main()

@@ -126,6 +126,6 @@ def createSALAuxFunc( eigenNegN, eigenPosN, phaseN):
     return ans
 
 if __name__ == '__main__':
-    print 'Testing the SAL auxiliary function generation for time-aware RA'
-    print createSALAuxFunc( 3, 4, 2)
+    print('Testing the SAL auxiliary function generation for time-aware RA')
+    print((createSALAuxFunc( 3, 4, 2)))
 

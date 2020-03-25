@@ -46,15 +46,15 @@ class CDS_Reach:
     def toStr(self):
         ans = self.cds.toStr()
         ans += '\nOverapprox of Init: '
-        for (k,v) in self.over_init.items():
+        for (k,v) in list(self.over_init.items()):
             ans += '{0}->{1}, '.format(k.tostr(),v.tostr())
         ans += '\nOverapprox of Unsafe:'
-        for (k,v) in self.over_unsafe.items():
+        for (k,v) in list(self.over_unsafe.items()):
             ans += '{0}->{1}, '.format(k.tostr(),v.tostr())
         return ans
 
 def safety_check(cds):
     cdsr = CDS_Reach(cds)
     cdsr.set_all()
-    print cdsr.toStr()
+    print(cdsr.toStr())
 

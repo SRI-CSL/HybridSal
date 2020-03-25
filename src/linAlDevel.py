@@ -138,7 +138,7 @@ def eigenvalueLargest(A):
         lambold = lamb
         lamb = Avbyv(A,v)
         i += 1
-    print "Number of iterations %d" % i
+    print("Number of iterations %d" % i)
     #print "lamb %f" % lamb
     #print "lambold %f" % lambold
     return([lamb, nnormalize(v)])
@@ -161,7 +161,7 @@ def dependentIndependent(A):
     "Partition indices [0..n-1] into dependent, independent vars"
     n = len(A)
     dep = list()
-    ind = range(n)
+    ind = list(range(n))
     for i in range(n):
         firstone = 1
         for j in range(n):
@@ -174,13 +174,13 @@ def dependentIndependent(A):
 
 def extractSoln(A,b):
     """A is permuted Identity nxn matrix; b is n-vector"""
-    print "Extracting solution from Ax=b where A,b are"
-    print A
-    print b
+    print("Extracting solution from Ax=b where A,b are")
+    print(A)
+    print(b)
     [dep,ind] = dependentIndependent(A)
-    print "dep, independent vars from A are"
-    print dep
-    print ind
+    print("dep, independent vars from A are")
+    print(dep)
+    print(ind)
     assert len(b) == len(dep) + len(ind)
     allans = list()
     for i in range(len(ind)):
@@ -298,8 +298,8 @@ def inSubspace(v, subspace):
 
 def orbit(A, v):
     "Return orthonormal BASIS of subspace(v,Av,A^2v,...)"
-    print "Computing ORBIT of"
-    print v
+    print("Computing ORBIT of")
+    print(v)
     subspace = list()
     v = nnormalize(v)
     v = inSubspace(v, subspace)
@@ -351,7 +351,7 @@ def extendToFull(basis, A, n):
 
 def dictUpdate(dictionary, key, value):
     """return dictionary with dict[key] += value"""
-    for k,v in dictionary.iteritems():
+    for k,v in dictionary.items():
         if equal(key, k):
             dictionary[k] = v + value
             return dictionary
@@ -375,11 +375,11 @@ def neigenvalues(A):
         if isUnitColumn(A,i,n):
             eigenvalue = A[i][i]
             newA = nremoveRowColumn(A,i,n)
-            print "NewA after removing rowcolumn %d" % i
-            print newA
+            print("NewA after removing rowcolumn %d" % i)
+            print(newA)
             eigens = neigenvalues(newA)
-            print "eigens for newA are"
-            print eigens
+            print("eigens for newA are")
+            print(eigens)
             eigens = dictUpdate(eigens, eigenvalue, 1)
             return eigens
     [lamb, vec] = eigenvalueLargest(A)
@@ -399,7 +399,7 @@ def neigenvalues(A):
 def allEigenvectors(A, eigens):
     "find all eigenvectors corresponding to eigenvalues eigens"
     ans = list()
-    for lamb,multiplicity in eigens.iteritems():
+    for lamb,multiplicity in eigens.items():
         eigenvectors = eigenvector(A,lamb)
         n = len(eigenvectors)
         if n > 0:
@@ -414,7 +414,7 @@ def allEigenvectors(A, eigens):
             ans.append(eigenvectors)
         if n + m >= multiplicity:
             continue
-        print "COMPLEX eigenvectors EXIST"
+        print("COMPLEX eigenvectors EXIST")
     return ans
 
 def eigen(A):
@@ -428,30 +428,30 @@ epsilon = 1e-4
 def test1():
     xx = [ [1,2,3], [0,2,6], [0,0,3] ]
     #print multiplyAv(xx,[0,0,1])
-    print "Test of largest eigevalue computation of:"
-    print xx
+    print("Test of largest eigevalue computation of:")
+    print(xx)
     [lamb, v] = eigenvalueLargest(xx) 
-    print "Largest eigenvalue should be 3, computed %d: eigenvector=" % lamb
-    print v
-    print "*************************************"
+    print("Largest eigenvalue should be 3, computed %d: eigenvector=" % lamb)
+    print(v)
+    print("*************************************")
 
 def test2():
-    print "Testing equation solving"
+    print("Testing equation solving")
     A = [ [1,2,3], [1,3,6], [1,3,2] ]
     b = [ 6, 10, 6 ]
     ans = solve(A, b)
-    print ans
-    print "The solution above should be [[1 1 1]]"
-    print "*************************************"
+    print(ans)
+    print("The solution above should be [[1 1 1]]")
+    print("*************************************")
 
 def test3():
     xx = [ [1,2,3], [0,2,6], [0,0,3] ]
-    print "Test of ALL eigevalue computation of:"
-    print xx
+    print("Test of ALL eigevalue computation of:")
+    print(xx)
     eigens = neigenvalues(xx) 
-    print eigens
-    print "The above dict should be {1:1,2:1,3:1}"
-    print "*************************************"
+    print(eigens)
+    print("The above dict should be {1:1,2:1,3:1}")
+    print("*************************************")
 
 def test4():
     xx = [ [1,2,3], [0,2,6], [0,0,3] ]
@@ -459,19 +459,19 @@ def test4():
     a = sqrt2 / 2
     basis = [ [ a, a, 0], [a, -a, 0], [0, 0, 1] ]
     xx = changeOfBasis(xx, basis)
-    print "Test of ALL eigevalue computation of:"
-    print xx
+    print("Test of ALL eigevalue computation of:")
+    print(xx)
     eigens = neigenvalues(xx) 
-    print eigens
-    print "The above dict should be {1:1, 2:1, 3:1}"
-    print "*************************************"
+    print(eigens)
+    print("The above dict should be {1:1, 2:1, 3:1}")
+    print("*************************************")
 
 def test5():
     xx = [ [0,1], [-1,0] ]
     eigens = neigenvalues(xx)
-    print eigens
-    print "The above dict should be {1:2}"
-    print "*************************************"
+    print(eigens)
+    print("The above dict should be {1:2}")
+    print("*************************************")
 
 def test6():
     xx = [ [0,1], [-1,0] ]
@@ -479,11 +479,11 @@ def test6():
     eigens = neigenvalues(yy)
     eigenvectors = allEigenvectors(xx, eigens)
     delA(xx)
-    print eigens
-    print "The above dict should be {1:2}"
-    print eigenvectors
-    print "The above list should be [1, [[0,0]], -1, [[0,0]]]"
-    print "*************************************"
+    print(eigens)
+    print("The above dict should be {1:2}")
+    print(eigenvectors)
+    print("The above list should be [1, [[0,0]], -1, [[0,0]]]")
+    print("*************************************")
 
 if __name__ == "__main__":
     test1()

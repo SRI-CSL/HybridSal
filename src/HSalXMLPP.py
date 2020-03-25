@@ -4,6 +4,7 @@
 # TODO:
 # INITDECL not handled yet -- initfordecl should be changed too.
 
+from __future__ import print_function
 import xml.dom.minidom
 import sys
 
@@ -11,8 +12,6 @@ import sys
 # Caveat2: global fp is used as a file pointer; 
 #   From this file, you can safely use HSalPPContext; 
 #   For using other functions, need to set fp
-
-gen_sally = True
 
 precedence = ['/', '*', '-', '+', '>', '>=', '<', '<=', '=', '/=', 'NOT', 'AND', 'and', 'OR', 'or', 'XOR', '=>', '<=>']
 
@@ -32,8 +31,8 @@ def getNameTag(node, tag):
         childnode = nodes[0]
         return(valueOf(childnode))
     except IndexError as e:
-        print e 
-        print node.toxml()
+        print(e)
+        print((node.toxml()))
         raise
 
 def getName(node):
@@ -60,7 +59,7 @@ def HSalPPDecls(nodes, str1, str2):
 
 def HSalPPLocalGlobalDecl(i, kind):
     global fp
-    print >> fp, kind + HSalPPDecls(i.childNodes, "", "")
+    print(kind + HSalPPDecls(i.childNodes, "", ""), file=fp)
 
 def HSalPPNameExpr(node):
     global in_module
@@ -121,8 +120,8 @@ def higherPrec(op1, op2):
     elif op1 == None:
         return False
     else:
-        print "EITHER Op not found %s" % op1 
-        print "OR Op not found %s" % op2 
+        print(("EITHER Op not found %s" % op1))
+        print(("OR Op not found %s" % op2))
         return True
 
 def HSalPPInfixApp(node,outerSymb=None):
@@ -137,8 +136,6 @@ def HSalPPInfixApp(node,outerSymb=None):
 
 def HSalPPPrefixApp(node):
     str0 = getNameTag(node, 'NAMEEXPR')
-    if str0 == 'eigenInv':
-        print('PrefixApp: %s' % node)
     i = 1
     expr = appArg(node,i)
     while not(expr == None):
@@ -147,7 +144,7 @@ def HSalPPPrefixApp(node):
         else:
             str0 = str0 + ","
         str0 = str0 + HSalPPExpr(expr)
-	i = i + 1
+        i = i + 1
         expr = appArg(node,i)
     if (i > 1):
         str0 = str0 + ")"
@@ -173,7 +170,7 @@ def HSalPPApp(node,outerSymb=None):
             while arg:
                 expr = HSalPPExpr(arg)
                 str0 += " " + expr
-	        i += 1
+                i += 1
                 arg = appArg(node,i)
             return str0 + ")"
     else:
@@ -191,7 +188,7 @@ def expandDefn(app, defn):
         substitute(args, dvars, dbody)
         return dbody
     else:
-        print(app.toxml())
+        print((app.toxml()))
         print('Bad defn')
         raise
 
@@ -200,7 +197,7 @@ def collectArgs(app):
     args = []
     expr = appArg(app, i)
     if expr is None:
-        print('collectArgs: bad app %s' % app.toxml())
+        print(('collectArgs: bad app %s' % app.toxml()))
     while expr:
         args.append(expr)
         i += 1
@@ -276,7 +273,7 @@ def HSalPPConditional(node):
 
 def HSalPPArrayLiteral(node):
     '''<ARRAYLITERAL> <INDEXVARDECL><ID><SUBRANGE></INDEXVARDECL> <EXPR>
-       print [ [i:TYPE] Expr ] '''
+       print([ [i:TYPE] Expr ])'''
     lhs = getArg(node,1)
     rhs = getArg(node,2)
     str1 = HSalPPDecl(lhs)
@@ -312,8 +309,8 @@ def HSalPPExpr(node, outerSymb=None):
     elif node.localName == "ARRAYSELECTION":
         return HSalPPArraySelection(node)
     else:
-        print node.toxml()
-        print 'Node EXPR %s unknown. Missing code' % node.localName
+        print((node.toxml()))
+        print(('Node EXPR %s unknown. Missing code' % node.localName))
     return None
 
 def HSalPPExprs(nodes):
@@ -323,45 +320,45 @@ def HSalPPExprs(nodes):
 
 def HSalPPInvarDecl(invardecl):
     global fp
-    print >> fp, "INVARIANT",
+    print("INVARIANT", end=' ', file=fp)
     exprs = invardecl.childNodes
-    print >> fp, HSalPPExprs(exprs),
-    print >> fp, "\n",
+    print(HSalPPExprs(exprs), end=' ', file=fp)
+    print("\n", end=' ', file=fp)
 
 def HSalPPInitForDecl(initdecl):
     global fp
-    print >> fp, "INITFORMULA",
-    print >> fp, HSalPPExprs(initdecl.childNodes),
-    print >> fp, "\n",
+    print("INITFORMULA", end=' ', file=fp)
+    print(HSalPPExprs(initdecl.childNodes), end=' ', file=fp)
+    print("\n", end=' ', file=fp)
 
 def HSalPPInitDecl(initdecl):
     global fp
     if gen_sally:
-        print >> fp, "  ;; Initial states"
+        print("  ;; Initial states", file=fp)
     else:
-        print >> fp, "INITIALIZATION"
+        print("INITIALIZATION", file=fp)
     firstChild = getArg(initdecl, 1)
     if firstChild.localName == "SIMPLEDEFINITION":
         HSalPPAssgns(initdecl)
     elif firstChild.localName == "SOMECOMMANDS":
         HSalPPSomecommands(initdecl)
     else:
-        print "ERROR: INITIALIZATION block found unexpected tag ",
-        print firstChild.localName
+        print(("ERROR: INITIALIZATION block found unexpected tag ",))
+        print((firstChild.localName))
         raise
     if not gen_sally:
-        print >> fp, "\n",
+        print("\n", end=' ', file=fp)
 
 def HSalPPDefDecl(defdecl):
     global fp
-    print >> fp, "DEFINITION"
+    print("DEFINITION", file=fp)
     firstChild = getArg(defdecl, 1)
     if not(firstChild.localName == "SIMPLEDEFINITION"):
-        print "ERROR: DEFINITION block found unexpected tag ",
-        print firstChild.localName
+        print(("ERROR: DEFINITION block found unexpected tag ",))
+        print((firstChild.localName))
     else: 
         HSalPPAssgns(defdecl)
-    print >> fp, "\n",
+    print("\n", end=' ', file=fp)
 
 def HSalPPGuard(guard):
     global fp, in_module
@@ -372,13 +369,13 @@ def HSalPPGuard(guard):
     #exprs = HSalPPExprs(guard.childNodes)
     # print('Guard: exprs = %s' % exprs)
     if gen_sally:
-        print >> fp, "   ",
+        print("   ", end=' ', file=fp)
     sguard = HSalPPExprs(guard.childNodes)
     in_module = False
     # for n in sguard.childNodes:
     #     print('sguard child = %s' % n.toxml())
     #     print('-----')
-    print >> fp, sguard,
+    print(sguard, end=' ', file=fp)
 
 def HSalPPSimpleDefn(node):
     global fp
@@ -407,7 +404,7 @@ def HSalPPSimpleDefn(node):
         else:
             str0 += " IN "
             str0 += HSalPPExprs(rhssel[0].childNodes)
-    print >> fp, str0,
+    print(str0, end=' ', file=fp)
 
 def reduceSel(var0, node):
     for rhssel in node:
@@ -422,7 +419,7 @@ def reduceSel(var0, node):
                 #print('reduceSel: spred = %s' % spred.toxml())
                 return HSalPPExpr(spred)
             else:
-                print('expected setPredExpr, not %s' % rhssel.localName)
+                print(('expected setPredExpr, not %s' % rhssel.localName))
                 raise
 
 def substitute(args, svars, node):
@@ -451,7 +448,7 @@ def substit(x, y, node):
                 #print('  Replaced  in parent:\n  %s\n' % parent.toxml())
                 node = x
             else:
-                print('No parent for %s?' % node.toxml())
+                print(('No parent for %s?' % node.toxml()))
                 raise
     elif node.localName == "APPLICATION":
         op = getNameTag(node, 'NAMEEXPR')
@@ -459,7 +456,7 @@ def substit(x, y, node):
         arg = appArg(node, i)
         while not(arg == None):
             substit(x, y, arg)
-	    i += 1
+            i += 1
             arg = appArg(node, i)
     elif node.localName == "NUMERAL":
         pass
@@ -488,7 +485,7 @@ def substit(x, y, node):
         substit(x, y, rhs)
     else:
         print('Node unknown. Missing substit code')
-        print(node.toxml())
+        print((node.toxml()))
         raise
     ctr -= 1
     #print('%s: result node = %s\n-----' % (ctr, node.toxml()))
@@ -500,22 +497,22 @@ def HSalPPAssgns(assgns):
     defs = assgns.getElementsByTagName("SIMPLEDEFINITION")
     flag = False
     if gen_sally:
-        print >> fp, "\n  (and"
+        print("\n  (and", file=fp)
     for i in defs:
         if flag:
             if not gen_sally:
-                print >> fp, ";\n",
+                print(";\n", end=' ', file=fp)
         HSalPPSimpleDefn(i)
         flag = True
     if gen_sally:
-        print >> fp, "  )"
+        print("  )", file=fp)
     else:
-        print >> fp, "\n",
+        print("\n", end=' ', file=fp)
 
 def HSalPPLabeledCommand(node):
     global fp
     label = node.getElementsByTagName("LABEL")[0]
-    print >> fp, "{0}: ".format(valueOf(label))
+    print("{0}: ".format(valueOf(label)), file=fp)
     gc = node.getElementsByTagName("GUARDEDCOMMAND")[0]
     HSalPPGuardedCommand(gc)
 
@@ -523,45 +520,43 @@ def HSalPPGuardedCommand(node):
     global fp, in_module
     guard = node.getElementsByTagName("GUARD")[0]
     if gen_sally:
-        print >> fp, '  (or (not  ;; guardedcommand'
+        print('  (and  ;; guardedcommand', file=fp)
     HSalPPGuard(guard)
-    if gen_sally:
-        print >> fp, ')'
-    else:
-        print >> fp, " --> "
+    if not gen_sally:
+        print(" --> ", file=fp)
     assgns = node.getElementsByTagName("ASSIGNMENTS")
     if (not(assgns == None) and len(assgns) > 0):
         in_module = True
         HSalPPAssgns(assgns[0])
         in_module = False
     if gen_sally:
-        print >> fp, '  )  ;; end guardedcommand'
+        print('  )  ;; end guardedcommand', file=fp)
     
 def HSalPPMultiCommand(node):
     global fp
-    print >> fp, "["
+    print("[", file=fp)
     gcmds = node.getElementsByTagName("GUARDEDCOMMAND")
     i = 0
     for j in gcmds:
         if not(i == 0):
-            print >> fp, " || "
+            print(" || ", file=fp)
         HSalPPGuardedCommand(j)
         i = i + 1
-    print >> fp, "]"
+    print("]", file=fp)
 
 def HSalPPTransDecl(transdecl):
     global fp, in_module
     if gen_sally:
-        print >> fp, "  ;; Transition"
+        print("  ;; Transition", file=fp)
     else:
-        print >> fp, "TRANSITION"
+        print("TRANSITION", file=fp)
     cmds = transdecl.getElementsByTagName("SOMECOMMANDS")
     if cmds != None and len(cmds) > 0:
         if gen_sally and len(cmds) > 1:
-            print >> fp, "  (or"
+            print("  (or", file=fp)
         HSalPPSomecommands(cmds[0])
         if gen_sally and len(cmds) > 1:
-            print >> fp, "  ) ;; end transition"
+            print("  ) ;; end transition", file=fp)
         return
     # transdecl is a list of simpledefinitions...
     in_module = True
@@ -571,59 +566,59 @@ def HSalPPTransDecl(transdecl):
 def HSalPPSomecommands(cmds):
     global fp
     if not gen_sally:
-        print >> fp, "["
+        print("[", file=fp)
     j = 0
     if not(cmds == None):
         cmds = cmds.childNodes
     for i in cmds:
         j += 1
         if i.localName == "GUARDEDCOMMAND":
-            if not(gen_sally) and j == 1:
-                print >> fp, "[]"
+            if not(gen_sally or j == 1):
+                print("[]", file=fp)
             HSalPPGuardedCommand(i)
         elif i.localName == "MULTICOMMAND":
-            if not(gen_sally) and j == 1:
-                print >> fp, "[]"
+            if not(gen_sally or j == 1):
+                print("[]", file=fp)
             HSalPPMultiCommand(i)
         elif i.localName == "LABELEDCOMMAND":
-            if not(gen_sally) and j == 1:
-                print >> fp, "[]"
+            if not(gen_sally or j == 1):
+                print("[]", file=fp)
             HSalPPLabeledCommand(i)
         else:
             j -= 1
     if not gen_sally:
-        print >> fp, "]"
+        print("]", file=fp)
 
 def HSalPPSomecommandsSally(cmds):
     global fp
     if gen_sally:
-        print >> fp, "("
+        print("(", file=fp)
     else:
-        print >> fp, "["
+        print("[", file=fp)
     j = 0
     if not(cmds == None):
-        print cmds.toxml()
+        print((cmds.toxml()))
         cmds = cmds.childNodes
     for i in cmds:
         j += 1
         if i.localName == "GUARDEDCOMMAND":
-            if not(gen_sally) and j == 1:
-                print >> fp, "[]"
+            if not(gen_sally or j == 1):
+                print("[]", file=fp)
             HSalPPGuardedCommand(i)
         elif i.localName == "MULTICOMMAND":
-            if not(gen_sally) and j == 1:
-                print >> fp, "[]"
+            if not(gen_sally or j == 1):
+                print("[]", file=fp)
             HSalPPMultiCommand(i)
         elif i.localName == "LABELEDCOMMAND":
-            if not(gen_sally) and j == 1:
-                print >> fp, "[]"
+            if not(gen_sally or j == 1):
+                print("[]", file=fp)
             HSalPPLabeledCommand(i)
         else:
             j -= 1
     if gen_sally:
-        print >> fp, ")"
+        print(")", file=fp)
     else:
-        print >> fp, "]"
+        print("]", file=fp)
 
 def HSalPPBaseModule(basemod):
     if not gen_sally:
@@ -670,10 +665,10 @@ def HSalPPBaseModule(basemod):
 
 def HSalPPComposition(node, op, opTop):
     if not(op == opTop):
-        print >> fp, '(', 
+        print('(', end=' ', file=fp) 
     HSalPPMod(node.childNodes, op)
     if not(op == opTop):
-        print >> fp, ')', 
+        print(')', end=' ', file=fp) 
 
 def HSalPPMod(nodeL, op = None):
     global fp
@@ -687,14 +682,14 @@ def HSalPPMod(nodeL, op = None):
             first = False
         else:
             if not gen_sally:
-                print >> fp, op,
+                print(op, end=' ', file=fp)
         if node.localName == 'BASEMODULE':
             if gen_sally:
                 HSalPPBaseModule(node)
             else:
-                print >> fp, "BEGIN" 
+                print("BEGIN", file=fp) 
                 HSalPPBaseModule(node)
-                print >> fp, "END",
+                print("END", end=' ', file=fp)
         elif node.localName == 'ASYNCHRONOUSCOMPOSITION':
             HSalPPComposition(node, '[]', op)
         elif node.localName == 'SYNCHRONOUSCOMPOSITION':
@@ -702,38 +697,38 @@ def HSalPPMod(nodeL, op = None):
         elif node.localName == 'MODULEINSTANCE':
             modName = getNameTag(node, "MODULENAME")
             # ignoring MODULEACTUALS
-            print >> fp, modName,
+            print(modName, end=' ', file=fp)
         elif node.localName == 'RENAMING':
             renames = getArg(node, 1)
             renamings = renames.getElementsByTagName("RENAME")
-            print >> fp, "(RENAME ",
+            print("(RENAME ", end=' ', file=fp)
             comma = ''
             for i in renamings:
-              lhs = valueOf(getArg(i, 1))	# Assuming nameexpr
+              lhs = valueOf(getArg(i, 1))       # Assuming nameexpr
               rhs = valueOf(getArg(i, 2))
-              print >> fp, "{0} {1} TO {2}".format(comma, lhs, rhs),
+              print("{0} {1} TO {2}".format(comma, lhs, rhs), end=' ', file=fp)
               comma = ','
-            print >> fp, " IN ",
+            print(" IN ", end=' ', file=fp)
             HSalPPMod([getArg(node, 2)], op='')
-            print >> fp, " )",
+            print(" )", end=' ', file=fp)
         else:
-            print "Unrecognized module type. Fill in code later"
+            print("Unrecognized module type. Fill in code later")
     if op == None:
         if not gen_sally:
-            print >> fp, ";\n"
+            print(";\n", file=fp)
 
 def HSalPPModDecl(node):
     global fp
     if gen_sally:
         name = getName(node)
         stype = getModDeclType(node.childNodes)
-        print >> fp, "\n(define-transition-system %s %s" % (name, stype)
+        print("\n(define-transition-system %s %s" % (name, stype), file=fp)
     else:
-        print >> fp, "\n%s: MODULE =" % getName(node)
+        print("\n%s: MODULE =" % getName(node), file=fp)
     childNodes = node.childNodes
     HSalPPMod(childNodes)
     if gen_sally:
-        print >> fp, ")"
+        print(")", file=fp)
 
 def getModDeclType(nodeL):
     for node in nodeL:
@@ -759,13 +754,13 @@ def getModDeclType(nodeL):
             print('No renamings yet')
             raise
         else:
-            print "Unrecognized module type. Fill in code later"
+            print("Unrecognized module type. Fill in code later")
             raise
 
 def getBaseModuleType(basemod, name):
     global fp
     tname = name + '_state_type'
-    print >> fp, '\n(define-state-type %s\n  (;; State variables' % tname
+    print('\n(define-state-type %s\n  (;; State variables' % tname, file=fp)
     ldecls = basemod.getElementsByTagName("LOCALDECL")
     for i in ldecls:
         sallyVarDecls(i) 
@@ -775,11 +770,11 @@ def getBaseModuleType(basemod, name):
     ldecls = basemod.getElementsByTagName("OUTPUTDECL")
     for i in ldecls:
         sallyVarDecls(i)
-    print >> fp, '  )\n  (;; Input variables'
+    print('  )\n  (;; Input variables', file=fp)
     ldecls = basemod.getElementsByTagName("INPUTDECL")
     for i in ldecls:
         sallyVarDecls(i)
-    print >> fp, '  ))\n'
+    print('  ))\n', file=fp)
     return tname
 
 def sallyVarDecls(i):
@@ -788,7 +783,7 @@ def sallyVarDecls(i):
         if (j.localName == "VARDECL"):
             vid = getName(j)
             vtype = HSalPPType(getArg(j,2),"","")
-            print >> fp, '   (%s %s)' % (vid, vtype)
+            print('   (%s %s)' % (vid, vtype), file=fp)
 
 def HSalPPModuleInstance(node):
     return getNameTag(node, "MODULENAME")
@@ -805,19 +800,19 @@ def HSalPPModuleModels(node):
             else:
                 print('Formulas should start with "G"')
                 raise
-        else:
-            str2 = HSalPPExpr(getArg(node,2))
-    if gen_sally:
-        print >> fp, '(query %s %s)' % (str1, str2)
     else:
-        print >> fp, str1+" |- "+str2+";"
+        str2 = HSalPPExpr(getArg(node,2))
+    if gen_sally:
+        print('(query %s %s)' % (str1, str2), file=fp)
+    else:
+        print(str1+" |- "+str2+";", file=fp)
 
 def HSalPPAssertionDecl(node):
     global fp
     if not gen_sally:
-        print >> fp, getNameTag(node,"IDENTIFIER"),
-        print >> fp, ":",
-        print >> fp, getNameTag(node,"ASSERTIONFORM")
+        print(getNameTag(node,"IDENTIFIER"), end=' ', file=fp)
+        print(":", end=' ', file=fp)
+        print(getNameTag(node,"ASSERTIONFORM"), file=fp)
     HSalPPModuleModels(node.getElementsByTagName("MODULEMODELS")[0])
 
 def HSalPPFuncType(node):
@@ -876,7 +871,7 @@ def HSalPPType(node,str1,str2):
     str0 = None
     if node.localName == "TYPENAME":
         str0 = valueOf(node)
-        if str0 == 'REAL':
+        if gen_sally and str0 == 'REAL':
             str0 = 'Real'
     elif node.localName == "FUNCTIONTYPE":
         str0 = HSalPPFuncType(node)
@@ -893,8 +888,8 @@ def HSalPPType(node,str1,str2):
     elif node.localName == "SETLISTEXPRESSION":
         str0 = HSalPPSetListExpr(node)
     else:
-        print node.toxml()
-        print 'Node TYPE %s not handled. Missing code' % node.localName
+        print((node.toxml()))
+        print(('Node TYPE %s not handled. Missing code' % node.localName))
         raise
     if not(str0 == None):
         return str1+str0+str2
@@ -904,28 +899,28 @@ def HSalPPCnstDecl(node):
     if gen_sally:
         defDecls.append(node)
     else:
-        print >> fp, getNameTag(node, "IDENTIFIER"),
+        print(getNameTag(node, "IDENTIFIER"), end=' ', file=fp)
         vardecls = node.getElementsByTagName("VARDECLS")
         if not(vardecls == None) and len(vardecls) > 0:
             arg = vardecls[0]
-            print >> fp, HSalPPDecls(arg.childNodes,"(",")"),
+            print(HSalPPDecls(arg.childNodes,"(",")"), end=' ', file=fp)
         arg = getArg(node,3)
-        print >> fp, HSalPPType(arg,": ",""),
+        print(HSalPPType(arg,": ",""), end=' ', file=fp)
         arg = getArg(node,4)
         value = HSalPPExpr(arg)
         if not(value == None) and not(value == ""):
-            print >> fp, " = \n %s" % value,
-        print >> fp, ";\n"
+            print(" = \n %s" % value, end=' ', file=fp)
+        print(";\n", file=fp)
 
 def HSalPPTypeDecl(node):
     global fp
-    print >> fp, "\n%s: TYPE =" % getName(node),
-    print >> fp, HSalPPType(getArg(node,2), "", ""),
-    print >> fp, ";\n"
+    print("\n%s: TYPE =" % getName(node), end=' ', file=fp)
+    print(HSalPPType(getArg(node,2), "", ""), end=' ', file=fp)
+    print(";\n", file=fp)
 
 def HSalPPVerbatim(node):
     global fp
-    print >> fp, valueOf(node)
+    print(valueOf(node), file=fp)
 
 def HSalPPNode(node):
     if node.localName == "MODULEDECLARATION":
@@ -941,23 +936,24 @@ def HSalPPNode(node):
         print('Hit Verbatim')
         HSalPPVerbatim(node)
     elif node.nodeType == node.ELEMENT_NODE:
-        print "Missing code for Node %s" % node.localName
+        print(("Missing code for Node %s" % node.localName))
 
 def HSalPPContextBody(ctxtbody):
     for i in ctxtbody.childNodes:
         HSalPPNode(i)
 
-def HSalPPContext(ctxt, filepointer=sys.stdout):
-    global fp 
+def HSalPPContext(ctxt, filepointer=sys.stdout, generate_sally=False):
+    global fp, gen_sally
     fp = filepointer
+    gen_sally = generate_sally
     if gen_sally:
-        print >> fp, ";; context %s" % getName(ctxt)
+        print(";; HybridSal context %s" % getName(ctxt), file=fp)
         HSalPPContextBody(ctxt.getElementsByTagName("CONTEXTBODY")[0])
     else:
-        print >> fp, "%s: CONTEXT = " % getName(ctxt)
-        print >> fp, "BEGIN" 
+        print("%s: CONTEXT = " % getName(ctxt), file=fp)
+        print("BEGIN", file=fp) 
         HSalPPContextBody(ctxt.getElementsByTagName("CONTEXTBODY")[0])
-        print >> fp, "END"
+        print("END", file=fp)
 
 if __name__ == "__main__":
     dom = xml.dom.minidom.parse(sys.argv[1])

@@ -25,6 +25,8 @@
 # Replace by
 # <INITDECL><SOMECOMMANDS><GUARDEDCOMMAND><GUARD> SOMETHING ...</INITDECL>
 
+from __future__ import print_function
+
 import xml.dom.minidom
 import sys	# for sys.argv[0]
 import os.path
@@ -42,15 +44,15 @@ getArg = HSalXMLPP.getArg
 # ********************************************************************
 def moveIfExists(filename):
     if os.path.isfile(filename):
-        print "File %s exists." % filename,
-        print "Renaming old file to %s." % filename+"~"
+        print(("File %s exists." % filename,))
+        print(("Renaming old file to %s." % filename+"~"))
         shutil.move(filename, filename + "~")
 
 def main():
     global dom
     filename = sys.argv[1]
     if not(os.path.isfile(filename)):
-        print "File does not exist. Quitting."
+        print("File does not exist. Quitting.")
         return 1
     basename,ext = os.path.splitext(filename)
     if ext == '.hxml':
@@ -59,22 +61,22 @@ def main():
         xmlfilename = basename + ".hxml"
         subprocess.call(["hybridsal2xml/hybridsal2xml", "-o", xmlfilename, filename])
         if not(os.path.isfile(xmlfilename)):
-            print "hybridsal2xml failed to create XML file. Quitting."
+            print("hybridsal2xml failed to create XML file. Quitting.")
             return 1
     else:
-        print "Unknown file extension; Expecting .hsal or .hxml; Quitting"
+        print("Unknown file extension; Expecting .hsal or .hxml; Quitting")
         return 1
     dom = xml.dom.minidom.parse(xmlfilename)
     newctxt = handleContext(dom)
     moveIfExists(xmlfilename)
     with open(xmlfilename, "w") as fp:
-        print >> fp, newctxt.toxml()
-    print "Created file %s containing the preprocessed model (XML)" % xmlfilename
+        print(newctxt.toxml(), file=fp)
+    print(("Created file %s containing the preprocessed model (XML)" % xmlfilename))
     filename = basename + ".hsal.preprocessed"
     moveIfExists(filename)
     with open(filename, "w") as fp:
         HSalXMLPP.HSalPPContext(newctxt, fp)
-    print "Created file %s containing the preprocessed model (HSal)" % filename
+    print(("Created file %s containing the preprocessed model (HSal)" % filename))
     return 0
 
 # ********************************************************************
@@ -201,7 +203,7 @@ def handleBasemoduleInvarDecl(basemod):
     # phi = invardecl.firstChild
     phi = getArg(invardecl, 1)
     if phi == None:
-        print "ERROR: INVARIANT can not be EMPTY; Expression expected"
+        print("ERROR: INVARIANT can not be EMPTY; Expression expected")
         return
     phiPrime = phi.cloneNode(True)
     phiPrime = makePrime(phiPrime, basemodule=basemod, inputs=None)

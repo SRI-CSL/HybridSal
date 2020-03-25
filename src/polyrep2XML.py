@@ -8,12 +8,12 @@ def createNodeTagChild(tag, childNode):
     return node
 
 def createNodeTagChild2(tag, childNode, childNode2):
-    print "Debug printing  child1"
-    print childNode.toxml()
-    print childNode2.toxml()
+    print("Debug printing  child1")
+    print(childNode.toxml())
+    print(childNode2.toxml())
     node = createNodeTagChild(tag, childNode)
-    print "Debug printing node with 1 child"
-    print node.toxml()
+    print("Debug printing node with 1 child")
+    print(node.toxml())
     node.appendChild(childNode2)
     return node
 
@@ -62,14 +62,14 @@ def createNodeCXOne(c, x, flag):
 
 def dictKey(varlist, value):
     "Return key given the value"
-    for var,index in varlist.iteritems():
+    for var,index in varlist.items():
         if index == value:
             return var
     return None
 
 def createNodeCX(c,x,flag):
     "create node for c1 x1+...+cn xn, use primes if flag"
-    xindices = x.values()
+    xindices = list(x.values())
     xindices.sort()
     n = len(xindices)
     cx = list()

@@ -9,7 +9,7 @@ def mystr(k):
         if abs(k) >= pow(10,-i):
             fmt = '{0:.' + str(i+1) + 'f}'
             return fmt.format(k)
-    print 'WARNING: Very small number detected'
+    print('WARNING: Very small number detected')
     return '0'
 
 # ********************************************************************
@@ -114,14 +114,14 @@ def createNodeCXOne(c, x, flag, inputs):
 
 def dictKey(varlist, value):
     "Return key given the value"
-    for var,index in varlist.iteritems():
+    for var,index in list(varlist.items()):
         if index == value:
             return var
     return None
 
 def createNodeCX(c,x,flag,inputs):
     "create node for c1 x1+...+cn xn, use primes if flag && not(xi in inputs)"
-    xindices = x.values()
+    xindices = list(x.values())
     xindices.sort()
     n = len(xindices)
     cx = list()
@@ -133,7 +133,7 @@ def createNodeCX(c,x,flag,inputs):
 def createNodePaux(c,x,d,y,e,flag,inputs):
     """create node for c.x + d.y + e; with PRIME variables if 
        flag && xi not in inputs"""
-    # print "createNodePaux entering"
+    # print("createNodePaux entering")
     node1 = createNodeCX(c,x,flag,inputs)
     node2 = createNodeCX(d,y,flag,inputs)
     if equal(e,0):

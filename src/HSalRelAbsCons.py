@@ -48,7 +48,7 @@
 # treated as unchanging...
 
 import xml.dom.minidom
-import sys	# for sys.argv[0]
+import sys      # for sys.argv[0]
 import math
 import linearAlgebra
 import HSalExtractRelAbs
@@ -62,6 +62,7 @@ import HSalPreProcess
 import HSalPreProcess2
 import HSalTimeAwareAux
 from xmlHelpers import *
+import six
 #import polyrep2XML
 
 equal = linearAlgebra.equal
@@ -171,7 +172,7 @@ def flow2var(flow):
     # get variables from LHS
     while i < len(flow):
         varnamedot = flow[i]
-        varlist[varnamedot[0:-3]] = i/2
+        varlist[varnamedot[0:-3]] = i//2
         i += 2
     # now get variables from RHS too
     i = 1
@@ -179,7 +180,7 @@ def flow2var(flow):
     while i < len(flow):
         rhsExpr = flow[i]
         for [c,pp] in rhsExpr:
-            for var in pp.keys():
+            for var in list(pp.keys()):
                 if not(var in varlist): 
                     varlist[var] = j
                     j += 1
@@ -194,10 +195,10 @@ def flow2Aibi(flowi, varlist):
     for [c,pp] in flowi:
         degree = sum(pp.values())
         if degree > 1:
-            print "ERROR: Nonlinear dynamics found; can't handle"
+            print("ERROR: Nonlinear dynamics found; can't handle")
             return None
         elif degree == 1:
-            var = pp.keys()[0]
+            var = list(pp.keys())[0]
             index = varlist[var]
             Ai[index] = c
         else:
@@ -226,8 +227,8 @@ def flow2Ab(flow):
 
 def partitionAux(x, y, A, b):
     "Rearrange A,b s.t. (x;y) = (A1,A2;0,0)(x;y) + (b1;b2); DESTRUCTIVE"
-    xindices = x.values()
-    yindices = y.values()
+    xindices = list(x.values())
+    yindices = list(y.values())
     xindices.sort()
     xindices.reverse()
     yindices.sort()
@@ -285,7 +286,7 @@ def createNodeApp(funName, argList, infix=True):
     absNode = createNodeTag("NAMEEXPR", funName)
     argNode = createNodeTagChildn("TUPLELITERAL", [])
     for i in argList:
-        if isinstance(i, basestring):
+        if isinstance(i, str):
             node = createNodeTag("NAMEEXPR", i)
         else:
             node = i
@@ -303,8 +304,8 @@ def createModNode():
     ftype = createNodeTag("TYPENAME", "REAL")
     a = createNodeTag("NAMEEXPR", "a")
     zero = createNodeTag("NUMERAL", "0")
-    ifn = createNodeApp("<", [a, zero])		# a < 0
-    thenn = createNodeApp("-", [ "a" ])		# -a
+    ifn = createNodeApp("<", [a, zero])         # a < 0
+    thenn = createNodeApp("-", [ "a" ])         # -a
     elsen = createNodeTag("NAMEEXPR", "a")
     fval = createNodeTagChild3("CONDITIONAL", ifn, thenn, elsen)
     ans = createNodeTagChild4("CONSTANTDECLARATION", fname, fparams, ftype, fval)
@@ -568,7 +569,7 @@ def createCallToQuadInv(xnew,xold,ynew,yold,a,b):
         return createQuadInv(xnew, xold, ynew, yold)
     if a > 0:
         return createQuadInv(xold, xnew, yold, ynew)
-    print "Unreachable code"
+    print("Unreachable code")
     return None
 # *****************************************************************************
 
@@ -717,7 +718,7 @@ def Ab2eigen(varlist,A,b,inputs):
         """Return list of [y[i]',y[i],b1[i]],
            where y,y' are XML nodes, b1[i] is a float"""
         multirateL = list()
-        yindices = y.values()
+        yindices = list(y.values())
         yindices.sort()
         for i,v in enumerate(yindices):
             varName = dictKey(y, v)
@@ -734,7 +735,7 @@ def Ab2eigen(varlist,A,b,inputs):
     n = len(x)
     m = len(y)
     if n == 0:
-        print "dx/dt is a constant for all x"
+        print("dx/dt is a constant for all x")
     mlist = multirateList(y, b2, inputs) 
     # guardAbs1 = multirateAbs(y, b2)
     A1trans = linearAlgebra.transpose(A1)
@@ -777,7 +778,7 @@ def Ab2eigen(varlist,A,b,inputs):
                     mlist.append( ( vec, x, const ) )
                 else:
                     # print "lamb==0, but no corr. invariant found"
-                    print 'l0',
+                    print('l0',)
                     continue
             else:
                 for j in range(len(wec)):
@@ -792,7 +793,7 @@ def Ab2eigen(varlist,A,b,inputs):
             # Pick d' s.t. l d' = c' A2 or, d l = A2' c
             # Let p := (c'x+d'y+ (c'b1+d'b2)/l) THEN dp/dt = l p
         if len(vectors) > 1:
-            if equal(lamb, 0):	# multirate above gets all the relations...
+            if equal(lamb, 0):  # multirate above gets all the relations...
                 continue
             # Test if vec0'x + c1* vec1'x + ci*veci'x + w'y+c is an eigenInv
             # (vec0'+ci*veci')(A1x+A2y+b1) + w'b2 = lamb*((ci*veci')x+w'y+c)
@@ -906,7 +907,7 @@ def absAssignments(varlist, keyLimit):
     """For each variable in varlist, create RHSSELECTION"""
     global dom
     ans = dom.createElement("ASSIGNMENTS")
-    for var,index in varlist.iteritems():
+    for var,index in list(varlist.items()):
         if index >= keyLimit:
             continue
         nameexpr = createNodeTag("NAMEEXPR",var)
@@ -983,7 +984,7 @@ def handleBasemodule(basemod, ctxt):
                 absGC = absGCNew
                 grandparentNode = parentNode.parentNode
                 if grandparentNode.localName == 'MULTICOMMAND':
-                    grandparentNode.appendChild(absGC)	# should add LABELED
+                    grandparentNode.appendChild(absGC)  # should add LABELED
                 elif grandparentNode.localName == 'SOMECOMMANDS':
                     newnode = ctxt.createElement("MULTICOMMAND")
                     oldChild = parentNode.cloneNode(True)
@@ -991,9 +992,9 @@ def handleBasemodule(basemod, ctxt):
                     newnode.appendChild(absGC)
                     grandparentNode.replaceChild(newChild=newnode, oldChild=parentNode)
                 else:
-                    print "Unknown grandparent node type"
+                    print("Unknown grandparent node type")
             else:
-                print "Unknown parent node type"
+                print("Unknown parent node type")
 
 def handleContext(ctxt):
     global dom
@@ -1048,7 +1049,7 @@ def hxml2sal(xmlfilename, optarg = 0, timearg = None, ptf=False):
     else:
         absSalFile = basename + ".sal"
     if existsAndNew(absSalFile, xmlfilename):
-      print 'Reusing existing abstract SAL file.'
+      print('Reusing existing abstract SAL file.')
       return absSalFile, True
     dom = xml.dom.minidom.parse(xmlfilename)
     setDom(dom)
@@ -1075,8 +1076,8 @@ def hxml2sal(xmlfilename, optarg = 0, timearg = None, ptf=False):
         HSalExtractRelAbs.extractRelAbs(newctxt)
     moveIfExists(absSalFile)
     with open(absSalFile, "w") as fp:
-        HSalXMLPP.HSalPPContext(newctxt, fp)
-    print "Created file %s containing the abstract model" % absSalFile
+        HSalXMLPP.HSalPPContext(newctxt, fp, gen_sally)
+    print("Created file %s containing the abstract model" % absSalFile)
     assertions = ctxt.getElementsByTagName("ASSERTIONDECLARATION")
     p1_exists = (assertions != None and len(assertions) > 0)
     if p1_exists:
@@ -1086,7 +1087,7 @@ def hxml2sal(xmlfilename, optarg = 0, timearg = None, ptf=False):
 
 def existsAndNew(filename1, filename2):
     if os.path.isfile(filename1) and os.path.getmtime(filename1) >= os.path.getmtime(filename2):
-      print "File {0} exists and is new".format(filename1)
+      print("File {0} exists and is new".format(filename1))
       return True
     return False
 
@@ -1097,18 +1098,18 @@ def hsal2hxml(filename):
             exefile = os.path.join(i, filename)
             if os.path.isfile(exefile):
                 return exefile
-        print 'Note: File {0} not found in PATH {1}.'.format(filename, exepaths)
+        print('Note: File {0} not found in PATH {1}.'.format(filename, exepaths))
         # also search in CLASSPATH -- for jar files
-        if not os.environ.has_key('CLASSPATH'):
-          print 'ERROR: File {0} not found in PATH {1}.'.format(filename, exepaths)
-          print 'ERROR: Add path of the file to CLASSPATH.'
+        if 'CLASSPATH' not in os.environ:
+          print('ERROR: File {0} not found in PATH {1}.'.format(filename, exepaths))
+          print('ERROR: Add path of the file to CLASSPATH.')
           return None
         exepaths = os.environ['CLASSPATH'].split(os.path.pathsep)
         for i in exepaths:
             exefile = os.path.join(i, filename)
             if os.path.isfile(exefile):
                 return exefile
-        print 'ERROR: File {0} not found in CLASSPATH {1}.'.format(filename, exepaths)
+        print('ERROR: File {0} not found in CLASSPATH {1}.'.format(filename, exepaths))
         return None
     def getexe():
         folder = os.path.split(inspect.getfile( inspect.currentframe() ))[0]
@@ -1139,24 +1140,24 @@ def hsal2hxml(filename):
         '''
         retCode = subprocess.call([java, "-jar", hybridsal2xml_jar, "-o", xmlfilename, filename])
         if retCode != 0 or not(os.path.isfile(xmlfilename)):
-            print "hybridsal2xml failed to create XML file. Quitting."
+            print("hybridsal2xml failed to create XML file. Quitting.")
             return 1
     else:
-        print "Unknown file extension; Expecting .hsal or .hxml; Quitting"
+        print("Unknown file extension; Expecting .hsal or .hxml; Quitting")
         return 1
     return xmlfilename
 
 def moveIfExists(filename):
     if os.path.isfile(filename):
-        print "File %s exists." % filename,
-        print "Renaming old file to %s." % filename+"~"
+        print("File %s exists." % filename,)
+        print("Renaming old file to %s." % filename+"~")
         shutil.move(filename, filename + "~")
 
 def printUsage():
-    print "Usage: hsal2hasal [-o|--opt|-n|--nonlinear|-c|--copyguard|-mdt <t>|--mindwelltime <t>|-t <t>|--time <t>] filename.hsal"
+    print("Usage: hsal2hasal [-o|--opt|-n|--nonlinear|-c|--copyguard|-mdt <t>|--mindwelltime <t>|-t <t>|--time <t>] filename.hsal")
 
 def printHelp():
-    print """
+    print("""
 -------------------------------------------------------------------------
 NAME
         bin/hsal2hasal - construct relational abstraction of HybridSAL models
@@ -1217,7 +1218,7 @@ REPORTING BUGS
 COPYRIGHT
         Copyright 2011 Ashish Tiwari, SRI International.
 -------------------------------------------------------------------------
-"""
+""")
 
 def main():
     global dom
@@ -1233,6 +1234,10 @@ def main():
     if ('-h' in args) | ('--help' in args) | ('-help' in args) | ('--h' in args):
         printHelp()
         return 0
+    if ('-sally' in args) | ('--sally' in args):
+        gen_sally = True
+    else:
+        gen_sally = False
     if ('-o' in args) | ('--opt' in args) :
         opt |= 0x1
     if ('-n' in args) | ('--nonlinear' in args) :
@@ -1249,7 +1254,7 @@ def main():
         try:
             time = float(args[index+1])
         except ValueError:
-            print "-t|--time should be followed by a float"
+            print("-t|--time should be followed by a float")
             printUsage()
             return 1
     if ('-mdt' in args) | ('--mindwelltime' in args) :
@@ -1262,10 +1267,9 @@ def main():
         try:
             time = float(args[index+1])
         except ValueError:
-            print "-t|--time should be followed by a float"
+            print("-t|--time should be followed by a float")
             printUsage()
             return 1
-    gen_sally = ('-sally' in args) | ('--sally' in args)
     ptf = ('-ptf' in args) | ('--preserve-tmp-files' in args)
     if ('-ta' in args) | ('--timeaware' in args) :
         opt |= 0x20
@@ -1276,11 +1280,11 @@ def main():
         try:
             assert len(args) > index+1
             timeNML = args[index+1]
-	    timeNMLlist = timeNML.split(',')
+            timeNMLlist = timeNML.split(',')
             assert len(timeNMLlist) == 4
             time = (timeNMLlist[0], [ int(x) for x in timeNMLlist[1:] ])
         except : # AssertionError ValueError
-            print "-ta|--timeaware should be followed by (timeVarName,M,N,L)"
+            print("-ta|--timeaware should be followed by (timeVarName,M,N,L)")
             printUsage()
             return 1
     # for i in sys.argv[1:]:
@@ -1291,11 +1295,11 @@ def main():
         # filename = i
     filename = args[len(args)-1] # sys.argv[1]
     if not(os.path.isfile(filename)):
-        print "File does not exist. Quitting."
+        print("File does not exist. Quitting.")
         return 1
     xmlfilename = hsal2hxml(filename)
     if type(xmlfilename) == int:
-        print "Unable to parse HybridSal file. Quitting."
+        print("Unable to parse HybridSal file. Quitting.")
         return 1
     ans = hxml2sal(xmlfilename, opt, time, ptf=ptf)
     return ans

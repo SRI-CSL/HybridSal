@@ -296,7 +296,7 @@ def poly2str(poly):
         c = mono[0] if len(mono) > 0 else 0
         mu = mono[1] if len(mono) > 1 else {}
         ans = ''
-        for (k,v) in mu.items():
+        for (k,v) in list(mu.items()):
             ans += '{0}'.format(k) if v==1 else '{0}^{1}'.format(k,v)
         ans = '{0}{1}'.format(c,ans) if c != 1 else ans
         return ans
@@ -358,12 +358,12 @@ def handleBasemodule(basemod):
         return(abs(c-d) < tolerance)
     def dictKey(varlist, value):
         "Return key given the value"
-        for var,index in varlist.iteritems():
+        for var,index in varlist.items():
             if index == value:
                 return var
         return None
     def mk_cx(c,x):
-        xindices = x.values()
+        xindices = list(x.values())
         xindices.sort()
         n = len(xindices)
         cx = list()
@@ -433,7 +433,7 @@ def prop2modpropExpr(ctxt, prop):
     try:
         modulename = HSalXMLPP.getNameTag(modulemodels, 'MODULENAME')
     except IndexError:
-        print 'ERROR: Expecting MODULENAME inside property {0}'.format(prop)
+        print('ERROR: Expecting MODULENAME inside property {0}'.format(prop))
         sys.exit(1)
     propExpr = HSalXMLPP.getArg(modulemodels, 2)
     assert propExpr != None, 'ERROR: Failed to find property expression'
@@ -476,17 +476,17 @@ def hxml2cegar(xmlfilename, prop, depth = 4):
     ctxt = HSalPreProcess2.handleContext(ctxt)
     # 
     mydatastructure = handleContext(ctxt, prop)
-    print "Cegar: First phase of initialization of data-structures is complete"
-    print mydatastructure.toStr()
+    print("Cegar: First phase of initialization of data-structures is complete")
+    print(mydatastructure.toStr())
     safety_check(mydatastructure)
-    print "Cegar: Second phase of CEGAR terminated"
+    print("Cegar: Second phase of CEGAR terminated")
     return 0
 
 def printUsage():
-    print "Usage: hsal-cegar [-h|--help] filename.hsal property"
+    print("Usage: hsal-cegar [-h|--help] filename.hsal property")
 
 def printHelp():
-    print """
+    print("""
 -------------------------------------------------------------------------
 NAME
         bin/hsal-cegar - prove safety of HybridSAL models using CEGAR
@@ -518,7 +518,7 @@ REPORTING BUGS
 COPYRIGHT
         Copyright 2012 Ashish Tiwari, SRI International.
 -------------------------------------------------------------------------
-"""
+""")
 
 def main_aux(filename, prop, depth):
     xmlfilename = HSalRelAbsCons.hsal2hxml(filename)
@@ -544,13 +544,13 @@ def main():
             depth = int(args[index+1])
             assert depth > 0, "-d|--depth should be followed by a positive number"
         except ValueError:
-            print "-d|--depth should be followed by a number"
+            print("-d|--depth should be followed by a number")
             printUsage()
             return 1
     filename = args[len(args)-2] 
     prop = args[len(args)-1] 
     if not(os.path.isfile(filename)):
-        print "File {0} does not exist. Quitting.".format(filename)
+        print("File {0} does not exist. Quitting.".format(filename))
         return 1
     return main_aux(filename, prop, depth)
 
@@ -576,12 +576,12 @@ def poly2linear(d):
     for mono in d:
         c = mono[0]
         if len(mono[1])==0:
-            ans['_const_'] = ans['_const_'] + c if ans.has_key('_const_') else c
+            ans['_const_'] = ans['_const_'] + c if '_const_' in ans else c
         else:
             assert len(mono[1]) == 1, 'error: non-linear direction?'
-            (var,power) = mono[1].items()[0]
+            (var,power) = list(mono[1].items())[0]
             assert power==1, 'error: non-linear direction?'
-            ans[var] = ans[var] + c if ans.has_key(var) else c 
+            ans[var] = ans[var] + c if var in ans else c 
     return ans
 
 class Direction:
@@ -592,7 +592,7 @@ class Direction:
         self.description = description
         self.buddy = buddy
     def get_vars(self):
-        return self.d.keys()
+        return list(self.d.keys())
     def get_linear(self):
         return self.d
     def get_description(self):
@@ -601,7 +601,7 @@ class Direction:
         return self.rate
     def tostr(self):
         ans = self.description
-        for (k,v) in self.d.items():
+        for (k,v) in list(self.d.items()):
             ans += '+ {0:.2}{1:.2} '.format(float(v),k)
         return  ans
 
@@ -703,7 +703,7 @@ class BoxTreeNode:
         ans = True
         unsafe = btn.get_box()
         tlbs, tubs = [], []
-        for (d, (lb,ub)) in self.d.items():
+        for (d, (lb,ub)) in list(self.d.items()):
             (lb1,ub1) = unsafe[d]
             kind = d.get_description()
             if kind == 'eigen' or kind == 'multi':
@@ -715,7 +715,7 @@ class BoxTreeNode:
                 tlbs.append( tmin )
                 tubs.append( tmax )
             else:
-                print 'Warning: Quadratic case code missing'
+                print('Warning: Quadratic case code missing')
         if ans == False:
             return False
         tmin = max( tlbs )
@@ -723,12 +723,12 @@ class BoxTreeNode:
         if tmin > tmax:
             return False
         elif tmin == tmax:
-            print 'Warning: Potentially unsafe after T = {0} time units, assuming safe'.format(tmin)
+            print('Warning: Potentially unsafe after T = {0} time units, assuming safe'.format(tmin))
             return False
         return (tmin,tmax)
     def tostr(self):
         ans = ''
-        for (k1,v1) in self.d.items():		# k1 = direction, v1 = (lb,ub)
+        for (k1,v1) in list(self.d.items()):		# k1 = direction, v1 = (lb,ub)
             ans += '  {0} : ({1[0]:.2},{1[1]:.2}),\n'.format(k1.tostr(),v1)
         ans += ' Number of children = {0}'.format(self.n)
         for c in self.children:
@@ -757,7 +757,7 @@ class CDS_Reach:
         return self.directions
     def over_dnf(self, dnf ):
         ddp = dnf.over_approx( self.cds.x, self.directions, self.cds.getmodeinv() )
-        for k in ddp.keys():	# for each region
+        for k in list(ddp.keys()):	# for each region
             ddp[k] = BoxTreeNode(ddp[k], k)
         return ddp
     def get_over_init(self):
@@ -776,7 +776,7 @@ class CDS_Reach:
     def toStr(self):
         def over_tostr( dictOfdictOfpairs ):
             ans = ''
-            for (k,v) in dictOfdictOfpairs.items():		# k=region; v=BoxTreeNode
+            for (k,v) in list(dictOfdictOfpairs.items()):		# k=region; v=BoxTreeNode
                 ans += '\n  {0} -> [\n'.format(k.tostr())	# region 
                 ans += v.tostr()				# BoxTreeNode
                 ans += ']\n'
@@ -792,24 +792,24 @@ class CDS_Reach:
 def safety_check(cds):
     cdsr = CDS_Reach(cds)
     cdsr.set_all()
-    print cdsr.toStr()
+    print(cdsr.toStr())
     # call btn.intersects...
     over_init = cdsr.get_over_init()	# map from region to BoxTreenode
     over_unsafe = cdsr.get_over_unsafe()
     isSafe = True
-    for (region, btn) in over_init.items():
-        for (region2, btn2) in over_unsafe.items():
+    for (region, btn) in list(over_init.items()):
+        for (region2, btn2) in list(over_unsafe.items()):
             ans = btn.intersects(btn2)
             isSafe = isSafe and ans == False
             if ans != False:
-                print 'Need refinement: intersection = {0}'.format(ans)
-                print 'Potential counter-example:'
-                print 'Starting region: {0}'.format(region.tostr())
-                print 'Unsafe region: {0}'.format(region2.tostr())
+                print('Need refinement: intersection = {0}'.format(ans))
+                print('Potential counter-example:')
+                print('Starting region: {0}'.format(region.tostr()))
+                print('Unsafe region: {0}'.format(region2.tostr()))
     if isSafe:
-        print 'Property proved!'
+        print('Property proved!')
     else:
-        print 'Need refinement to get concrete CE or proof'.format(ans)
+        print('Need refinement to get concrete CE or proof'.format(ans))
 # -----------------------------------------------------------------------------------
 
 # -----------------------------------------------------------------------------------
@@ -878,7 +878,7 @@ def lp_solve(prob):
     if ret == 0 and status == glpk.GLP_OPT:
         return glpk.glp_get_obj_val(prob)
     elif ret == glpk.GLP_ENOPFS:
-        print 'LP has no Primal feasible solution'
+        print('LP has no Primal feasible solution')
         sys.exit(1)
     elif status == glpk.GLP_UNBND:
         minmax = glpk.glp_get_obj_dir(prob)
@@ -886,8 +886,8 @@ def lp_solve(prob):
         return ans
     else:
         lp_prob_print(prob)
-        print 'ERROR: LP failed'
-        print 'return = {0}, status = {1}'.format(ret, status)
+        print('ERROR: LP failed')
+        print('return = {0}, status = {1}'.format(ret, status))
         sys.exit(1)
     return 0
 
@@ -904,15 +904,15 @@ def lp_set_rows_from_region(prob, x, region, base):
         op = i.get_op()
         assert op != '!=', 'error: cant handle  not-eq yet'
         gop = glpk.GLP_UP if op in ['<','<='] else (glpk.GLP_LO if op in ['>','>='] else glpk.GLP_FX)
-        value = -rowi['_const_'] if rowi.has_key('_const_') else 0
+        value = -rowi['_const_'] if '_const_' in rowi else 0
         index = base + constraints.index(i)
-        print 'rowi {2} is being set to {0} {1} 0'.format( rowi, op, index )
+        print('rowi {2} is being set to {0} {1} 0'.format( rowi, op, index ))
         glpk.glp_set_row_bnds(prob, index, gop, value, value)
-        l = len(rowi) if rowi.has_key('_const_') else len(rowi) + 1
+        l = len(rowi) if '_const_' in rowi else len(rowi) + 1
         ind = glpk.intArray(l)
         val = glpk.doubleArray(l)
         j = 1
-        for (k,v) in rowi.items():
+        for (k,v) in list(rowi.items()):
             if k != '_const_':
                 ind[j] = x[k]+1
                 val[j] = v
@@ -930,8 +930,8 @@ def lp_optimize(x, direction, region, region1):
     base_index = glpk.glp_get_num_rows(prob) + 1
     prob = lp_set_rows_from_region(prob, x, region1, base_index)
     # add optimization function....check if _const_ treated properly
-    for (k,v) in direction.get_linear().items():
-        ind = x[k] + 1 if x.has_key(k) else 0
+    for (k,v) in list(direction.get_linear().items()):
+        ind = x[k] + 1 if k in x else 0
         val = v
         glpk.glp_set_obj_coef(prob, ind, val)
     return prob
@@ -942,14 +942,14 @@ def lp_prob_print(prob):
     ind = glpk.intArray(10)
     val = glpk.doubleArray(10)
     for i in range(1,m+1):
-        print 'obj: {0} {1}'.format(i, glpk.glp_get_obj_coef(prob, i))
+        print('obj: {0} {1}'.format(i, glpk.glp_get_obj_coef(prob, i)))
     for i in range(m):
-        print 'col {0} lb = {1} ub = {2}'.format(i+1,glpk.glp_get_col_lb(prob,i+1),glpk.glp_get_col_ub(prob,i+1))
+        print('col {0} lb = {1} ub = {2}'.format(i+1,glpk.glp_get_col_lb(prob,i+1),glpk.glp_get_col_ub(prob,i+1)))
     for i in range(n):
-        print 'row {0} lb = {1} ub = {2}'.format(i+1,glpk.glp_get_row_lb(prob,i+1),glpk.glp_get_row_ub(prob,i+1))
+        print('row {0} lb = {1} ub = {2}'.format(i+1,glpk.glp_get_row_lb(prob,i+1),glpk.glp_get_row_ub(prob,i+1)))
         l = glpk.glp_get_mat_row(prob, i+1, ind, val)
         for j in range(l):
-            print 'row {0}: {1} {2}'.format(i+1, ind[j+1], val[j+1])
+            print('row {0}: {1} {2}'.format(i+1, ind[j+1], val[j+1]))
     return
 # -----------------------------------------------------------------------------------
 

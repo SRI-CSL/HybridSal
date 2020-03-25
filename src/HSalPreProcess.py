@@ -46,8 +46,10 @@
 #      </APPLICATION>
 #    </CONSTANTDECLARATION>
 
+from __future__ import print_function
+
 import xml.dom.minidom
-import sys	# for sys.argv[0]
+import sys      # for sys.argv[0]
 import polyrep # internal representation for expressions
 import os.path
 import shutil
@@ -66,15 +68,15 @@ import polyrep
 # ********************************************************************
 def moveIfExists(filename):
     if os.path.isfile(filename):
-        print "File %s exists." % filename,
-        print "Renaming old file to %s." % filename+"~"
+        print(("File %s exists." % filename,))
+        print(("Renaming old file to %s." % filename+"~"))
         shutil.move(filename, filename + "~")
 
 def main():
     global dom
     filename = sys.argv[1]
     if not(os.path.isfile(filename)):
-        print "File does not exist. Quitting."
+        print("File does not exist. Quitting.")
         return 1
     basename,ext = os.path.splitext(filename)
     if ext == '.hxml':
@@ -83,22 +85,22 @@ def main():
         xmlfilename = basename + ".hxml"
         subprocess.call(["hybridsal2xml/hybridsal2xml", "-o", xmlfilename, filename])
         if not(os.path.isfile(xmlfilename)):
-            print "hybridsal2xml failed to create XML file. Quitting."
+            print("hybridsal2xml failed to create XML file. Quitting.")
             return 1
     else:
-        print "Unknown file extension; Expecting .hsal or .hxml; Quitting"
+        print("Unknown file extension; Expecting .hsal or .hxml; Quitting")
         return 1
     dom = xml.dom.minidom.parse(xmlfilename)
     newctxt = handleContext(dom)
     moveIfExists(xmlfilename)
     with open(xmlfilename, "w") as fp:
-        print >> fp, newctxt.toxml()
-    print "Created file %s containing the preprocessed model (XML)" % xmlfilename
+        print(newctxt.toxml(), file=fp)
+    print(("Created file %s containing the preprocessed model (XML)" % xmlfilename))
     filename = basename + ".hsal.preprocessed"
     moveIfExists(filename)
     with open(filename, "w") as fp:
         HSalXMLPP.HSalPPContext(newctxt, fp)
-    print "Created file %s containing the preprocessed model (HSal)" % filename
+    print(("Created file %s containing the preprocessed model (HSal)" % filename))
     return 0
 
 # ********************************************************************
@@ -121,15 +123,15 @@ def replaceNameexprsNumerals(ufu, xmlnode):
         nameexprs = [ xmlnode ]
     else:
         nameexprs = xmlnode.getElementsByTagName("NAMEEXPR")
-    # print "Found so many NAMEEXPRSs to possibly replace"
-    # print len(nameexprs)
+    # print("Found so many NAMEEXPRSs to possibly replace")
+    # print(len(nameexprs))
     for j in nameexprs:
         v = HSalXMLPP.valueOf(j)
         if v in ufu:
             fv = ufu[v]
             fvXML = createNodeTag("NUMERAL", fv)
             # replace j by fvXML 
-	    jParent = j.parentNode
+            jParent = j.parentNode
             jParent.replaceChild(fvXML, j)
             if j == xmlnode:
                 xmlnode = fvXML
@@ -152,19 +154,19 @@ def handleContext(ctxt):
         # get all NAMEEXPR in fuXML; replace by f(nameexpr)
         fuXML = replaceNameexprsNumerals(defs, fuXML)
         # Now evaluate the expression and check if it is a constant.
-        # print polyrep.expr2poly(varValueInXML)
+        # print(polyrep.expr2poly(varValueInXML))
         fuPolyrep =  polyrep.expr2poly(fuXML)
         if polyrep.isConstant(fuPolyrep):
             value = polyrep.getConstant(fuPolyrep)
             defs[uStr] = format(value,'.4f')  # ASHISH: CHECK LATER
-            print uStr+' = '+format(value,'.4f')  # ASHISH: CHECK LATER
+            print((uStr+' = '+format(value,'.4f')))  # ASHISH: CHECK LATER
         else:
             j = j + 1
-            # print fuXML.toxml()
-            # print fuPolyrep
-            # print "ERROR: Preprocessor can't eliminate constant decls"
+            # print(fuXML.toxml())
+            # print(fuPolyrep)
+            # print("ERROR: Preprocessor can't eliminate constant decls")
             # return ctxt
-    # print "Found " + str(j) + "constant decls that are not constants"
+    # print("Found " + str(j) + "constant decls that are not constants")
     # get all NAMEEXPR in the document; see if their textvalue == above; replace
     ctxt = replaceNameexprsNumerals(defs, ctxt)
     return ctxt

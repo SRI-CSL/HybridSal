@@ -63,7 +63,7 @@ def monoMul(mu, nu):
     res = list(mu)
     res[1] = mu[1].copy()
     res[0] = mu[0] * nu[0]
-    for (key,val) in nu[1].items():
+    for (key,val) in list(nu[1].items()):
         v1 = res[1].get(key) 
         if v1 == None:
             res[1][key] = val
@@ -86,7 +86,7 @@ def polyDiv(p, q):
         for i in p:
             i[0] = float(i[0])/c
     else:
-        print "Error: Can't divide by NON-CONSTANT"
+        print("Error: Can't divide by NON-CONSTANT")
     return p
 
 def infixApp2poly(node, ignoreNext = False):
@@ -102,7 +102,7 @@ def infixApp2poly(node, ignoreNext = False):
     elif not(str2.find('/') == -1):
         return polyDiv(str1, str3)
     else:
-        print "Error: Unidentified operator %s" % str2
+        print(("Error: Unidentified operator %s" % str2))
         return str1
 
 def prefixApp2poly(node, ignoreNext = False):
@@ -113,7 +113,7 @@ def prefixApp2poly(node, ignoreNext = False):
     if not(str0.find('-') == -1):
         return polyNeg(str1)
     else:
-        print "Error: Unidentified operator %s" % str0
+        print(("Error: Unidentified operator %s" % str0))
         return str1
 
 def app2poly(node, ignoreNext=False):
@@ -123,15 +123,15 @@ def app2poly(node, ignoreNext=False):
         return prefixApp2poly(node, ignoreNext)
 
 def nextOperator2poly(node):
-    print "Error: Nextoperator not allowed on RHSExpression %s" % node.nodeValue
+    print(("Error: Nextoperator not allowed on RHSExpression %s" % node.nodeValue))
     return None
 
 def setPredExpr2poly(node):
-    print "Error: SetPredExpr not allowed on RHSExpression %s" % node.nodeValue
+    print(("Error: SetPredExpr not allowed on RHSExpression %s" % node.nodeValue))
     return None
 
 def expr2poly(node, ignoreNext = False):
-    # print node.localName
+    # print(node.localName)
     if (node == None) or not(node.nodeType == node.ELEMENT_NODE):
         return list()
     if node.localName == "NAMEEXPR":
@@ -148,8 +148,8 @@ def expr2poly(node, ignoreNext = False):
     elif node.localName == "SETPREDEXPRESSION":
         return setPredExpr2poly(node)
     else:
-        print node.toxml()
-        print 'Type of expr unknown? Missing code'
+        print((node.toxml()))
+        print('Type of expr unknown? Missing code')
     return None
 
 def exprs2poly(nodes):
@@ -158,5 +158,5 @@ def exprs2poly(nodes):
             return expr2poly(node)
     return None
     #if (node.nodeType == node.TEXT_NODE):
-        #print node.data
+        #print(node.data)
 

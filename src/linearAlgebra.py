@@ -188,11 +188,11 @@ def eigenvalueLargest(A):
         lambold = lamb
         lamb = pow(lambold,float(i)/(i+1))*pow(Avbyv(A,v),1.0/(i+1))
         i += 1
-        print "lamb %f" % lamb
-    print "Number of iterations %d" % i
-    print "lamb %f" % lamb
-    print "lambold %f" % lambold
-    print v
+        print(("lamb %f" % lamb))
+    print(("Number of iterations %d" % i))
+    print(("lamb %f" % lamb))
+    print(("lambold %f" % lambold))
+    print(v)
     return([lamb, nnormalize(v)])
 
 def zeros(v):
@@ -231,7 +231,7 @@ def dependentIndependent(A):
     assert n > 0
     m = len(A[0])
     dep = list()
-    ind = range(m)
+    ind = list(range(m))
     for i in range(m):
         j = unitColumn(A,i,n)
         if j != -1:
@@ -241,13 +241,13 @@ def dependentIndependent(A):
 
 def extractSoln(A,b):
     """A is permuted Identity nxn matrix; b is n-vector"""
-    #print "Extracting solution from Ax=b where A,b are"
-    #print A
-    #print b
+    #print("Extracting solution from Ax=b where A,b are")
+    #print(A)
+    #print(b)
     [dep,ind] = dependentIndependent(A)
-    #print "dep, independent vars from A are"
-    #print dep
-    #print ind
+    #print("dep, independent vars from A are")
+    #print(dep)
+    #print(ind)
     m = len(A[0])
     assert m == len(dep) + len(ind)
     allans = list()
@@ -270,14 +270,14 @@ def checkAxEqb(A,x,b):
     """Check if Ax==b.  Divide by |b| before checking equality"""
     Ax = multiplyAv(A,x)
     Ax = nminusUV(Ax,b)
-    #print "checking if zero: ",
-    #print Ax
+    #print("checking if zero: ",)
+    #print(Ax)
     modb = modulus(b)
     if modb > 1:
         for i in range(len(Ax)):
             Ax[i] /= modb
-    #print "checking if zero: ",
-    #print Ax
+    #print("checking if zero: ",)
+    #print(Ax)
     ans = isZero(Ax)
     del Ax
     return ans
@@ -288,8 +288,8 @@ def checkAxbSolns(A,b,ans):
     n = len(ans)
     for i in range(n):
         if not(checkAxEqb(A,ans[j],b)):
-            print "Deleting solution index ",
-            print j
+            print(("Deleting solution index ",))
+            print(j)
             del ans[j]
         else:
             j = j + 1
@@ -307,9 +307,9 @@ def maxColumn(A,i,n,forbidden):
 
 def solve(A,b):
     "Solve Ax = b; Destructive"
-    #print "Solving ",
-    #print A,
-    #print b 
+    #print("Solving ",)
+    #print(A,)
+    #print(b )
     n = len(b)	# n is the number of constraints
     assert n == len(A)
     if n == 0:
@@ -326,13 +326,13 @@ def solve(A,b):
             A[ind] = nscale(A[ind], tmp)
             b[ind] *= tmp
             [A,b] = solve1(A,b,ind,i)
-        #print "Solving ",
-        #print A,
-        #print b 
+        #print("Solving ",)
+        #print(A,)
+        #print(b )
     del forbidden
     ans = extractSoln(A,b)
-    print "Solving returned the following...checking now...",
-    print ans
+    print(("Solving returned the following...checking now...",))
+    print(ans)
     ans = checkAxbSolns(A,b,ans)
     delA(A)
     del b
@@ -387,8 +387,8 @@ def expressAnUsingAis(A, vec, n):
     Btrans = transpose(B)
     delA(B)
     ans = solve(Btrans,b)
-    print "solve returned",
-    print ans
+    print(("solve returned",))
+    print(ans)
     del b
     assert len(ans) > 0
     del ans[1:]
@@ -423,8 +423,8 @@ def inSubspace(v, subspace):
 
 def orbit(A, v):
     "Return orthonormal BASIS of subspace(v,Av,A^2v,...)"
-    print "Computing ORBIT ...",
-    #print v
+    print(("Computing ORBIT ...",))
+    #print(v)
     subspace = list()
     v = nnormalize(v)
     v = inSubspace(v, subspace)
@@ -471,7 +471,7 @@ def extendToFull(basis, n):
 
 def dictUpdate(dictionary, key, value):
     """return dictionary with dict[key] += value"""
-    for k,v in dictionary.iteritems():
+    for k,v in dictionary.items():
         if equal(key, k):
             dictionary[k] = v + value
             return dictionary
@@ -518,31 +518,31 @@ def neigenvalues(A, ans=None):
     if n == 1:
         ans.append( (A[0][0], 1, [A[0][0]]) )
         return ans
-    print "****Computing eigenvalues of matrix A with dimension %d" % n
-    print A
+    print(("****Computing eigenvalues of matrix A with dimension %d" % n))
+    print(A)
     if len(ans) == 0:
         (A, ans) = zeroEigenvalue(A, ans)
         if len(ans) > 0:
-            print "0 is an eigenvalue of A"
+            print("0 is an eigenvalue of A")
             n = len(A)
-            print "****Computing eigenvalues of matrix A with dimension %d" % n
-            print A
+            print(("****Computing eigenvalues of matrix A with dimension %d" % n))
+            print(A)
         else:
-            print "0 is NOT an eigenvalue of A"
+            print("0 is NOT an eigenvalue of A")
     for i in range(n):
         if isUnitColumn(A,i,n):
             eigenvalue = A[i][i]
             newA = nremoveRowColumn(A,i,n)
-            print "NewA after removing rowcolumn %d" % i
-            print newA
+            print(("NewA after removing rowcolumn %d" % i))
+            print(newA)
             ans.append((eigenvalue, 1, [eigenvalue]))
             return neigenvalues(newA, ans)
     [lamb, vec] = eigenvalueLargest(A)
     subspace = orbit(A, vec)
     done = len(subspace)
     coeffs = expressAnUsingAis(A, vec, done)
-    print "Subspace found...", 
-    print subspace
+    print(("Subspace found...",))
+    print(subspace)
     newbasis = extendToFull(subspace, n)
     newA = changeOfBasis(A, newbasis)
     delA(A)
@@ -570,10 +570,10 @@ def allEigenvectorsComplex(A, coeffs, ans):
     # we find u by solving A^2-aA+(a^2/2+b)I u=0
     # (A-a/2)*(A-a/2)u = -d^2*u ... A^2 - a*A + (aa/4+d^2)
     # aa/4 + -aa-4b/4 = -b !!!
-    print "Solving quadratic:",
-    print "a = %f" % a,
-    print "b = %f, A = " % b
-    print  A
+    print(("Solving quadratic:",))
+    print(("a = %f" % a,))
+    print(("b = %f, A = " % b))
+    print(A)
     Atrans = transpose(A)
     n = len(A)
     AA = [[0 for i in range(n)] for j in range(n)]
@@ -582,15 +582,15 @@ def allEigenvectorsComplex(A, coeffs, ans):
         for j in range(n):
              AA[i][j] -= (a*A[i][j])
     # now AA is A^2 - a*A
-    print  AA
+    print(AA)
     for i in range(n):
         AA[i][i] -= b
-    print  AA
+    print(AA)
     zerovec = [0 for i in range(n)]
     uv = solve(AA, zerovec)  # CHECK here
     uv = removeIfZero(uv)
-    print "Found %d solutions to the quadratic equation" % len(uv)
-    print (a/2.0, sqrt(-a*a-4*b)/2.0 )
+    print(("Found %d solutions to the quadratic equation" % len(uv)))
+    print((a/2.0, sqrt(-a*a-4*b)/2.0))
     ans.append( [a/2.0, sqrt(-a*a-4*b)/2.0] )
     ans.append(uv)
     return ans
@@ -600,7 +600,7 @@ def findNZdiagonalEntry(tmpA, indices):
     for i in indices:
         if noteq(tmpA[i][i], 0):
             return i
-    print "ERROR: No nonzero diagonal entry found"
+    print("ERROR: No nonzero diagonal entry found")
     return -1
 
 def inverse(A):
@@ -610,11 +610,11 @@ def inverse(A):
     for i in range(n):
         invA[i][i] = 1.0
     tmpA = copyA(A)
-    indices = range(n)
+    indices = list(range(n))
     for i in range(n):
         j = findNZdiagonalEntry(tmpA, indices)
         assert (j != -1)
-        print "processing index %d" % j
+        print(("processing index %d" % j))
         indices.remove(j)
         factor = tmpA[j][j]
         for k in range(n):
@@ -627,8 +627,8 @@ def inverse(A):
             for k in range(n):
                 tmpA[l][k] -= (float(factor) * tmpA[j][k])
                 invA[l][k] -= (float(factor) * invA[j][k])
-        #print tmpA
-        #print invA
+        #print(tmpA)
+        #print(invA)
     delA(tmpA)
     return invA
 
@@ -728,31 +728,31 @@ def eigenOld(A):
 
 def test1():
     xx = [ [1,2,3], [0,2,6], [0,0,3] ]
-    #print multiplyAv(xx,[0,0,1])
-    print "Test of largest eigevalue computation of:"
-    print xx
+    #print(multiplyAv(xx,[0,0,1]))
+    print("Test of largest eigevalue computation of:")
+    print(xx)
     [lamb, v] = eigenvalueLargest(xx) 
-    print "Largest eigenvalue should be 3, computed %d: eigenvector=" % lamb
-    print v
-    print "*************************************"
+    print(("Largest eigenvalue should be 3, computed %d: eigenvector=" % lamb))
+    print(v)
+    print("*************************************")
 
 def test2():
-    print "Testing equation solving"
+    print("Testing equation solving")
     A = [ [1,2,3], [1,3,6], [1,3,2] ]
     b = [ 6, 10, 6 ]
     ans = solve(A, b)
-    print ans
-    print "The solution above should be [[1 1 1]]"
-    print "*************************************"
+    print(ans)
+    print("The solution above should be [[1 1 1]]")
+    print("*************************************")
 
 def test3():
     xx = [ [1,2,3], [0,2,6], [0,0,3] ]
-    print "Test of ALL eigevalue computation of:"
-    print xx
+    print("Test of ALL eigevalue computation of:")
+    print(xx)
     eigens = neigenvalues(xx) 
-    print eigens
-    print "The above dict should be [(3,1,[3]), (2,1,[2]), (1,1,[1])]"
-    print "*************************************"
+    print(eigens)
+    print("The above dict should be [(3,1,[3]), (2,1,[2]), (1,1,[1])]")
+    print("*************************************")
 
 def test4():
     xx = [ [1,2,3], [0,2,6], [0,0,3] ]
@@ -760,28 +760,28 @@ def test4():
     a = sqrt2 / 2
     basis = [ [ a, a, 0], [a, -a, 0], [0, 0, 1] ]
     xx = changeOfBasis(xx, basis)
-    print "Test of ALL eigevalue computation of:"
-    print xx
+    print("Test of ALL eigevalue computation of:")
+    print(xx)
     eigens = neigenvalues(xx) 
-    print eigens
-    print "The above dict should be [(3,1,[3]), (2,1,[2]), (1,1,[1])]"
-    print "*************************************"
+    print(eigens)
+    print("The above dict should be [(3,1,[3]), (2,1,[2]), (1,1,[1])]")
+    print("*************************************")
 
 def test5():
     xx = [ [0,1], [-1,0] ]
     eigens = neigenvalues(xx)
-    print eigens
-    print "The above list should be [ (1, 2, [-1,0]) ]"
-    print "*************************************"
+    print(eigens)
+    print("The above list should be [ (1, 2, [-1,0]) ]")
+    print("*************************************")
 
 def test6():
     xx = [ [0,1], [-1,0] ]
-    print "Computing all eigenvectors for [[0,1],[-1,0]]"
+    print("Computing all eigenvectors for [[0,1],[-1,0]]")
     eigenvectors = eigen(xx)
     delA(xx)
-    print "Computed eigenvectors:",
-    print eigenvectors
-    print "*************************************"
+    print(("Computed eigenvectors:",))
+    print(eigenvectors)
+    print("*************************************")
 
 def test7():
     n = 4
@@ -793,8 +793,8 @@ def test7():
     xx[3][2] = 4
     xx[3][3] = 3
     eigenvectors = eigen(xx)
-    print eigenvectors
-    print "*************************************"
+    print(eigenvectors)
+    print("*************************************")
 
 def test8():
     xx = [ [1,2,3], [2,4,6], [0,0,3] ]
@@ -802,32 +802,32 @@ def test8():
     a = sqrt2 / 2
     basis = [ [ a, a, 0], [a, -a, 0], [0, 0, 1] ]
     xx = changeOfBasis(xx, basis)
-    print "Test of ALL eigevalue computation of:"
-    print xx
+    print("Test of ALL eigevalue computation of:")
+    print(xx)
     eigens = neigenvalues(xx) 
-    print eigens
-    print "The above dict should be [(3,1,[3]), (0,1,[0]), (5,1,[5])]"
-    print "*************************************"
+    print(eigens)
+    print("The above dict should be [(3,1,[3]), (0,1,[0]), (5,1,[5])]")
+    print("*************************************")
 
 def test9():
     xx = [ [1,1], [0,1] ]
-    print "Testing inverse: Inverse of:"
-    print xx
+    print("Testing inverse: Inverse of:")
+    print(xx)
     xxinv = inverse(xx)
-    print "is computed to be: :"
-    print xxinv
+    print("is computed to be: :")
+    print(xxinv)
     xx = [ [1,2,3], [-1,2,6], [-2,1,-3] ]
-    print "Testing inverse: Inverse of:"
-    print xx
+    print("Testing inverse: Inverse of:")
+    print(xx)
     xxinv = inverse(xx)
-    print "is computed to be: :"
-    print xxinv
+    print("is computed to be: :")
+    print(xxinv)
     xx = transpose(xx)
     I = copyA(xx)
     I = multiplyABTranspose(I, xxinv, xx)
-    print "Product of A and its inverse is:"
-    print I
-    print "*************************************"
+    print("Product of A and its inverse is:")
+    print(I)
+    print("*************************************")
 
 if __name__ == "__main__":
     test1()
