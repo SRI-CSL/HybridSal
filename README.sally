@@ -14,6 +14,9 @@ Because of this, not all HybridSal files can be transformed.  In particular,
    all lemmas must have the form "system |- G(e)", where "system" is a module name,
    and "e" is a safety property (has the meaning of always "e").
 
+In addition, Sally currently has no way to make use of lemmas, such as in
+examples/Linear1.hsal
+
 The examples subdirectory has been used as the subset of HybridSal to
 support, with many exeptions.  In particular, module composition is not
 (yet) supported, and some examples don't currently run in Sal; they
