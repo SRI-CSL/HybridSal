@@ -1,6 +1,9 @@
-vpath %.hsal examples
-vpath %.hxml examples
-vpath %.sal  examples
+vpath %.hsal    examples
+vpath %.hxml    examples
+vpath %.sal     examples
+vpath %mcmt     examples
+vpath %logsal   examples
+vpath %logsally examples
 
 exhsal=examples/
 
@@ -17,8 +20,13 @@ example8=nav01
 EXPLS:=$(wildcard examples/*.hsal)
 HXMLS=$(EXPLS:.hsal=.hxml)
 SALS=$(EXPLS:.hsal=.sal)
+SALLYS=$(EXPLS:.hsal=.mcmt)
+VERIFSAL=$(EXPLS:.hsal=.logsal)
+VERIFSALLY=$(EXPLS:.hsal=.logsally)
 
-all: $(SALS) src/HSalRelAbsCons.py
+.PHONY : all release install test 
+
+all: $(SALS) $(SALLYS) src/HSalRelAbsCons.py
 
 release: install.py
 	python install.py dist
@@ -26,14 +34,24 @@ release: install.py
 install: install.py
 	python install.py
 
-test: 
-	bin/hsal2hasal examples/Linear1.hsal
+test: $(VERIFSALLY)
 
 %.sal: %.hxml
 	bin/hsal2hasal $<
 
 %.sal: %.hsal
 	bin/hsal2hasal $<
+
+%.mcmt: %.hxml
+	bin/hsal2hasally $<
+
+%.mcmt: %.hsal
+	bin/hsal2hasally $<
+
+# No %.logsal rules, as sal-inf-bmc needs the formula name
+
+%.logsally: %.mcmt
+	-sally --engine bmc $< > $@ 2>&1
 
 %.hxml: %.hsal hybridsal2xml/hybridsal2xml hybridsal2xml/HybridSal2Xml.class 
 	hybridsal2xml/hybridsal2xml -o $@ $<
@@ -97,3 +115,6 @@ clean:
 
 cleanall:
 	rm -f ${HXMLS} $(EXPLS:.hsal=.hasal) $(EXPLS:.hsal=.haxml) $(EXPLS:.hsal=.xml) $(EXPLS:.hsal=.sal)
+
+print-%:
+	@echo '$*=$($*)'

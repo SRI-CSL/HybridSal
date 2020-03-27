@@ -1099,17 +1099,17 @@ def hsal2hxml(filename):
             if os.path.isfile(exefile):
                 return exefile
         print('Note: File {0} not found in PATH {1}.'.format(filename, exepaths))
-        # also search in CLASSPATH -- for jar files
+        return None
+    def checkclasspath(filename):
         if 'CLASSPATH' not in os.environ:
-          print('ERROR: File {0} not found in PATH {1}.'.format(filename, exepaths))
-          print('ERROR: Add path of the file to CLASSPATH.')
+          print('ERROR: Add path of file {0} to CLASSPATH.'.format(filename))
           return None
-        exepaths = os.environ['CLASSPATH'].split(os.path.pathsep)
-        for i in exepaths:
-            exefile = os.path.join(i, filename)
-            if os.path.isfile(exefile):
-                return exefile
-        print('ERROR: File {0} not found in CLASSPATH {1}.'.format(filename, exepaths))
+        classpaths = os.environ['CLASSPATH'].split(os.path.pathsep)
+        for i in classpaths:
+            jarfile = os.path.join(i, filename)
+            if os.path.isfile(jarfile):
+                return jarfile
+        print('ERROR: File {0} not found in CLASSPATH {1}.'.format(filename, classpaths))
         return None
     def getexe():
         folder = os.path.split(inspect.getfile( inspect.currentframe() ))[0]
@@ -1125,7 +1125,7 @@ def hsal2hxml(filename):
           return xmlfilename
         java = checkexe('java.exe' if sys.platform.startswith('win') else 'java')
         assert java != None, 'ERROR: java not found in PATH {0}'.format(os.environ['PATH'])
-        hybridsal2xml_jar = checkexe('hybridsal2xml.jar')
+        hybridsal2xml_jar = checkclasspath('hybridsal2xml.jar')
         assert hybridsal2xml_jar != None, 'ERROR: hybridsal2xml.jar not found in CLASSPATH'    # .format(os.environ['CLASSPATH'])
         ''' old code:
         hybridsal2xml = 'hybridsal2xml'
@@ -1302,7 +1302,8 @@ def main():
         print("Unable to parse HybridSal file. Quitting.")
         return 1
     ans = hxml2sal(xmlfilename, opt, time, ptf=ptf)
-    return ans
+    print(ans)
+    return 0
 
 if __name__ == '__main__':
     ret_code = main()

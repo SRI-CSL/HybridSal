@@ -1,0 +1,24 @@
+HybridSal now is able to translate specs to either Sal or Sally.  HybriSal
+first generates an abstract syntax in XML, and this is used to generate
+either Sal or Sally files.  Note that HybridSal is very close to Sal, with
+its expressive type system and module composition.  Sally is much more
+restrictive.
+
+Because of this, not all HybridSal files can be transformed.  In particular,
+ - Sally only supports the base types Bool, Real, and Integer.
+ - Module composition is not supported (modules can be flattened, in principle,
+   but it's not simple)
+ - definitions are not directly supported, they are basically expanded inline.
+   Note that recursive definitions are not supported at all.
+ - In principle, HybridSal could use general LTL operators, but at the moment,
+   all lemmas must have the form "system |- G(e)", where "system" is a module name,
+   and "e" is a safety property (has the meaning of always "e").
+
+The examples subdirectory has been used as the subset of HybridSal to
+support, with many exeptions.  In particular, module composition is not
+(yet) supported, and some examples don't currently run in Sal; they
+reference "loglb" and "logub", which do not seem to be defined anywhere.
+
+To use, you should install Sally (http://sri-csl.github.io/sally/) so that
+"sally" is in your path, and then use bin/hsal2hsally to create a .mcmt file
+which should be valid Sally syntax.

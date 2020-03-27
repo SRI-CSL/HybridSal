@@ -1,2 +1,2 @@
 #!/bin/sh
-java -jar /home/tiwari/hs-constraints/ashish-tools/hybridsal2xml.jar  $* 
+java -jar /home/owre/HybridSal/hybridsal2xml.jar  $* 

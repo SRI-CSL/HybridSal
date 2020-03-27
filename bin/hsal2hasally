@@ -1,2 +1,2 @@
 #!/bin/sh
-python  /home/owre/HybridSal/src/HSalRelAbsCons.py -sally $*
+python /home/owre/HybridSal/src/HSalRelAbsCons.py -sally $*
