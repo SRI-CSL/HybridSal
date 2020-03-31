@@ -62,7 +62,7 @@ def HSalPPLocalGlobalDecl(i, kind):
     print(kind + HSalPPDecls(i.childNodes, "", ""), file=fp)
 
 def HSalPPNameExpr(node):
-    global in_module
+    global in_module, inputs, stateVars
     if gen_sally:
         name = valueOf(node)
         if name in ['TRUE', 'FALSE']:
@@ -70,8 +70,10 @@ def HSalPPNameExpr(node):
         elif in_module:
             if name in inputs:
                 return 'input.' + name
-            else:
+            elif name in stateVars:
                 return 'state.' + name
+            else:
+                return name
         else:
             return name
     else:
@@ -163,10 +165,11 @@ def HSalPPApp(node,outerSymb=None):
         #     print(node.toxml())
         if op in defDecls:
             defn = defDecls[op]
-            enode = expandDefn(node, defn)
-            # print('after expandDefn: node = %s\n' % node.toxml())
-            # print('after expandDefn: enode = %s\n' % enode.toxml())
-            return HSalPPExpr(enode)
+            return expandDefn(node, defn)
+            # enode = expandDefn(node, defn)
+            # # print('after expandDefn: node = %s\n' % node.toxml())
+            # # print('after expandDefn: enode = %s\n' % enode.toxml())
+            # return HSalPPExpr(enode)
         else:
             str0 = "(" + op
             i = 1
@@ -186,18 +189,20 @@ def HSalPPApp(node,outerSymb=None):
             return HSalPPPrefixApp(node)
 
 def expandDefn(app, defn):
-    '''app is an App, with operator matching defn'''
+    '''app is an App, with operator matching defn
+    app:  op(args)
+    defn: op(dvars) = dbody
+    returns (let ((dv1 a1) ... (dvn an)) dbody)
+    '''
     dvars = collectVars(defn)
     args = collectArgs(app)
     dbody = getArg(defn, 4)
-    # print('expandDefn: defn = %s' % defn.toxml())
-    # print('expandDefn: childNodes = %s' % defn.childNodes)
-    # print('expandDefn: dvars = %s' % dvars)
-    # print('expandDefn: args = %s' % [a.toxml() for a in args])
-    # print('expandDefn: dbody = %s' % dbody.toxml())
     if len(dvars) == len(args):
-        substitute(args, dvars, dbody)
-        return dbody
+        str0 = '(let ('
+        for pair in zip(dvars, args):
+            str0 += '(%s %s)' % pair
+        str0 += ')' + HSalPPExpr(dbody) + ')'
+        return str0
     else:
         print((app.toxml()))
         print('Bad defn')
@@ -210,7 +215,7 @@ def collectArgs(app):
     if expr is None:
         print(('collectArgs: bad app %s' % app.toxml()))
     while expr:
-        args.append(expr)
+        args.append(HSalPPExpr(expr))
         i += 1
         expr = appArg(app, i)
     return args
@@ -781,18 +786,22 @@ def getModDeclType(nodeL, name):
 
 def getBaseModuleType(basemod, name):
     global fp
-    global inputs
+    global inputs, stateVars
     inputs = []
+    stateVars = []
     tname = name + '_state_type'
     print('\n(define-state-type %s\n  (;; State variables' % tname, file=fp)
     ldecls = basemod.getElementsByTagName("LOCALDECL")
     for i in ldecls:
+        stateVars += [getName(j) for j in i.childNodes if j.localName == "VARDECL"]
         sallyVarDecls(i) 
     ldecls = basemod.getElementsByTagName("GLOBALDECL")
     for i in ldecls:
+        stateVars += [getName(j) for j in i.childNodes if j.localName == "VARDECL"]
         sallyVarDecls(i) 
     ldecls = basemod.getElementsByTagName("OUTPUTDECL")
     for i in ldecls:
+        stateVars += [getName(j) for j in i.childNodes if j.localName == "VARDECL"]
         sallyVarDecls(i)
     print('  )\n  (;; Input variables', file=fp)
     ldecls = basemod.getElementsByTagName("INPUTDECL")

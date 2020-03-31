@@ -1048,9 +1048,6 @@ def hxml2sal(xmlfilename, optarg = 0, timearg = None, ptf=False):
         absSalFile = basename + ".mcmt"
     else:
         absSalFile = basename + ".sal"
-    if existsAndNew(absSalFile, xmlfilename):
-      print('Reusing existing abstract SAL file.')
-      return absSalFile, True
     dom = xml.dom.minidom.parse(xmlfilename)
     setDom(dom)
     ctxt = HSalPreProcess.handleContext(dom)
@@ -1121,8 +1118,8 @@ def hsal2hxml(filename):
         xmlfilename = filename
     elif ext == '.hsal':
         xmlfilename = basename + ".hxml"
-        if existsAndNew(xmlfilename, filename):
-          return xmlfilename
+        # if existsAndNew(xmlfilename, filename):
+        #   return xmlfilename
         java = checkexe('java.exe' if sys.platform.startswith('win') else 'java')
         assert java != None, 'ERROR: java not found in PATH {0}'.format(os.environ['PATH'])
         hybridsal2xml_jar = checkclasspath('hybridsal2xml.jar')
@@ -1149,8 +1146,8 @@ def hsal2hxml(filename):
 
 def moveIfExists(filename):
     if os.path.isfile(filename):
-        print("File %s exists." % filename,)
-        print("Renaming old file to %s." % filename+"~")
+        # print("File %s exists." % filename,)
+        # print("Renaming old file to %s." % filename+"~")
         shutil.move(filename, filename + "~")
 
 def printUsage():
@@ -1302,7 +1299,7 @@ def main():
         print("Unable to parse HybridSal file. Quitting.")
         return 1
     ans = hxml2sal(xmlfilename, opt, time, ptf=ptf)
-    print(ans)
+    #print(ans)
     return 0
 
 if __name__ == '__main__':
